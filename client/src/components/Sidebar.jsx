@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Menu, X,
   LayoutDashboard, List, PiggyBank, CreditCard,
-  BarChart2, TrendingUp, Settings, Upload, Wallet
+  BarChart2, TrendingUp, Settings, Upload, Wallet, Activity
 } from 'lucide-react';
 
 const NAV = [
@@ -12,6 +12,7 @@ const NAV = [
   { to: '/budgets',      label: 'Budgets',      icon: PiggyBank },
   { to: '/bills',        label: 'Bills & Subs', icon: CreditCard },
   { to: '/analytics',    label: 'Analytics',    icon: BarChart2 },
+  { to: '/trends',       label: 'Trends',        icon: Activity },
   { to: '/networth',     label: 'Net Worth',    icon: TrendingUp },
   { to: '/settings',     label: 'Settings',     icon: Settings },
   { to: '/import',       label: 'Import Data',  icon: Upload },
