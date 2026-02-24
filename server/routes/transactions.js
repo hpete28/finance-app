@@ -31,7 +31,10 @@ router.get('/', (req, res) => {
   }
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date) { where.push('t.date <= ?'); params.push(end_date); }
-  if (search) { where.push('UPPER(t.description) LIKE ?'); params.push(`%${search.toUpperCase()}%`); }
+  if (search) {
+    where.push("UPPER(COALESCE(NULLIF(TRIM(t.merchant_name), ''), t.description)) LIKE ?");
+    params.push(`%${search.toUpperCase()}%`);
+  }
   if (tag) { where.push("t.tags LIKE ?"); params.push(`%${tag}%`); }
   if (is_recurring === 'true') { where.push('t.is_recurring = 1'); }
   if (exclude_from_totals === 'true') { where.push('t.exclude_from_totals = 1'); }

@@ -170,7 +170,10 @@ router.get('/merchant-search', (req, res) => {
   const { q, start_date, end_date, account_id } = req.query;
   if (!q || q.length < 2) return res.json([]);
 
-  let where = ['exclude_from_totals = 0', `UPPER(description) LIKE ?`];
+  let where = [
+    'exclude_from_totals = 0',
+    `UPPER(COALESCE(NULLIF(TRIM(merchant_name), ''), description)) LIKE ?`
+  ];
   let params = [`%${q.toUpperCase()}%`];
   if (start_date) { where.push('date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('date <= ?'); params.push(end_date); }
