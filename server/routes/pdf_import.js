@@ -10,6 +10,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../database');
 const { categorize } = require('../services/categorizer');
 const { guessAccountFromFilename } = require('../services/csvParser');
+const { recordImportRun } = require('../services/importHistory');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -125,22 +126,34 @@ router.post('/import', upload.array('files'), async (req, res) => {
         continue;
       }
 
-      const insert   = db.prepare(`INSERT OR IGNORE INTO transactions (id, account_id, date, description, amount, category_id, tags) VALUES (?, ?, ?, ?, ?, ?, '[]')`);
-      const checkDup = db.prepare(`SELECT id FROM transactions WHERE account_id = ? AND date = ? AND description = ? AND amount = ?`);
+      const insert   = db.prepare(`INSERT INTO transactions (id, account_id, date, description, amount, category_id, tags) VALUES (?, ?, ?, ?, ?, ?, '[]')`);
 
       let imported = 0, skipped = 0;
+      let fromDate = null, toDate = null;
       db.transaction(() => {
         for (const row of (parsed.transactions || [])) {
           if (!row.Date || !row.Description) { skipped++; continue; }
-          if (checkDup.get(account.id, row.Date, row.Description, row.Amount)) { skipped++; continue; }
           const cat = categorize(row.Description);
           insert.run(uuidv4(), account.id, row.Date, row.Description, row.Amount, cat ? cat.category_id : null);
           imported++;
+          if (!fromDate || row.Date < fromDate) fromDate = row.Date;
+          if (!toDate || row.Date > toDate) toDate = row.Date;
         }
       })();
 
       const bal = db.prepare(`SELECT COALESCE(SUM(amount),0) as b FROM transactions WHERE account_id = ?`).get(account.id);
       db.prepare(`UPDATE accounts SET balance = ? WHERE id = ?`).run(bal.b, account.id);
+
+      recordImportRun({
+        source: 'pdf',
+        accountId: account.id,
+        accountName,
+        fileName: file.originalname,
+        importedCount: imported,
+        totalCount: parsed.count,
+        fromDate,
+        toDate,
+      });
 
       results.push({ file: file.originalname, account: accountName, imported, skipped, total: parsed.count });
     } catch (err) {

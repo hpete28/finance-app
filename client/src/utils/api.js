@@ -93,6 +93,11 @@ export const uploadApi = {
   },
 };
 
+
+export const importHistoryApi = {
+  list: (limit = 25) => api.get('/import-history', { params: { limit } }),
+};
+
 // Health
 export const healthApi = { check: () => api.get('/health') };
 
