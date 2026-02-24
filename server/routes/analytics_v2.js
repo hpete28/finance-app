@@ -251,7 +251,7 @@ router.get('/subscription-creep', (req, res) => {
 
     // For each pattern, compute month-by-month to detect creep
     const enriched = patterns.map(p => {
-      const merchantName = p.merchant || p.description || '';
+      const merchantName = p.description_pattern || p.merchant || p.description || '';
       const safeName = merchantName.replace(/'/g, "''");
 
       const monthly = db.prepare(`
