@@ -50,6 +50,15 @@ function parseCSV(buffer) {
   }).filter(r => r.date && r.description);
 }
 
+function countCSVRows(buffer) {
+  return parse(buffer, {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+    bom: true,
+  }).length;
+}
+
 function normalizeDate(raw) {
   if (!raw) return null;
   // Already YYYY-MM-DD
@@ -75,6 +84,7 @@ function importCSV(filename, buffer, accountNameOverride) {
   const account = db.prepare(`SELECT id FROM accounts WHERE name = ?`).get(accountName);
   if (!account) throw new Error(`Account not found: "${accountName}"`);
 
+  const totalRows = countCSVRows(buffer);
   const rows = parseCSV(buffer);
   const insert = db.prepare(`
     INSERT INTO transactions
@@ -83,14 +93,12 @@ function importCSV(filename, buffer, accountNameOverride) {
   `);
 
   let imported = 0;
-  let skipped = 0;
+  let skipped = Math.max(totalRows - rows.length, 0);
   let fromDate = null;
   let toDate = null;
 
   const bulk = db.transaction(() => {
     for (const row of rows) {
-      if (!row.date || !row.description) { skipped++; continue; }
-
       const catResult = categorize(row.description);
       const txId = uuidv4();
       insert.run(txId, account.id, row.date, row.description, row.amount,
@@ -116,12 +124,12 @@ function importCSV(filename, buffer, accountNameOverride) {
     accountName,
     fileName: filename,
     importedCount: imported,
-    totalCount: rows.length,
+    totalCount: totalRows,
     fromDate,
     toDate,
   });
 
-  return { imported, skipped, total: rows.length, account: accountName };
+  return { imported, skipped, total: totalRows, account: accountName };
 }
 
 module.exports = { importCSV, parseCSV, ACCOUNT_MAP, guessAccountFromFilename };
