@@ -10,7 +10,7 @@ router.get('/', (req, res) => {
            (SELECT COUNT(*) FROM transactions t WHERE t.category_id = c.id) as tx_count
     FROM categories c
     LEFT JOIN categories p ON p.id = c.parent_id
-    ORDER BY c.name ASC COLLATE NOCASE
+    ORDER BY c.name COLLATE NOCASE ASC
   `).all();
   res.json(cats);
 });

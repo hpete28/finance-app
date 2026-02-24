@@ -56,7 +56,8 @@ router.post('/apply', (req, res) => {
 // POST /api/rules/learn — auto-generate rules from manually categorized transactions
 router.post('/learn', (req, res) => {
   const db = getDb();
-  const minCount = parseInt(req.body.min_count) || 2;
+  const minCount = Math.max(2, parseInt(req.body.min_count) || 3);
+  const maxNewRules = Math.min(100, Math.max(10, parseInt(req.body.max_new_rules) || 60));
 
   // Find description patterns that always map to the same category
   // Only look at manually categorized transactions (not just auto-categorized would require a flag,
@@ -74,7 +75,7 @@ router.post('/learn', (req, res) => {
     GROUP BY UPPER(t.description), t.category_id
     HAVING COUNT(*) >= ?
     ORDER BY count DESC
-    LIMIT 500
+    LIMIT 1000
   `).all(minCount);
 
   const existingKeywords = new Set(
@@ -88,10 +89,22 @@ router.post('/learn', (req, res) => {
     VALUES (?, 'contains_case_insensitive', ?, 5)
   `);
 
+  const normalizeKeyword = (description) => {
+    const cleaned = description
+      .toUpperCase()
+      .replace(/[0-9]{2,}/g, ' ')
+      .replace(/[#*]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (cleaned.length < 4) return '';
+    if (/^[0-9\s\-]+$/.test(cleaned)) return '';
+    return cleaned.slice(0, 32);
+  };
+
   db.transaction(() => {
     for (const p of patterns) {
-      // Use first 40 chars of description as keyword
-      const kw = p.description.trim().slice(0, 40).toUpperCase();
+      if (created >= maxNewRules) break;
+      const kw = normalizeKeyword(p.description);
       if (!kw || existingKeywords.has(kw)) { skipped++; continue; }
       insert.run(kw, p.category_id);
       existingKeywords.add(kw);
@@ -99,7 +112,7 @@ router.post('/learn', (req, res) => {
     }
   })();
 
-  res.json({ created, skipped, analyzed });
+  res.json({ created, skipped, analyzed, capped_at: maxNewRules, min_count: minCount });
 });
 
 module.exports = router;
