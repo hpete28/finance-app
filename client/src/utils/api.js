@@ -11,7 +11,10 @@ export const transactionsApi = {
   list: (params) => api.get('/transactions', { params }),
   get: (id) => api.get(`/transactions/${id}`),
   update: (id, data) => api.patch(`/transactions/${id}`, data),
+  delete: (id) => api.delete(`/transactions/${id}`),
   bulk: (data) => api.post('/transactions/bulk', data),
+  bulkDelete: (ids) => api.delete('/transactions/bulk', { data: { ids } }),
+  restore: (transactions) => api.post('/transactions/restore', { transactions }),
   split: (id, splits) => api.post(`/transactions/${id}/split`, { splits }),
   monthlySummary: (params) => api.get('/transactions/summary/monthly', { params }),
 };

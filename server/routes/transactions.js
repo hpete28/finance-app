@@ -262,4 +262,97 @@ router.post('/:id/split', (req, res) => {
   res.json({ ok: true, splits: splits.length });
 });
 
+// DELETE /api/transactions/bulk — permanently delete selected transactions
+router.delete('/bulk', (req, res) => {
+  const db = getDb();
+  const { ids } = req.body || {};
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'No IDs provided' });
+
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = db.prepare(`SELECT * FROM transactions WHERE id IN (${placeholders})`).all(...ids);
+  if (!rows.length) return res.json({ deleted_count: 0, deleted: [] });
+
+  const splitRows = db.prepare(`SELECT * FROM transaction_splits WHERE transaction_id IN (${placeholders})`).all(...ids);
+  const splitMap = new Map();
+  splitRows.forEach((sp) => {
+    const list = splitMap.get(sp.transaction_id) || [];
+    list.push(sp);
+    splitMap.set(sp.transaction_id, list);
+  });
+
+  db.prepare(`DELETE FROM transactions WHERE id IN (${placeholders})`).run(...ids);
+
+  const deleted = rows.map(tx => ({
+    ...tx,
+    tags: JSON.parse(tx.tags || '[]'),
+    splits: splitMap.get(tx.id) || []
+  }));
+
+  res.json({ deleted_count: deleted.length, deleted });
+});
+
+// DELETE /api/transactions/:id — permanently delete a single transaction
+router.delete('/:id', (req, res) => {
+  const db = getDb();
+  const tx = db.prepare(`SELECT * FROM transactions WHERE id = ?`).get(req.params.id);
+  if (!tx) return res.status(404).json({ error: 'Transaction not found' });
+
+  const splits = db.prepare(`SELECT * FROM transaction_splits WHERE transaction_id = ?`).all(req.params.id);
+  db.prepare(`DELETE FROM transactions WHERE id = ?`).run(req.params.id);
+
+  res.json({ deleted: { ...tx, tags: JSON.parse(tx.tags || '[]'), splits } });
+});
+
+// POST /api/transactions/restore — restore previously deleted transactions
+router.post('/restore', (req, res) => {
+  const db = getDb();
+  const { transactions } = req.body || {};
+  if (!Array.isArray(transactions) || !transactions.length) {
+    return res.status(400).json({ error: 'No transactions provided' });
+  }
+
+  const insertTx = db.prepare(`
+    INSERT OR REPLACE INTO transactions (
+      id, account_id, date, description, amount, category_id, tags, notes,
+      is_transfer, is_recurring, reviewed, created_at, is_income_override,
+      exclude_from_totals, merchant_name
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const deleteSplits = db.prepare(`DELETE FROM transaction_splits WHERE transaction_id = ?`);
+  const insertSplit = db.prepare(`
+    INSERT INTO transaction_splits (transaction_id, category_id, amount, notes)
+    VALUES (?, ?, ?, ?)
+  `);
+
+  const restore = db.transaction(() => {
+    transactions.forEach((tx) => {
+      insertTx.run(
+        tx.id,
+        tx.account_id,
+        tx.date,
+        tx.description,
+        tx.amount,
+        tx.category_id || null,
+        JSON.stringify(tx.tags || []),
+        tx.notes || null,
+        tx.is_transfer ? 1 : 0,
+        tx.is_recurring ? 1 : 0,
+        tx.reviewed ? 1 : 0,
+        tx.created_at,
+        tx.is_income_override ? 1 : 0,
+        tx.exclude_from_totals ? 1 : 0,
+        tx.merchant_name || null,
+      );
+
+      deleteSplits.run(tx.id);
+      (tx.splits || []).forEach((sp) => {
+        insertSplit.run(tx.id, sp.category_id, sp.amount, sp.notes || null);
+      });
+    });
+  });
+
+  restore();
+  res.json({ restored: transactions.length });
+});
+
 module.exports = router;
