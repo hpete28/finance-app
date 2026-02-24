@@ -1,6 +1,15 @@
 // server/services/categorizer.js
 const { getDb } = require('../database');
 
+function normalizeForMatching(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /**
  * Loads all rules from DB (rules table) ordered by priority DESC.
  * Also supports in-memory rules from the JSON file (bootstrapped on import).
@@ -22,29 +31,31 @@ function getRules() {
  */
 function categorize(description, rulesOverride = null) {
   const rules = rulesOverride || getRules();
-  const desc = description.toUpperCase();
+  const rawDesc = String(description || '');
+  const normalizedDesc = normalizeForMatching(rawDesc);
 
   for (const rule of rules) {
-    const keyword = rule.keyword.toUpperCase();
+    const rawKeyword = String(rule.keyword || '');
+    const normalizedKeyword = normalizeForMatching(rawKeyword);
     let matched = false;
 
     switch (rule.match_type) {
       case 'contains_case_insensitive':
-        matched = desc.includes(keyword);
+        matched = normalizedKeyword.length > 0 && normalizedDesc.includes(normalizedKeyword);
         break;
       case 'starts_with':
-        matched = desc.startsWith(keyword);
+        matched = normalizedKeyword.length > 0 && normalizedDesc.startsWith(normalizedKeyword);
         break;
       case 'exact':
-        matched = desc === keyword;
+        matched = normalizedDesc === normalizedKeyword;
         break;
       case 'regex':
         try {
-          matched = new RegExp(rule.keyword, 'i').test(description);
+          matched = new RegExp(rawKeyword, 'i').test(rawDesc);
         } catch (e) { matched = false; }
         break;
       default:
-        matched = desc.includes(keyword);
+        matched = normalizedKeyword.length > 0 && normalizedDesc.includes(normalizedKeyword);
     }
 
     if (matched) {
@@ -195,4 +206,4 @@ function detectRecurring() {
   `).all();
 }
 
-module.exports = { categorize, seedRulesFromJson, recategorizeAll, detectRecurring, getRules };
+module.exports = { categorize, seedRulesFromJson, recategorizeAll, detectRecurring, getRules, normalizeForMatching };

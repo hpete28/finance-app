@@ -1,7 +1,7 @@
 // src/pages/Settings.jsx
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Play, DollarSign, Building2, Pencil, Check, X, Zap, RefreshCw, Tag } from 'lucide-react';
-import { categoriesApi, rulesApi } from '../utils/api';
+import { categoriesApi, rulesApi, tagRulesApi } from '../utils/api';
 import { Card, Modal, SectionHeader, Badge, EmptyState, Spinner } from '../components/ui';
 import useAppStore from '../stores/appStore';
 
@@ -182,13 +182,23 @@ function CategoriesTab() {
 function RulesTab() {
   const { showToast } = useAppStore();
   const [rules, setRules] = useState([]);
+  const [tagRules, setTagRules] = useState([]);
   const [cats, setCats]   = useState([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [showAddTagRule, setShowAddTagRule] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [applyingTags, setApplyingTags] = useState(false);
   const [form, setForm] = useState({ keyword: '', match_type: 'contains_case_insensitive', category_id: '', priority: 10 });
+  const [tagForm, setTagForm] = useState({ keyword: '', match_type: 'contains_case_insensitive', tag: '', priority: 10 });
 
-  const load = () => rulesApi.list().then(r => setRules(r.data));
-  useEffect(() => { load(); categoriesApi.list().then(r => setCats(r.data)); }, []);
+  const load = () => Promise.all([
+    rulesApi.list().then(r => setRules(r.data)),
+    tagRulesApi.list().then(r => setTagRules(r.data)),
+  ]);
+  useEffect(() => {
+    load();
+    categoriesApi.list().then(r => setCats(r.data));
+  }, []);
 
   const handleAdd = async () => {
     if (!form.keyword || !form.category_id) return;
@@ -198,6 +208,7 @@ function RulesTab() {
   };
 
   const handleDelete = async (id) => { await rulesApi.delete(id); load(); showToast('🗑 Rule deleted'); };
+  const handleDeleteTagRule = async (id) => { await tagRulesApi.delete(id); load(); showToast('🗑 Tag rule deleted'); };
 
   const handleApply = async () => {
     setApplying(true);
@@ -205,6 +216,23 @@ function RulesTab() {
       const res = await rulesApi.apply(false);
       showToast(`⚡ Applied to ${res.data.categorized} transactions`);
     } finally { setApplying(false); }
+  };
+
+  const handleAddTagRule = async () => {
+    if (!tagForm.keyword || !tagForm.tag) return;
+    await tagRulesApi.create(tagForm);
+    setShowAddTagRule(false);
+    setTagForm({ keyword: '', match_type: 'contains_case_insensitive', tag: '', priority: 10 });
+    load();
+    showToast('✅ Tag rule created');
+  };
+
+  const handleApplyTagRules = async () => {
+    setApplyingTags(true);
+    try {
+      const res = await tagRulesApi.apply(false);
+      showToast(`🏷️ Tagged ${res.data.tagged} transactions`);
+    } finally { setApplyingTags(false); }
   };
 
   const matchLabels = {
@@ -250,6 +278,42 @@ function RulesTab() {
         ))}
       </div>
 
+      <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
+        <SectionHeader title="🏷️ Tag Rules" subtitle={`${tagRules.length} active tag rules · append tags by keyword match`}
+          actions={
+            <div className="flex gap-2">
+              <button className="btn-secondary text-xs flex items-center gap-1.5" onClick={handleApplyTagRules} disabled={applyingTags}>
+                {applyingTags ? <Spinner size={12} /> : <RefreshCw size={12} />}
+                {applyingTags ? 'Applying…' : 'Apply tags'}
+              </button>
+              <button className="btn-primary text-xs flex items-center gap-1.5" onClick={() => setShowAddTagRule(true)}>
+                <Tag size={12} /> Add Tag Rule
+              </button>
+            </div>
+          } />
+
+        <div className="mt-4 space-y-1.5">
+          {tagRules.length === 0 && <EmptyState icon={Tag} title="No tag rules yet" description="Create tag rules to add detail labels automatically." />}
+          {tagRules.map(r => (
+            <div key={r.id} className="flex items-center justify-between px-4 py-3 rounded-xl"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-3 min-w-0">
+                <Badge className="text-xs">{r.tag}</Badge>
+                <span className="font-mono text-sm" style={{ color: 'var(--text-primary)' }}>{r.keyword}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-card-hover)', color: 'var(--text-muted)' }}>
+                  {matchLabels[r.match_type] || r.match_type}
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>priority {r.priority}</span>
+              </div>
+              <button className="p-1.5 rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-400 shrink-0"
+                style={{ color: 'var(--text-muted)' }} onClick={() => handleDeleteTagRule(r.id)}>
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="➕ Add Categorization Rule" size="sm">
         <div className="space-y-4">
           <div>
@@ -281,6 +345,39 @@ function RulesTab() {
           <div className="flex gap-2 justify-end pt-2">
             <button className="btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
             <button className="btn-primary" onClick={handleAdd}>Add Rule</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showAddTagRule} onClose={() => setShowAddTagRule(false)} title="➕ Add Tag Rule" size="sm">
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Keyword / Pattern</label>
+            <input className="input font-mono" placeholder="e.g. REBATE"
+              value={tagForm.keyword} onChange={e => setTagForm(f => ({...f, keyword: e.target.value}))} autoFocus />
+          </div>
+          <div>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Tag label</label>
+            <input className="input" placeholder="e.g. cashback"
+              value={tagForm.tag} onChange={e => setTagForm(f => ({...f, tag: e.target.value}))} />
+          </div>
+          <div>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Match type</label>
+            <select className="select w-full" value={tagForm.match_type} onChange={e => setTagForm(f => ({...f, match_type: e.target.value}))}>
+              <option value="contains_case_insensitive">Contains (case-insensitive) — recommended</option>
+              <option value="starts_with">Starts with</option>
+              <option value="exact">Exact match</option>
+              <option value="regex">Regex</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Priority (higher = checked first)</label>
+            <input className="input" type="number" min={1} max={100} value={tagForm.priority}
+              onChange={e => setTagForm(f => ({...f, priority: parseInt(e.target.value) || 10}))} />
+          </div>
+          <div className="flex gap-2 justify-end pt-2">
+            <button className="btn-secondary" onClick={() => setShowAddTagRule(false)}>Cancel</button>
+            <button className="btn-primary" onClick={handleAddTagRule}>Add Tag Rule</button>
           </div>
         </div>
       </Modal>

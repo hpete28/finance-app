@@ -26,6 +26,7 @@ getDb(); // Runs schema init
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/categories',   require('./routes/categories'));
 app.use('/api/rules',        require('./routes/rules'));
+app.use('/api/tag-rules',    require('./routes/tag_rules'));
 app.use('/api/budgets',      require('./routes/budgets'));
 app.use('/api/analytics', require('./routes/analytics_v2'));
 app.use('/api/analytics', require('./routes/analytics_summary'));

@@ -18,10 +18,11 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const db = getDb();
   const { keyword, match_type = 'contains_case_insensitive', category_id, priority = 10 } = req.body;
-  if (!keyword || !category_id) return res.status(400).json({ error: 'keyword and category_id required' });
+  const trimmedKeyword = String(keyword || '').trim();
+  if (!trimmedKeyword || !category_id) return res.status(400).json({ error: 'keyword and category_id required' });
   const info = db.prepare(`
     INSERT INTO rules (keyword, match_type, category_id, priority) VALUES (?, ?, ?, ?)
-  `).run(keyword, match_type, category_id, priority);
+  `).run(trimmedKeyword, match_type, category_id, priority);
   res.json({ id: info.lastInsertRowid });
 });
 
@@ -35,7 +36,7 @@ router.patch('/:id', (req, res) => {
       category_id= COALESCE(?, category_id),
       priority   = COALESCE(?, priority)
     WHERE id = ?
-  `).run(keyword, match_type, category_id, priority, req.params.id);
+  `).run(keyword ? String(keyword).trim() : null, match_type, category_id, priority, req.params.id);
   res.json({ ok: true });
 });
 

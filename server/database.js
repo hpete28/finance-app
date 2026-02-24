@@ -50,6 +50,17 @@ function initSchema() {
       created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
+
+    -- Tagging rules engine
+    CREATE TABLE IF NOT EXISTS tag_rules (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      keyword       TEXT    NOT NULL,
+      match_type    TEXT    NOT NULL DEFAULT 'contains_case_insensitive',
+      tag           TEXT    NOT NULL,
+      priority      INTEGER NOT NULL DEFAULT 10,
+      created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+
     -- Core transactions table
     CREATE TABLE IF NOT EXISTS transactions (
       id            TEXT    PRIMARY KEY,
@@ -137,6 +148,7 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_transactions_account    ON transactions(account_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_category   ON transactions(category_id);
     CREATE INDEX IF NOT EXISTS idx_budgets_month           ON budgets(month);
+    CREATE INDEX IF NOT EXISTS idx_tag_rules_priority      ON tag_rules(priority DESC);
 
     CREATE TABLE IF NOT EXISTS import_runs (
       id              INTEGER PRIMARY KEY AUTOINCREMENT,
