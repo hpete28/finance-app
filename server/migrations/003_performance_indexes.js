@@ -59,7 +59,7 @@ db.exec(`
 
   -- ── Recurring patterns ────────────────────────────────────────────────────
   CREATE INDEX IF NOT EXISTS idx_recurring_patterns_merchant
-    ON recurring_patterns(description);
+    ON recurring_patterns(description_pattern);
 `);
 
 // ── Monthly summary table (materialized view pattern) ─────────────────────────
