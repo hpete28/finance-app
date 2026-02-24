@@ -8,3 +8,21 @@ build/
 server/finance.db*
 server/data/
 server/default_rules.json
+
+# env/secrets
+.env
+.env.*
+!.env.example
+
+# sqlite / local data
+*.db
+*.sqlite
+*.sqlite3
+*-wal
+*-shm
+
+# logs / temp
+logs/
+*.log
+tmp/
+uploads/
