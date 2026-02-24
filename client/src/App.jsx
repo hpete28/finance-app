@@ -16,6 +16,7 @@ import Analytics    from './pages/Analytics';
 import NetWorth     from './pages/NetWorth';
 import Settings     from './pages/Settings';
 import Import       from './pages/Import';
+import Trends       from './pages/Trends';
 
 function MonthSelector() {
   const { selectedMonth, setMonth } = useAppStore();
@@ -87,6 +88,7 @@ export default function App() {
           <Route path="/budgets"      element={<Budgets />} />
           <Route path="/bills"        element={<Bills />} />
           <Route path="/analytics"    element={<Analytics />} />
+          <Route path="/trends"       element={<Trends />} />
           <Route path="/networth"     element={<NetWorth />} />
           <Route path="/settings"     element={<Settings />} />
           <Route path="/import"       element={<Import />} />

@@ -189,3 +189,194 @@
     to   { opacity: 1; transform: none; }
   }
 }
+/* ── Additions to append to client/src/index.css ──────────────────────────── */
+/* PATCH: Add after existing @layer components block */
+
+@layer components {
+
+  /* ── Accessibility: focus-visible ring ─────────────────────────────────── */
+  *:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ── Typography scale ───────────────────────────────────────────────────── */
+  .text-display {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+  }
+
+  .text-headline {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+  }
+
+  .text-subhead {
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--text-primary);
+  }
+
+  .text-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+  }
+
+  .text-body {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+
+  /* ── Spacing utilities ───────────────────────────────────────────────────── */
+  .page-padding { @apply px-4 sm:px-6 lg:px-8; }
+  .section-gap  { @apply mt-6 mb-4; }
+  .card-gap     { @apply gap-3 sm:gap-4; }
+
+  /* ── Enhanced card ───────────────────────────────────────────────────────── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow);
+  }
+
+  .card-hover {
+    transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .card-hover:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    transform: translateY(-1px);
+  }
+
+  /* ── Sticky table enhancements ───────────────────────────────────────────── */
+  .sticky-thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-strong);
+    user-select: none;
+  }
+
+  .sticky-thead th:after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border-strong);
+  }
+
+  /* ── Filter chip ────────────────────────────────────────────────────────── */
+  .chip {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+
+  .chip:hover {
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+
+  .chip-active {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── Amount display ──────────────────────────────────────────────────────── */
+  .amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.875rem;
+  }
+  .amount-lg {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* ── Skeleton pulse ──────────────────────────────────────────────────────── */
+  @keyframes skeletonPulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  .skeleton {
+    background: var(--border);
+    border-radius: 4px;
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+  }
+
+  /* ── Anomaly flag ────────────────────────────────────────────────────────── */
+  .anomaly-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    color: #fbbf24;
+  }
+
+  /* ── Trend line miniature (sparkline container) ───────────────────────────── */
+  .sparkline-container {
+    @apply flex items-end gap-0.5;
+    height: 24px;
+  }
+
+  .sparkline-bar {
+    flex: 1;
+    min-width: 3px;
+    border-radius: 2px 2px 0 0;
+    background: var(--accent);
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+
+  .sparkline-bar:hover {
+    opacity: 1;
+  }
+
+  /* ── Drilldown panel ────────────────────────────────────────────────────── */
+  .drilldown-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── WCAG contrast helpers ───────────────────────────────────────────────── */
+  /* Ensure text on dark cards meets 4.5:1 minimum */
+  .contrast-primary { color: var(--text-primary); }   /* ≥ 7:1 */
+  .contrast-secondary { color: var(--text-secondary); } /* ≥ 4.5:1 */
+  .contrast-muted { color: var(--text-muted); }         /* ≥ 3:1 - decorative only */
+
+  /* ── Mobile responsive table ───────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .table-hide-mobile { display: none !important; }
+    .amount { font-size: 0.8125rem; }
+  }
+}
