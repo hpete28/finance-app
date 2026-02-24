@@ -31,13 +31,18 @@ export function formatMonth(monthStr) {
 }
 
 export function currentMonth() {
-  return new Date().toISOString().slice(0, 7);
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
 }
 
 export function monthsBack(n) {
   const d = new Date();
   d.setMonth(d.getMonth() - n);
-  return d.toISOString().slice(0, 7);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
 }
 
 export function classNames(...classes) {

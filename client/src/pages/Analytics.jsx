@@ -1,6 +1,6 @@
 // src/pages/Analytics.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { analyticsApi, categoriesApi, transactionsApi } from '../utils/api';
 import { formatCurrency, formatMonth, formatDate, amountClass } from '../utils/format';
 import { Card, SectionHeader, EmptyState, Spinner, Badge, Modal } from '../components/ui';
@@ -13,6 +13,82 @@ import {
 import useAppStore from '../stores/appStore';
 
 const COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#3b82f6','#ec4899','#14b8a6','#84cc16','#f97316'];
+
+const PRESETS = [
+  { label: 'This month', preset: 'this_month' },
+  { label: 'Last month', preset: 'last_month' },
+  { label: 'Last 3 months', days: 90 },
+  { label: 'Last 6 months', days: 180 },
+  { label: 'This year', preset: 'this_year' },
+  { label: 'Last year', preset: 'last_year' },
+  { label: 'All time', preset: 'all' },
+];
+
+function getPresetDates(preset, days) {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  if (days) {
+    const s = new Date(now); s.setDate(s.getDate() - days);
+    return { start: fmt(s), end: fmt(now) };
+  }
+  switch (preset) {
+    case 'this_month': return { start: `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`, end: fmt(now) };
+    case 'last_month': {
+      const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const e = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { start: fmt(d), end: fmt(e) };
+    }
+    case 'this_year': return { start: `${now.getFullYear()}-01-01`, end: fmt(now) };
+    case 'last_year': return { start: `${now.getFullYear()-1}-01-01`, end: `${now.getFullYear()-1}-12-31` };
+    case 'all': return { start: '2000-01-01', end: fmt(now) };
+    default: return { start: '', end: '' };
+  }
+}
+
+function QuickRangePicker({ startDate, endDate, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef();
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const label = startDate && endDate ? `${startDate} → ${endDate}` : startDate ? `From ${startDate}` : 'All dates';
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(!open)} className="btn-secondary text-xs flex items-center gap-1.5">
+        <Calendar size={12} /> {label}
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 rounded-xl shadow-2xl p-4 min-w-72 animate-slide-up"
+          style={{ background: 'var(--bg-card)', border: '1px solid rgba(99,102,241,0.3)' }}>
+          <p className="section-title mb-2">Quick select</p>
+          <div className="grid grid-cols-2 gap-1 mb-4">
+            {PRESETS.map(p => (
+              <button key={p.label}
+                onClick={() => { const d = getPresetDates(p.preset, p.days); onChange(d.start, d.end); setOpen(false); }}
+                className="px-2 py-1.5 rounded-lg text-xs text-left text-slate-300 hover:text-white transition-colors"
+                style={{ background: 'rgba(255,255,255,0.04)' }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <p className="section-title mb-2">Custom range</p>
+          <div className="flex items-center gap-2">
+            <input type="date" className="input text-xs flex-1" value={startDate} onChange={e => onChange(e.target.value, endDate)} />
+            <span className="text-slate-600 text-xs">to</span>
+            <input type="date" className="input text-xs flex-1" value={endDate} onChange={e => onChange(startDate, e.target.value)} />
+          </div>
+          <button className="btn-primary w-full mt-3 text-xs" onClick={() => setOpen(false)}>Apply</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -196,11 +272,12 @@ function TransactionPanel({ month, categoryId, categoryName, startDate, endDate,
 // ─── Category Drill-Down ───────────────────────────────────────────────────────
 function CategoryDrillDown() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState([]);
-  const [selectedCat, setSelectedCat] = useState('');
+  const [selectedCat, setSelectedCat] = useState(searchParams.get('cd_cat') || '');
   const [selectedCatName, setSelectedCatName] = useState('');
-  const [startDate, setStartDate]     = useState('');
-  const [endDate, setEndDate]         = useState('');
+  const [startDate, setStartDate]     = useState(searchParams.get('cd_start') || '');
+  const [endDate, setEndDate]         = useState(searchParams.get('cd_end') || '');
   const [data, setData]               = useState(null);
   const [loading, setLoading]         = useState(false);
   const [clickedBar, setClickedBar]   = useState(null); // { month, label }
@@ -241,6 +318,14 @@ function CategoryDrillDown() {
     setSelectedCatName(cat ? cat.name : val === 'uncategorized' ? 'Uncategorized' : '');
   };
 
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (selectedCat) p.set('cd_cat', selectedCat); else p.delete('cd_cat');
+    if (startDate) p.set('cd_start', startDate); else p.delete('cd_start');
+    if (endDate) p.set('cd_end', endDate); else p.delete('cd_end');
+    setSearchParams(p, { replace: true });
+  }, [selectedCat, startDate, endDate, setSearchParams]);
+
   const goToFullTransactions = () => {
     const params = new URLSearchParams();
     if (selectedCat && selectedCat !== 'uncategorized') params.set('category_id', selectedCat);
@@ -259,19 +344,15 @@ function CategoryDrillDown() {
           <option value="uncategorized">⬜ Uncategorized</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <input type="date" className="input w-36 text-xs" value={startDate} onChange={e => setStartDate(e.target.value)} />
-        <span className="text-slate-600 text-xs">to</span>
-        <input type="date" className="input w-36 text-xs" value={endDate} onChange={e => setEndDate(e.target.value)} />
+        <QuickRangePicker startDate={startDate} endDate={endDate} onChange={(s, e) => { setStartDate(s); setEndDate(e); }} />
         <div className="flex items-center gap-1">
-          {[2019,2020,2021,2022,2023,2024,2025].map(y => (
+          {[2023,2024,2025,2026].map(y => (
             <button key={y} onClick={() => setYear(y)}
               className={`px-2 py-0.5 rounded text-xs font-mono transition-colors ${
                 startDate === `${y}-01-01` && endDate === `${y}-12-31`
                   ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'
               }`}>{y}</button>
           ))}
-          <button onClick={() => { setStartDate(''); setEndDate(''); }}
-            className="px-2 py-0.5 rounded text-xs text-slate-600 hover:text-slate-300">All</button>
         </div>
         {selectedCat && data && (
           <button onClick={goToFullTransactions}
@@ -553,23 +634,43 @@ function YearSummary() {
 // ─── Monthly Breakdown ─────────────────────────────────────────────────────────
 function MonthlyBreakdown({ month }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData]     = useState([]);
   const [view, setView]     = useState('bar');
-  const [clickedCat, setClickedCat] = useState(null);
+  const [startDate, setStartDate] = useState(searchParams.get('mb_start') || '');
+  const [endDate, setEndDate] = useState(searchParams.get('mb_end') || '');
 
   useEffect(() => {
-    analyticsApi.spendingByCategory({ month }).then(r => setData(r.data));
-    setClickedCat(null);
-  }, [month]);
+    const params = startDate || endDate
+      ? { start_date: startDate || undefined, end_date: endDate || undefined }
+      : { month };
+    analyticsApi.spendingByCategory(params).then(r => setData(r.data));
+  }, [month, startDate, endDate]);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (startDate) p.set('mb_start', startDate); else p.delete('mb_start');
+    if (endDate) p.set('mb_end', endDate); else p.delete('mb_end');
+    setSearchParams(p, { replace: true });
+  }, [startDate, endDate, setSearchParams]);
 
   if (!data.length) return <EmptyState icon={BarChart2} title="No spending data" />;
 
-  const goCat = (catId) => navigate(`/transactions?month=${month}${catId ? `&category_id=${catId}` : '&uncategorized=true'}&type=expense`);
+  const rangeQuery = startDate || endDate
+    ? `${startDate ? `&start_date=${startDate}` : ''}${endDate ? `&end_date=${endDate}` : ''}`
+    : `&month=${month}`;
+  const goCat = (catId) => navigate(`/transactions?type=expense${rangeQuery}${catId ? `&category_id=${catId}` : '&uncategorized=true'}`);
+  const showingLabel = startDate || endDate
+    ? `${startDate || '…'} → ${endDate || '…'}`
+    : formatMonth(month);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-slate-400">{formatMonth(month)} · {formatCurrency(data.reduce((s,d)=>s+d.total,0))} total</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-slate-400">{showingLabel} · {formatCurrency(data.reduce((s,d)=>s+d.total,0))} total</p>
+          <QuickRangePicker startDate={startDate} endDate={endDate} onChange={(s, e) => { setStartDate(s); setEndDate(e); }} />
+        </div>
         <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)' }}>
           {['bar','pie'].map(v => (
             <button key={v} onClick={() => setView(v)}
@@ -682,13 +783,20 @@ function CashFlow() {
 // ─── Top Merchants ─────────────────────────────────────────────────────────────
 function TopMerchants() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { selectedMonth } = useAppStore();
-  const [month, setMonth] = useState(selectedMonth);
+  const [month, setMonth] = useState(searchParams.get('merch_month') || selectedMonth);
   const [data, setData]   = useState([]);
 
   useEffect(() => {
     analyticsApi.topMerchants({ month, limit: 20 }).then(r => setData(r.data));
   }, [month]);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (month) p.set('merch_month', month);
+    setSearchParams(p, { replace: true });
+  }, [month, setSearchParams]);
 
   return (
     <div>
@@ -716,9 +824,10 @@ function TopMerchants() {
 // ─── Income Analysis ───────────────────────────────────────────────────────────
 function IncomeAnalysis() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const currentYear = new Date().getFullYear();
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate]     = useState(`${currentYear}-12-31`);
+  const [startDate, setStartDate] = useState(searchParams.get('inc_start') || `${currentYear}-01-01`);
+  const [endDate, setEndDate]     = useState(searchParams.get('inc_end') || `${currentYear}-12-31`);
   const [data, setData]           = useState(null);
   const [loading, setLoading]     = useState(false);
 
@@ -753,6 +862,13 @@ function IncomeAnalysis() {
         setLoading(false);
       });
   }, [startDate, endDate]);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (startDate) p.set('inc_start', startDate); else p.delete('inc_start');
+    if (endDate) p.set('inc_end', endDate); else p.delete('inc_end');
+    setSearchParams(p, { replace: true });
+  }, [startDate, endDate, setSearchParams]);
 
   const goToTx = (params = {}) => {
     const p = new URLSearchParams({ type: 'income', start_date: startDate, end_date: endDate, ...params });
@@ -874,7 +990,14 @@ function IncomeAnalysis() {
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export default function Analytics() {
   const { selectedMonth } = useAppStore();
-  const [activeTab, setActiveTab] = useState('category');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'category');
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    p.set('tab', activeTab);
+    setSearchParams(p, { replace: true });
+  }, [activeTab, setSearchParams]);
 
   const tabs = [
     { id: 'income',    label: '💰 Income' },
@@ -903,7 +1026,7 @@ export default function Analytics() {
 
       {activeTab === 'income' && (
         <Card className="p-5">
-          <SectionHeader title="Income Analysis" subtitle="Filtered to your defined income sources only · click any bar or row to see transactions" />
+          <SectionHeader title="Income Analysis" subtitle="Includes income sources, income categories, and manual income tags" />
           <IncomeAnalysis />
         </Card>
       )}
@@ -921,9 +1044,8 @@ export default function Analytics() {
             <div>
               <h2 className="text-base font-semibold text-slate-200">Spending Breakdown</h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Showing: <span className="text-indigo-300 font-medium">{formatMonth(selectedMonth)}</span>
-                {' '}· Use the <span className="text-slate-300">‹ ›</span> arrows at top right to change month
-                {' '}· Click any row or slice to see transactions
+                Default month: <span className="text-indigo-300 font-medium">{formatMonth(selectedMonth)}</span>
+                {' '}· Use quick date range for multi-month analysis · Click any row or slice to see transactions
               </p>
             </div>
           </div>

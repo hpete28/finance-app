@@ -50,19 +50,21 @@ router.get('/', (req, res) => {
   // Income-source filtering: only show transactions matching income_sources keywords
   if (req.query.type === 'income') {
     const sources = db.prepare('SELECT keyword, match_type FROM income_sources').all();
-    if (sources.length) {
-      const conds = sources.map(s => {
-        const kw = s.keyword.replace(/'/g, "''");
-        return s.match_type === 'exact'
-          ? `UPPER(t.description) = UPPER('${kw}')`
-          : `UPPER(t.description) LIKE UPPER('%${kw}%')`;
-      });
-      where.push(`t.amount > 0`);
-      where.push(`(${conds.join(' OR ')})`);
-    } else {
-      // No income sources defined — return nothing
-      where.push('1 = 0');
+    const conds = [
+      't.is_income_override = 1',
+      `EXISTS (SELECT 1 FROM categories ic WHERE ic.id = t.category_id AND ic.is_income = 1)`,
+    ];
+    for (const s of sources) {
+      if (s.match_type === 'exact') {
+        conds.push('UPPER(t.description) = UPPER(?)');
+        params.push(s.keyword);
+      } else {
+        conds.push('UPPER(t.description) LIKE UPPER(?)');
+        params.push(`%${s.keyword}%`);
+      }
     }
+    where.push('t.amount > 0');
+    where.push(`(${conds.join(' OR ')})`);
   } else if (req.query.type === 'expense') {
     where.push('t.amount < 0');
     // Exclude income-category transactions from expenses

@@ -355,7 +355,7 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
 export default function Transactions() {
   const { showToast } = useAppStore();
   const accounts = useAppStore(s => s.accounts);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [transactions, setTransactions] = useState([]);
   const [total, setTotal]   = useState(0);
@@ -378,7 +378,7 @@ export default function Transactions() {
   };
   const _initD = initDates();
 
-  const [page, setPage]                   = useState(1);
+  const [page, setPage]                   = useState(parseInt(searchParams.get('page') || '1'));
   const [search, setSearch]               = useState(searchParams.get('search') || '');
   const [filterCategory, setFilterCategory] = useState(
     searchParams.get('category_id') && searchParams.get('category_id') !== 'null'
@@ -391,9 +391,9 @@ export default function Transactions() {
   const [showUncategorized, setShowUncategorized] = useState(
     searchParams.get('uncategorized') === 'true' || searchParams.get('category_id') === 'null'
   );
-  const [sort, setSort]         = useState('date');
-  const [order, setOrder]       = useState('desc');
-  const [amountSearch, setAmountSearch] = useState('');  // live amount filter
+  const [sort, setSort]         = useState(searchParams.get('sort') || 'date');
+  const [order, setOrder]       = useState(searchParams.get('order') || 'desc');
+  const [amountSearch, setAmountSearch] = useState(searchParams.get('amount_search') || '');  // live amount filter
 
   const [selected, setSelected]     = useState(new Set());
   const [splitTx, setSplitTx]       = useState(null);
@@ -432,6 +432,26 @@ export default function Transactions() {
     [search, filterCategory, filterAccount, startDate, endDate, showUncategorized, filterType, amountSearch]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { categoriesApi.list().then(r => setCategories(r.data)); }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (filterCategory) params.set('category_id', filterCategory);
+    if (filterAccount) params.set('account_id', filterAccount);
+    if (filterType) params.set('type', filterType);
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    if (showUncategorized) params.set('uncategorized', 'true');
+    if (amountSearch) params.set('amount_search', amountSearch);
+    params.set('page', String(page));
+    params.set('sort', sort);
+    params.set('order', order);
+    setSearchParams(params, { replace: true });
+  }, [
+    search, filterCategory, filterAccount, filterType,
+    startDate, endDate, showUncategorized, amountSearch,
+    page, sort, order, setSearchParams
+  ]);
 
   const setDateRange = (s, e) => { setStartDate(s); setEndDate(e); };
   const clearFilters = () => {
