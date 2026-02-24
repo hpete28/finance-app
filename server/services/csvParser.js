@@ -3,6 +3,7 @@ const { parse } = require('csv-parse/sync');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../database');
 const { categorize } = require('./categorizer');
+const { recordImportRun } = require('./importHistory');
 
 const ACCOUNT_MAP = {
   'BMO_CAD_CC_MASTER_TRANSACTIONS.csv': 'BMO CAD Credit Card',
@@ -64,7 +65,6 @@ function normalizeDate(raw) {
 
 /**
  * Import transactions from a CSV file into the database.
- * Deduplicates by (account_id, date, description, amount).
  */
 function importCSV(filename, buffer, accountNameOverride) {
   const db = getDb();
@@ -77,29 +77,27 @@ function importCSV(filename, buffer, accountNameOverride) {
 
   const rows = parseCSV(buffer);
   const insert = db.prepare(`
-    INSERT OR IGNORE INTO transactions
+    INSERT INTO transactions
       (id, account_id, date, description, amount, category_id, tags)
     VALUES (?, ?, ?, ?, ?, ?, '[]')
   `);
 
-  const checkDup = db.prepare(`
-    SELECT id FROM transactions
-    WHERE account_id = ? AND date = ? AND description = ? AND amount = ?
-  `);
-
   let imported = 0;
   let skipped = 0;
+  let fromDate = null;
+  let toDate = null;
 
   const bulk = db.transaction(() => {
     for (const row of rows) {
-      const existing = checkDup.get(account.id, row.date, row.description, row.amount);
-      if (existing) { skipped++; continue; }
+      if (!row.date || !row.description) { skipped++; continue; }
 
       const catResult = categorize(row.description);
       const txId = uuidv4();
       insert.run(txId, account.id, row.date, row.description, row.amount,
         catResult ? catResult.category_id : null);
       imported++;
+      if (!fromDate || row.date < fromDate) fromDate = row.date;
+      if (!toDate || row.date > toDate) toDate = row.date;
     }
   });
 
@@ -111,6 +109,17 @@ function importCSV(filename, buffer, accountNameOverride) {
   `).get(account.id);
 
   db.prepare(`UPDATE accounts SET balance = ? WHERE id = ?`).run(balance.bal, account.id);
+
+  recordImportRun({
+    source: 'csv',
+    accountId: account.id,
+    accountName,
+    fileName: filename,
+    importedCount: imported,
+    totalCount: rows.length,
+    fromDate,
+    toDate,
+  });
 
   return { imported, skipped, total: rows.length, account: accountName };
 }

@@ -34,6 +34,7 @@ app.use('/api/bills',        require('./routes/bills'));
 app.use('/api/networth',     require('./routes/networth'));
 app.use('/api/income-sources', require('./routes/income_sources'));
 app.use('/api/pdf-import',     require('./routes/pdf_import'));
+app.use('/api/import-history', require('./routes/import_history'));
 
 // ─── Upload endpoint ────────────────────────────────────────────────────────────
 app.post('/api/upload/transactions', upload.array('files'), async (req, res) => {

@@ -137,6 +137,22 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_transactions_account    ON transactions(account_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_category   ON transactions(category_id);
     CREATE INDEX IF NOT EXISTS idx_budgets_month           ON budgets(month);
+
+    CREATE TABLE IF NOT EXISTS import_runs (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      source          TEXT    NOT NULL CHECK(source IN ('csv','pdf')),
+      account_id      INTEGER REFERENCES accounts(id),
+      account_name    TEXT    NOT NULL,
+      file_name       TEXT    NOT NULL,
+      imported_count  INTEGER NOT NULL DEFAULT 0,
+      total_count     INTEGER NOT NULL DEFAULT 0,
+      from_date       TEXT,
+      to_date         TEXT,
+      created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_import_runs_created_at  ON import_runs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_import_runs_account     ON import_runs(account_name, created_at);
   `);
 
   // Safe migrations — run every startup, ignored if column already exists

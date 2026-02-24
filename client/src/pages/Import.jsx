@@ -1,7 +1,7 @@
 // src/pages/Import.jsx
 import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, CheckCircle, AlertCircle, FileText, Zap, FileSearch } from 'lucide-react';
-import { uploadApi, rulesApi } from '../utils/api';
+import { uploadApi, rulesApi, importHistoryApi } from '../utils/api';
 import { Card, SectionHeader, Spinner } from '../components/ui';
 import useAppStore from '../stores/appStore';
 
@@ -57,7 +57,7 @@ function DropZone({ onFiles, label, accept = '.csv', multi = true }) {
 // ══════════════════════════════════════════════════════════════
 //  CSV IMPORT TAB
 // ══════════════════════════════════════════════════════════════
-function CsvImportTab() {
+function CsvImportTab({ onImported }) {
   const { showToast } = useAppStore();
   const [csvFiles, setCsvFiles]   = useState([]);
   const [rulesFile, setRulesFile] = useState(null);
@@ -80,6 +80,7 @@ function CsvImportTab() {
       const res = await uploadApi.transactions(csvFiles);
       setResults(res.data);
       setStep(3);
+      onImported?.();
     } catch (err) {
       showToast(err.response?.data?.error || 'Import failed', 'error');
       setStep(1);
@@ -185,7 +186,7 @@ function CsvImportTab() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-emerald-400 font-semibold">{r.imported} imported</p>
-                  {r.skipped > 0 && <p className="text-xs text-slate-600">{r.skipped} duplicates skipped</p>}
+                  {r.skipped > 0 && <p className="text-xs text-slate-600">{r.skipped} rows skipped (missing required fields)</p>}
                 </div>
               </div>
             ))}
@@ -209,7 +210,7 @@ function CsvImportTab() {
 // ══════════════════════════════════════════════════════════════
 //  PDF IMPORT TAB
 // ══════════════════════════════════════════════════════════════
-function PdfImportTab() {
+function PdfImportTab({ onImported }) {
   const { showToast } = useAppStore();
   const [pdfFiles, setPdfFiles]     = useState([]);
   const [hints, setHints]           = useState({});     // filename → account override
@@ -259,6 +260,7 @@ function PdfImportTab() {
       const res = await fetch('/api/pdf-import/import', { method: 'POST', body: form });
       const data = await res.json();
       setResults(data);
+      onImported?.();
     } catch (err) {
       showToast('Import failed: ' + err.message, 'error');
     } finally {
@@ -311,7 +313,7 @@ function PdfImportTab() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-emerald-400 font-semibold">{r.imported} imported</p>
-                {r.skipped > 0 && <p className="text-xs text-slate-600">{r.skipped} duplicates skipped</p>}
+                {r.skipped > 0 && <p className="text-xs text-slate-600">{r.skipped} rows skipped (missing required fields)</p>}
               </div>
             </div>
           ))}
@@ -338,7 +340,7 @@ function PdfImportTab() {
         <p className="text-slate-400 text-xs leading-relaxed">
           Drop one or more bank statement PDFs. The parser automatically identifies whether each is BMO or TD, credit card or checking,
           extracts all transactions, and imports directly into your account — no intermediate CSV needed.
-          Each month's new statement can be imported at any time; duplicates are skipped automatically.
+          Each month's new statement can be imported at any time; transactions are always imported as-is, with no duplicate deletion.
         </p>
       </div>
 
@@ -445,11 +447,82 @@ function PdfImportTab() {
 }
 
 
+
+function formatDate(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString();
+}
+
+function ImportHistoryPanel({ refreshKey }) {
+  const [history, setHistory] = useState(null);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingHistory(true);
+    importHistoryApi.list(20)
+      .then((res) => {
+        if (!cancelled) setHistory(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) setHistory({ latestByAccount: [], recent: [] });
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingHistory(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [refreshKey]);
+
+  return (
+    <Card className="p-5">
+      <SectionHeader title="Latest Imported Statements" subtitle="See what was imported most recently for each account" />
+      {loadingHistory && <p className="text-sm text-slate-500">Loading import history…</p>}
+      {!loadingHistory && (
+        <div className="space-y-5">
+          <div className="space-y-2">
+            {history?.latestByAccount?.length
+              ? history.latestByAccount.map((row, idx) => (
+                <div key={`${row.accountName}-${idx}`} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+                  <div>
+                    <p className="text-sm text-slate-200">{row.accountName}</p>
+                    <p className="text-xs text-slate-500">{row.fileName} • {row.source.toUpperCase()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Range: {formatDate(row.fromDate)} → {formatDate(row.toDate)}</p>
+                    <p className="text-xs text-slate-500">Imported {row.importedCount}/{row.totalCount} • {formatDate(row.createdAt)}</p>
+                  </div>
+                </div>
+              ))
+              : <p className="text-sm text-slate-500">No statement imports yet.</p>}
+          </div>
+
+          {!!history?.recent?.length && (
+            <div>
+              <p className="section-title mb-2">Recent import activity</p>
+              <div className="space-y-1.5">
+                {history.recent.slice(0, 8).map((row) => (
+                  <p key={row.id} className="text-xs text-slate-500">
+                    {formatDate(row.createdAt)} • {row.accountName} • {row.fileName} • {row.importedCount}/{row.totalCount}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════
 //  MAIN
 // ══════════════════════════════════════════════════════════════
 export default function Import() {
   const [tab, setTab] = useState('pdf');
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl">
@@ -470,8 +543,10 @@ export default function Import() {
         ))}
       </div>
 
-      {tab === 'pdf' && <PdfImportTab />}
-      {tab === 'csv' && <CsvImportTab />}
+      <ImportHistoryPanel refreshKey={historyRefreshKey} />
+
+      {tab === 'pdf' && <PdfImportTab onImported={() => setHistoryRefreshKey(k => k + 1)} />}
+      {tab === 'csv' && <CsvImportTab onImported={() => setHistoryRefreshKey(k => k + 1)} />}
     </div>
   );
 }
