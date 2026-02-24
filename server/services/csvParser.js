@@ -3,6 +3,7 @@ const { parse } = require('csv-parse/sync');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../database');
 const { categorize } = require('./categorizer');
+const { getMatchedTags } = require('./tagger');
 const { recordImportRun } = require('./importHistory');
 
 const ACCOUNT_MAP = {
@@ -79,7 +80,7 @@ function importCSV(filename, buffer, accountNameOverride) {
   const insert = db.prepare(`
     INSERT INTO transactions
       (id, account_id, date, description, amount, category_id, tags)
-    VALUES (?, ?, ?, ?, ?, ?, '[]')
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
   let imported = 0;
@@ -92,9 +93,10 @@ function importCSV(filename, buffer, accountNameOverride) {
       if (!row.date || !row.description) { skipped++; continue; }
 
       const catResult = categorize(row.description);
+      const matchedTags = getMatchedTags(row.description);
       const txId = uuidv4();
       insert.run(txId, account.id, row.date, row.description, row.amount,
-        catResult ? catResult.category_id : null);
+        catResult ? catResult.category_id : null, JSON.stringify(matchedTags));
       imported++;
       if (!fromDate || row.date < fromDate) fromDate = row.date;
       if (!toDate || row.date > toDate) toDate = row.date;

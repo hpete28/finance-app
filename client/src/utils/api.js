@@ -36,6 +36,15 @@ export const rulesApi = {
   apply: (overwrite = false) => api.post('/rules/apply', { overwrite }),
 };
 
+
+export const tagRulesApi = {
+  list: () => api.get('/tag-rules'),
+  create: (data) => api.post('/tag-rules', data),
+  update: (id, data) => api.patch(`/tag-rules/${id}`, data),
+  delete: (id) => api.delete(`/tag-rules/${id}`),
+  apply: (overwrite = false) => api.post('/tag-rules/apply', { overwrite }),
+};
+
 // Budgets
 export const budgetsApi = {
   list: (month) => api.get('/budgets', { params: { month } }),

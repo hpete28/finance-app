@@ -9,6 +9,7 @@ const os       = require('os');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../database');
 const { categorize } = require('../services/categorizer');
+const { getMatchedTags } = require('../services/tagger');
 const { guessAccountFromFilename } = require('../services/csvParser');
 const { recordImportRun } = require('../services/importHistory');
 
@@ -126,7 +127,7 @@ router.post('/import', upload.array('files'), async (req, res) => {
         continue;
       }
 
-      const insert   = db.prepare(`INSERT INTO transactions (id, account_id, date, description, amount, category_id, tags) VALUES (?, ?, ?, ?, ?, ?, '[]')`);
+      const insert   = db.prepare(`INSERT INTO transactions (id, account_id, date, description, amount, category_id, tags) VALUES (?, ?, ?, ?, ?, ?, ?)`);
 
       let imported = 0, skipped = 0;
       let fromDate = null, toDate = null;
@@ -134,7 +135,8 @@ router.post('/import', upload.array('files'), async (req, res) => {
         for (const row of (parsed.transactions || [])) {
           if (!row.Date || !row.Description) { skipped++; continue; }
           const cat = categorize(row.Description);
-          insert.run(uuidv4(), account.id, row.Date, row.Description, row.Amount, cat ? cat.category_id : null);
+          const matchedTags = getMatchedTags(row.Description);
+          insert.run(uuidv4(), account.id, row.Date, row.Description, row.Amount, cat ? cat.category_id : null, JSON.stringify(matchedTags));
           imported++;
           if (!fromDate || row.Date < fromDate) fromDate = row.Date;
           if (!toDate || row.Date > toDate) toDate = row.Date;
