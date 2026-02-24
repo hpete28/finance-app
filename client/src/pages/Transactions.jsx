@@ -530,6 +530,12 @@ export default function Transactions() {
     if (confirmDelete.type === 'single') {
       const res = await transactionsApi.delete(confirmDelete.id);
       queueUndo([res.data.deleted], '1 transaction');
+      setSelected((prev) => {
+        if (!prev.has(confirmDelete.id)) return prev;
+        const next = new Set(prev);
+        next.delete(confirmDelete.id);
+        return next;
+      });
       showToast('🗑️ Transaction deleted');
     } else {
       const ids = [...selected];
