@@ -170,19 +170,20 @@ router.get('/merchant-search', (req, res) => {
   const { q, start_date, end_date, account_id } = req.query;
   if (!q || q.length < 2) return res.json([]);
 
-  let where = ['exclude_from_totals = 0', `UPPER(description) LIKE ?`];
+  const merchantLabelExpr = "COALESCE(NULLIF(TRIM(merchant_name), ''), description)";
+  let where = ['exclude_from_totals = 0', `UPPER(${merchantLabelExpr}) LIKE ?`];
   let params = [`%${q.toUpperCase()}%`];
   if (start_date) { where.push('date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('date <= ?'); params.push(end_date); }
   if (account_id) { where.push('account_id = ?'); params.push(account_id); }
 
   res.json(db.prepare(`
-    SELECT COALESCE(NULLIF(TRIM(merchant_name), ''), description) as description,
+    SELECT ${merchantLabelExpr} as description,
            COUNT(*) as count, SUM(ABS(amount)) as total,
            MIN(date) as first_seen, MAX(date) as last_seen
     FROM transactions
     WHERE ${where.join(' AND ')}
-    GROUP BY COALESCE(NULLIF(TRIM(merchant_name), ''), description) ORDER BY total DESC LIMIT 20
+    GROUP BY ${merchantLabelExpr} ORDER BY total DESC LIMIT 20
   `).all(...params));
 });
 

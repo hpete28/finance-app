@@ -32,9 +32,11 @@ router.get('/', (req, res) => {
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date) { where.push('t.date <= ?'); params.push(end_date); }
   if (search) {
+    where.push(`(
+      UPPER(t.description) LIKE ? OR
+      UPPER(COALESCE(NULLIF(TRIM(t.merchant_name), ''), t.description)) LIKE ?
+    )`);
     const searchTerm = `%${search.toUpperCase()}%`;
-    const normalizedMerchantExpr = "COALESCE(NULLIF(TRIM(t.merchant_name), ''), t.description)";
-    where.push(`(UPPER(t.description) LIKE ? OR UPPER(${normalizedMerchantExpr}) LIKE ?)`);
     params.push(searchTerm, searchTerm);
   }
   if (tag) { where.push("t.tags LIKE ?"); params.push(`%${tag}%`); }
