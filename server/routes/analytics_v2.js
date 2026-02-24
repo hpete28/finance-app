@@ -252,15 +252,21 @@ router.get('/subscription-creep', (req, res) => {
     // For each pattern, compute month-by-month to detect creep
     const enriched = patterns.map(p => {
       const merchantName = p.description_pattern || p.merchant || p.description || '';
-      const safeName = merchantName.replace(/'/g, "''");
+      const monthlyParams = [merchantName];
+      let accountFilter = '';
+      if (account_id) {
+        accountFilter = 'AND account_id = ?';
+        monthlyParams.push(account_id);
+      }
 
       const monthly = db.prepare(`
         SELECT strftime('%Y-%m', date) as month, ABS(amount) as amount
         FROM transactions
         WHERE exclude_from_totals = 0
           AND COALESCE(NULLIF(TRIM(merchant_name), ''), description) = ?
+          ${accountFilter}
         ORDER BY month ASC
-      `).all(merchantName);
+      `).all(...monthlyParams);
 
       // Detect price creep: compare first 3 vs last 3 amounts
       const amounts = monthly.map(m => m.amount).filter(Boolean);
