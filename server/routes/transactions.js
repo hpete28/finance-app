@@ -13,7 +13,8 @@ router.get('/', (req, res) => {
     start_date, end_date, search, tag, uncategorized, is_recurring,
     sort = 'date', order = 'desc',
     amount_search,   // partial amount string e.g. "432" matches $432.xx
-    amount_min, amount_max
+    amount_min, amount_max,
+    exclude_from_totals
   } = req.query;
 
   let where = [];
@@ -33,6 +34,8 @@ router.get('/', (req, res) => {
   if (search) { where.push('UPPER(t.description) LIKE ?'); params.push(`%${search.toUpperCase()}%`); }
   if (tag) { where.push("t.tags LIKE ?"); params.push(`%${tag}%`); }
   if (is_recurring === 'true') { where.push('t.is_recurring = 1'); }
+  if (exclude_from_totals === 'true') { where.push('t.exclude_from_totals = 1'); }
+  if (exclude_from_totals === 'false') { where.push('t.exclude_from_totals = 0'); }
 
   // Amount search — matches partial dollar amounts live as user types
   if (amount_search && amount_search.trim()) {
@@ -47,19 +50,21 @@ router.get('/', (req, res) => {
   // Income-source filtering: only show transactions matching income_sources keywords
   if (req.query.type === 'income') {
     const sources = db.prepare('SELECT keyword, match_type FROM income_sources').all();
-    if (sources.length) {
-      const conds = sources.map(s => {
-        const kw = s.keyword.replace(/'/g, "''");
-        return s.match_type === 'exact'
-          ? `UPPER(t.description) = UPPER('${kw}')`
-          : `UPPER(t.description) LIKE UPPER('%${kw}%')`;
-      });
-      where.push(`t.amount > 0`);
-      where.push(`(${conds.join(' OR ')})`);
-    } else {
-      // No income sources defined — return nothing
-      where.push('1 = 0');
+    const conds = [
+      't.is_income_override = 1',
+      `EXISTS (SELECT 1 FROM categories ic WHERE ic.id = t.category_id AND ic.is_income = 1)`,
+    ];
+    for (const s of sources) {
+      if (s.match_type === 'exact') {
+        conds.push('UPPER(t.description) = UPPER(?)');
+        params.push(s.keyword);
+      } else {
+        conds.push('UPPER(t.description) LIKE UPPER(?)');
+        params.push(`%${s.keyword}%`);
+      }
     }
+    where.push('t.amount > 0');
+    where.push(`(${conds.join(' OR ')})`);
   } else if (req.query.type === 'expense') {
     where.push('t.amount < 0');
     // Exclude income-category transactions from expenses
@@ -104,6 +109,31 @@ router.get('/', (req, res) => {
   });
 });
 
+// GET /api/transactions/summary/monthly — income/expense summary
+router.get('/summary/monthly', (req, res) => {
+  const db = getDb();
+  const { months = 12, account_id } = req.query;
+
+  let where = 'WHERE exclude_from_totals = 0';
+  let params = [];
+  if (account_id) { where += ' AND account_id = ?'; params.push(account_id); }
+
+  const rows = db.prepare(`
+    SELECT
+      strftime('%Y-%m', date) as month,
+      SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
+      SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expenses,
+      SUM(amount) as net
+    FROM transactions
+    ${where}
+    GROUP BY month
+    ORDER BY month DESC
+    LIMIT ?
+  `).all(...params, parseInt(months));
+
+  res.json(rows.reverse());
+});
+
 // GET /api/transactions/:id
 router.get('/:id', (req, res) => {
   const db = getDb();
@@ -131,7 +161,7 @@ router.get('/:id', (req, res) => {
 // PATCH /api/transactions/:id — update single transaction
 router.patch('/:id', (req, res) => {
   const db = getDb();
-  const { category_id, notes, tags, is_transfer, reviewed, is_income_override } = req.body;
+  const { category_id, notes, tags, is_transfer, reviewed, is_income_override, exclude_from_totals, merchant_name } = req.body;
   const fields = [];
   const vals = [];
 
@@ -141,6 +171,8 @@ router.patch('/:id', (req, res) => {
   if (is_transfer !== undefined) { fields.push('is_transfer = ?'); vals.push(is_transfer ? 1 : 0); }
   if (reviewed !== undefined) { fields.push('reviewed = ?'); vals.push(reviewed ? 1 : 0); }
   if (is_income_override !== undefined) { fields.push('is_income_override = ?'); vals.push(is_income_override ? 1 : 0); }
+  if (exclude_from_totals !== undefined) { fields.push('exclude_from_totals = ?'); vals.push(exclude_from_totals ? 1 : 0); }
+  if (merchant_name !== undefined) { fields.push('merchant_name = ?'); vals.push(merchant_name || null); }
 
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
 
@@ -151,25 +183,45 @@ router.patch('/:id', (req, res) => {
 // POST /api/transactions/bulk — bulk update
 router.post('/bulk', (req, res) => {
   const db = getDb();
-  const { ids, category_id, tags, reviewed, is_income_override } = req.body;
+  const { ids, category_id, tags, tags_mode = 'replace', reviewed, is_income_override, exclude_from_totals, merchant_name } = req.body;
   if (!ids || !ids.length) return res.status(400).json({ error: 'No IDs provided' });
 
   const placeholders = ids.map(() => '?').join(',');
   const fields = [];
   const vals = [];
+  let updatedViaAppend = 0;
 
   if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(category_id || null); }
-  if (tags !== undefined) { fields.push('tags = ?'); vals.push(JSON.stringify(tags)); }
+  if (tags !== undefined) {
+    if (tags_mode === 'append') {
+      const rows = db.prepare(`SELECT id, tags FROM transactions WHERE id IN (${placeholders})`).all(...ids);
+      const updateOne = db.prepare(`UPDATE transactions SET tags = ? WHERE id = ?`);
+      rows.forEach(r => {
+        const existing = JSON.parse(r.tags || '[]');
+        const merged = [...new Set([...existing, ...tags])];
+        updateOne.run(JSON.stringify(merged), r.id);
+      });
+      updatedViaAppend = rows.length;
+    } else {
+      fields.push('tags = ?'); vals.push(JSON.stringify(tags));
+    }
+  }
   if (reviewed !== undefined) { fields.push('reviewed = ?'); vals.push(reviewed ? 1 : 0); }
   if (is_income_override !== undefined) { fields.push('is_income_override = ?'); vals.push(is_income_override ? 1 : 0); }
+  if (exclude_from_totals !== undefined) { fields.push('exclude_from_totals = ?'); vals.push(exclude_from_totals ? 1 : 0); }
+  if (merchant_name !== undefined) { fields.push('merchant_name = ?'); vals.push(merchant_name || null); }
 
-  if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
+  let updated = updatedViaAppend;
+  if (fields.length) {
+    const info = db.prepare(
+      `UPDATE transactions SET ${fields.join(', ')} WHERE id IN (${placeholders})`
+    ).run(...vals, ...ids);
+    updated = Math.max(updated, info.changes);
+  }
 
-  const info = db.prepare(
-    `UPDATE transactions SET ${fields.join(', ')} WHERE id IN (${placeholders})`
-  ).run(...vals, ...ids);
+  if (!fields.length && !updatedViaAppend) return res.status(400).json({ error: 'No fields to update' });
 
-  res.json({ updated: info.changes });
+  res.json({ updated });
 });
 
 // POST /api/transactions/:id/split — split a transaction
@@ -201,31 +253,6 @@ router.post('/:id/split', (req, res) => {
   doSplit();
 
   res.json({ ok: true, splits: splits.length });
-});
-
-// GET /api/transactions/summary/monthly — income/expense summary
-router.get('/summary/monthly', (req, res) => {
-  const db = getDb();
-  const { months = 12, account_id } = req.query;
-
-  let where = '';
-  let params = [];
-  if (account_id) { where = 'WHERE account_id = ?'; params.push(account_id); }
-
-  const rows = db.prepare(`
-    SELECT
-      strftime('%Y-%m', date) as month,
-      SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as income,
-      SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expenses,
-      SUM(amount) as net
-    FROM transactions
-    ${where}
-    GROUP BY month
-    ORDER BY month DESC
-    LIMIT ?
-  `).all(...params, parseInt(months));
-
-  res.json(rows.reverse());
 });
 
 module.exports = router;

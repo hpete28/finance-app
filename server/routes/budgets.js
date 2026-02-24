@@ -17,6 +17,7 @@ router.get('/', (req, res) => {
              WHERE t.category_id = b.category_id
                AND strftime('%Y-%m', t.date) = ?
                AND t.amount < 0
+               AND t.exclude_from_totals = 0
            ), 0) as spent,
            COALESCE((
              SELECT SUM(ts.amount)
@@ -25,6 +26,7 @@ router.get('/', (req, res) => {
              WHERE ts.category_id = b.category_id
                AND strftime('%Y-%m', t.date) = ?
                AND t.amount < 0
+               AND t.exclude_from_totals = 0
            ), 0) as spent_splits
     FROM budgets b
     JOIN categories c ON c.id = b.category_id
@@ -49,6 +51,7 @@ router.get('/', (req, res) => {
       SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expenses
     FROM transactions
     WHERE strftime('%Y-%m', date) = ?
+      AND exclude_from_totals = 0
   `).get(month);
 
   res.json({ budgets: result, summary, month });
@@ -91,6 +94,7 @@ router.post('/rollover', (req, res) => {
              WHERE t.category_id = b.category_id
                AND strftime('%Y-%m', t.date) = ?
                AND t.amount < 0
+               AND t.exclude_from_totals = 0
            ), 0) as spent
     FROM budgets b
     JOIN categories c ON c.id = b.category_id

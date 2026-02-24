@@ -161,6 +161,11 @@
     border: 1px solid transparent;
   }
 
+  .amount-positive { color: var(--success); }
+  .amount-negative { color: var(--danger); }
+  .amount-neutral { color: var(--text-secondary); }
+
+
   /* Grid pattern background */
   .grid-pattern {
     background-image:
