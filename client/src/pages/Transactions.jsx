@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Search, SplitSquareHorizontal, CheckSquare, Square,
-  ChevronLeft, ChevronRight, Edit2, X, Calendar, Filter
+  ChevronLeft, ChevronRight, Edit2, X, Calendar, Filter, Trash2, Undo2
 } from 'lucide-react';
 import { transactionsApi, categoriesApi } from '../utils/api';
 import { formatCurrency, formatDate, amountClass } from '../utils/format';
@@ -401,6 +401,9 @@ export default function Transactions() {
   const [bulkCategory, setBulkCategory] = useState('');
   const [bulkTags, setBulkTags] = useState('');
   const [bulkMerchant, setBulkMerchant] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [undoDelete, setUndoDelete] = useState(null);
+  const undoTimer = useRef();
 
   const hasFilters = search || filterCategory || filterAccount || startDate || endDate || showUncategorized || filterType || amountSearch;
 
@@ -432,6 +435,8 @@ export default function Transactions() {
     [search, filterCategory, filterAccount, startDate, endDate, showUncategorized, filterType, amountSearch]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { categoriesApi.list().then(r => setCategories(r.data)); }, []);
+
+  useEffect(() => () => clearTimeout(undoTimer.current), []);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -510,6 +515,40 @@ export default function Transactions() {
     await transactionsApi.bulk({ ids: [...selected], exclude_from_totals: value });
     showToast(value ? `🚫 Excluded ${selected.size} transactions from totals` : `✅ Re-included ${selected.size} transactions`);
     setSelected(new Set());
+    load();
+  };
+
+  const queueUndo = (deletedRows, countLabel) => {
+    clearTimeout(undoTimer.current);
+    setUndoDelete({ rows: deletedRows, countLabel });
+    undoTimer.current = setTimeout(() => setUndoDelete(null), 10000);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+
+    if (confirmDelete.type === 'single') {
+      const res = await transactionsApi.delete(confirmDelete.id);
+      queueUndo([res.data.deleted], '1 transaction');
+      showToast('🗑️ Transaction deleted');
+    } else {
+      const ids = [...selected];
+      const res = await transactionsApi.bulkDelete(ids);
+      queueUndo(res.data.deleted || [], `${res.data.deleted_count || ids.length} transactions`);
+      setSelected(new Set());
+      showToast(`🗑️ Deleted ${res.data.deleted_count || ids.length} transactions`);
+    }
+
+    setConfirmDelete(null);
+    load();
+  };
+
+  const handleUndoDelete = async () => {
+    if (!undoDelete?.rows?.length) return;
+    await transactionsApi.restore(undoDelete.rows);
+    clearTimeout(undoTimer.current);
+    setUndoDelete(null);
+    showToast('↩️ Delete undone');
     load();
   };
 
@@ -593,6 +632,16 @@ export default function Transactions() {
       {/* ── Summary Stats ── */}
       {hasFilters && <FilterSummary transactions={transactions} filterType={filterType} />}
 
+      {undoDelete && (
+        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border animate-slide-up"
+          style={{ background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.25)' }}>
+          <span className="text-sm text-amber-200">Deleted {undoDelete.countLabel}. Undo?</span>
+          <button className="btn-secondary text-xs flex items-center gap-1.5" onClick={handleUndoDelete}>
+            <Undo2 size={13} /> Undo delete
+          </button>
+        </div>
+      )}
+
       {/* ── Bulk Action Bar ── */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl animate-slide-up flex-wrap"
@@ -625,6 +674,12 @@ export default function Transactions() {
           </button>
           <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(true)}>🚫 Exclude from totals</button>
           <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(false)}>Include in totals</button>
+          <button
+            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5"
+            style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}
+            onClick={() => setConfirmDelete({ type: 'bulk', count: selected.size })}>
+            <Trash2 size={12} /> Delete selected
+          </button>
           <button className="btn-ghost text-xs ml-auto" onClick={() => setSelected(new Set())}>✕ Clear</button>
         </div>
       )}
@@ -709,6 +764,8 @@ export default function Transactions() {
                           onClick={e => { e.stopPropagation(); setEditTx(tx); }}><Edit2 size={13} /></button>
                         <button className="btn-ghost p-1" title="Split" disabled={tx.amount >= 0}
                           onClick={e => { e.stopPropagation(); setSplitTx(tx); }}><SplitSquareHorizontal size={13} /></button>
+                        <button className="btn-ghost p-1 text-rose-400 hover:text-rose-300" title="Delete"
+                          onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'single', id: tx.id, description: tx.description }); }}><Trash2 size={13} /></button>
                       </div>
                     </td>
                   </tr>
@@ -745,6 +802,23 @@ export default function Transactions() {
           </div>
         )}
       </Card>
+
+      <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Confirm permanent deletion" size="sm">
+        {confirmDelete && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-300">
+              {confirmDelete.type === 'single'
+                ? <>Delete <span className="font-semibold text-slate-100">{confirmDelete.description}</span>? This will permanently remove the transaction from the app.</>
+                : <>Delete <span className="font-semibold text-slate-100">{confirmDelete.count} selected transactions</span>? This will permanently remove them from the app.</>}
+            </p>
+            <p className="text-xs text-slate-500">You can undo this for a few seconds after deleting.</p>
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button className="btn-secondary" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="btn-danger" onClick={handleConfirmDelete}>Delete</button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <SplitModal open={!!splitTx} onClose={() => setSplitTx(null)}
         transaction={splitTx} categories={categories}
