@@ -43,7 +43,7 @@ router.get('/spending-by-category', (req, res) => {
   const db = getDb();
   const { month, account_id, start_date, end_date } = req.query;
 
-  let where = ['t.amount < 0', '(cat.is_income IS NULL OR cat.is_income = 0)'];
+  let where = ['t.exclude_from_totals = 0', 't.amount < 0', '(cat.is_income IS NULL OR cat.is_income = 0)'];
   let params = [];
   if (month)      { where.push("strftime('%Y-%m', t.date) = ?"); params.push(month); }
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
@@ -71,7 +71,7 @@ router.get('/monthly-trend', (req, res) => {
   const { months = 18, account_id } = req.query;
   const { incomeFlag } = getIncomeCTE(db);
 
-  let where = ['1=1'];
+  let where = ['t.exclude_from_totals = 0'];
   let params = [];
   if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
 
@@ -93,7 +93,7 @@ router.get('/category-breakdown', (req, res) => {
   const db = getDb();
   const { category_id, start_date, end_date, account_id } = req.query;
 
-  let where = ['t.amount < 0'];
+  let where = ['t.exclude_from_totals = 0', 't.amount < 0'];
   let params = [];
 
   if (category_id === 'null' || !category_id) {
@@ -130,7 +130,7 @@ router.get('/month-transactions', (req, res) => {
   const db = getDb();
   const { month, category_id, start_date, end_date, sort = 'date', order = 'desc' } = req.query;
 
-  let where = [];
+  let where = ['t.exclude_from_totals = 0'];
   let params = [];
   if (month)      { where.push("strftime('%Y-%m', t.date) = ?"); params.push(month); }
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
@@ -170,18 +170,19 @@ router.get('/merchant-search', (req, res) => {
   const { q, start_date, end_date, account_id } = req.query;
   if (!q || q.length < 2) return res.json([]);
 
-  let where = [`UPPER(description) LIKE ?`];
+  let where = ['exclude_from_totals = 0', `UPPER(description) LIKE ?`];
   let params = [`%${q.toUpperCase()}%`];
   if (start_date) { where.push('date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('date <= ?'); params.push(end_date); }
   if (account_id) { where.push('account_id = ?'); params.push(account_id); }
 
   res.json(db.prepare(`
-    SELECT description, COUNT(*) as count, SUM(ABS(amount)) as total,
+    SELECT COALESCE(NULLIF(TRIM(merchant_name), ''), description) as description,
+           COUNT(*) as count, SUM(ABS(amount)) as total,
            MIN(date) as first_seen, MAX(date) as last_seen
     FROM transactions
     WHERE ${where.join(' AND ')}
-    GROUP BY description ORDER BY total DESC LIMIT 20
+    GROUP BY COALESCE(NULLIF(TRIM(merchant_name), ''), description) ORDER BY total DESC LIMIT 20
   `).all(...params));
 });
 
@@ -189,14 +190,15 @@ router.get('/merchant-search', (req, res) => {
 router.get('/top-merchants', (req, res) => {
   const db = getDb();
   const { month, limit = 15, account_id } = req.query;
-  let where = ['amount < 0'];
+  let where = ['exclude_from_totals = 0', 'amount < 0'];
   let params = [];
   if (month)      { where.push("strftime('%Y-%m', date) = ?"); params.push(month); }
   if (account_id) { where.push('account_id = ?'); params.push(account_id); }
   res.json(db.prepare(`
-    SELECT description, SUM(ABS(amount)) as total, COUNT(*) as count
+    SELECT COALESCE(NULLIF(TRIM(merchant_name), ''), description) as description,
+           SUM(ABS(amount)) as total, COUNT(*) as count
     FROM transactions WHERE ${where.join(' AND ')}
-    GROUP BY description ORDER BY total DESC LIMIT ?
+    GROUP BY COALESCE(NULLIF(TRIM(merchant_name), ''), description) ORDER BY total DESC LIMIT ?
   `).all(...params, parseInt(limit)));
 });
 
@@ -206,7 +208,7 @@ router.get('/cashflow', (req, res) => {
   const { start_date, end_date, account_id } = req.query;
   const { incomeFlag } = getIncomeCTE(db);
 
-  let where = [];
+  let where = ['t.exclude_from_totals = 0'];
   let params = [];
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('t.date <= ?'); params.push(end_date); }
@@ -243,7 +245,7 @@ router.get('/year-summary', (req, res) => {
   const account_id = req.query.account_id;
   const { incomeFlag } = getIncomeCTE(db);
 
-  let where = [`strftime('%Y', t.date) = '${year}'`];
+  let where = ['t.exclude_from_totals = 0', `strftime('%Y', t.date) = '${year}'`];
   let params = [];
   if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
   const wc = where.join(' AND ');
@@ -295,7 +297,7 @@ router.get('/dashboard-summary', (req, res) => {
       SUM(CASE WHEN t.amount < 0 AND (cat.is_income IS NULL OR cat.is_income = 0) THEN ABS(t.amount) ELSE 0 END) as expenses
     FROM transactions t
     LEFT JOIN categories cat ON cat.id = t.category_id
-    WHERE strftime('%Y-%m', t.date) = ?
+    WHERE t.exclude_from_totals = 0 AND strftime('%Y-%m', t.date) = ?
   `).get(m);
 
   res.json({ ...summary, month: m });

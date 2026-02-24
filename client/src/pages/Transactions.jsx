@@ -289,12 +289,16 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
   const [categoryId, setCategoryId] = useState('');
   const [notes, setNotes] = useState('');
   const [tags, setTags] = useState('');
+  const [merchantName, setMerchantName] = useState('');
+  const [excludeFromTotals, setExcludeFromTotals] = useState(false);
 
   useEffect(() => {
     if (transaction) {
       setCategoryId(transaction.category_id || '');
       setNotes(transaction.notes || '');
       setTags((transaction.tags || []).join(', '));
+      setMerchantName(transaction.merchant_name || '');
+      setExcludeFromTotals(!!transaction.exclude_from_totals);
     }
   }, [transaction]);
 
@@ -324,10 +328,19 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
             <label className="text-xs text-slate-500 block mb-1">Tags (comma-separated)</label>
             <input className="input" value={tags} onChange={e => setTags(e.target.value)} placeholder="vacation, work..." />
           </div>
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Merchant / Vendor tag</label>
+            <input className="input" value={merchantName} onChange={e => setMerchantName(e.target.value)} placeholder="e.g. Costco, Amazon, Uber" />
+          </div>
+          <label className="flex items-center gap-2 text-xs text-slate-400">
+            <input type="checkbox" checked={excludeFromTotals} onChange={e => setExcludeFromTotals(e.target.checked)} />
+            Exclude from income/expense totals
+          </label>
           <div className="flex gap-2 justify-end pt-2">
             <button className="btn-secondary" onClick={onClose}>Cancel</button>
             <button className="btn-primary" onClick={async () => {
-              await onSave({ category_id: categoryId || null, notes,
+              await onSave({ category_id: categoryId || null, notes, merchant_name: merchantName.trim() || null,
+                exclude_from_totals: excludeFromTotals,
                 tags: tags.split(',').map(t => t.trim()).filter(Boolean), reviewed: true });
               onClose();
             }}>Save</button>
@@ -386,6 +399,8 @@ export default function Transactions() {
   const [splitTx, setSplitTx]       = useState(null);
   const [editTx, setEditTx]         = useState(null);
   const [bulkCategory, setBulkCategory] = useState('');
+  const [bulkTags, setBulkTags] = useState('');
+  const [bulkMerchant, setBulkMerchant] = useState('');
 
   const hasFilters = search || filterCategory || filterAccount || startDate || endDate || showUncategorized || filterType || amountSearch;
 
@@ -446,10 +461,36 @@ export default function Transactions() {
 
   const handleBulkIncome = async (value) => {
     const count = selected.size;
-    // Use individual PATCH since bulk endpoint doesn't have income_override yet
-    await Promise.all([...selected].map(id => transactionsApi.update(id, { is_income_override: value })));
+    await transactionsApi.bulk({ ids: [...selected], is_income_override: value });
     setSelected(new Set()); load();
     showToast(value ? `💰 Marked ${count} transactions as income` : `Removed income tag from ${count} transactions`);
+  };
+
+
+  const handleBulkTags = async (mode = 'append') => {
+    const parsed = bulkTags.split(',').map(t => t.trim()).filter(Boolean);
+    if (!parsed.length) return;
+    await transactionsApi.bulk({ ids: [...selected], tags: parsed, tags_mode: mode });
+    showToast(`🏷️ Updated tags on ${selected.size} transactions`);
+    setBulkTags('');
+    setSelected(new Set());
+    load();
+  };
+
+  const handleBulkMerchant = async () => {
+    if (!bulkMerchant.trim()) return;
+    await transactionsApi.bulk({ ids: [...selected], merchant_name: bulkMerchant.trim() });
+    showToast(`🏪 Tagged ${selected.size} transactions as ${bulkMerchant.trim()}`);
+    setBulkMerchant('');
+    setSelected(new Set());
+    load();
+  };
+
+  const handleBulkExclude = async (value) => {
+    await transactionsApi.bulk({ ids: [...selected], exclude_from_totals: value });
+    showToast(value ? `🚫 Excluded ${selected.size} transactions from totals` : `✅ Re-included ${selected.size} transactions`);
+    setSelected(new Set());
+    load();
   };
 
   const handleSort = (col) => {
@@ -465,7 +506,7 @@ export default function Transactions() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <SectionHeader title="Transactions" subtitle={`${total.toLocaleString()} matching records`} />
+      <SectionHeader title="💸 Transactions" subtitle={`${total.toLocaleString()} matching records`} />
 
       {/* ── Filter Bar ── */}
       <Card className="p-4 space-y-3">
@@ -543,6 +584,11 @@ export default function Transactions() {
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <button className="btn-primary text-xs" onClick={handleBulkUpdate}>Apply category</button>
+          <input className="input text-xs w-48" value={bulkTags} onChange={e => setBulkTags(e.target.value)} placeholder="🏷️ tags: travel, tax" />
+          <button className="btn-secondary text-xs" onClick={() => handleBulkTags('append')}>Append tags</button>
+          <button className="btn-secondary text-xs" onClick={() => handleBulkTags('replace')}>Replace tags</button>
+          <input className="input text-xs w-44" value={bulkMerchant} onChange={e => setBulkMerchant(e.target.value)} placeholder="🏪 merchant/vendor" />
+          <button className="btn-secondary text-xs" onClick={handleBulkMerchant}>Apply merchant</button>
           <div className="h-4 w-px" style={{ background: 'var(--border)' }} />
           <button
             className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5"
@@ -557,6 +603,8 @@ export default function Transactions() {
             onClick={() => handleBulkIncome(false)}>
             Remove income tag
           </button>
+          <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(true)}>🚫 Exclude from totals</button>
+          <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(false)}>Include in totals</button>
           <button className="btn-ghost text-xs ml-auto" onClick={() => setSelected(new Set())}>✕ Clear</button>
         </div>
       )}
@@ -605,6 +653,7 @@ export default function Transactions() {
                       <div className="flex items-center gap-2">
                         {tx.reviewed && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />}
                         <span className="truncate">{tx.description}</span>
+                        {tx.merchant_name && <Badge className="text-xs">🏪 {tx.merchant_name}</Badge>}
                         {tx.tags?.length > 0 && tx.tags.slice(0, 2).map(tag => <Badge key={tag} className="text-xs">{tag}</Badge>)}
                       </div>
                     </td>
@@ -616,6 +665,11 @@ export default function Transactions() {
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-sm font-medium">
                       <div className="flex items-center justify-end gap-1.5">
+                        {tx.exclude_from_totals ? (
+                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-slate-500/15 text-slate-300 border border-slate-500/25 font-sans font-normal">
+                            🚫 excluded
+                          </span>
+                        ) : null}
                         {tx.is_income_override ? (
                           <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 font-sans font-normal">
                             ✦ income

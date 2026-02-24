@@ -142,6 +142,8 @@ function initSchema() {
   // Safe migrations — run every startup, ignored if column already exists
   const migrations = [
   `ALTER TABLE transactions ADD COLUMN is_income_override INTEGER DEFAULT 0`,
+    `ALTER TABLE transactions ADD COLUMN exclude_from_totals INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE transactions ADD COLUMN merchant_name TEXT`,
     `ALTER TABLE categories ADD COLUMN is_income INTEGER NOT NULL DEFAULT 0`,
   ];
   for (const sql of migrations) {
@@ -170,6 +172,27 @@ function initSchema() {
   insertAccount.run('BMO US Credit Card', 'credit_card', 'USD');
   insertAccount.run('TD CAD Credit Card', 'credit_card', 'CAD');
   insertAccount.run('TD CAD Checking', 'checking', 'CAD');
+
+  const catCount = db.prepare(`SELECT COUNT(*) as n FROM categories`).get().n;
+  if (catCount === 0) {
+    const insertCategory = db.prepare(`
+      INSERT INTO categories (name, color, is_system, is_income)
+      VALUES (?, ?, 1, ?)
+    `);
+    const starter = [
+      ['Income', '#10b981', 1],
+      ['Groceries', '#14b8a6', 0],
+      ['Dining', '#f59e0b', 0],
+      ['Housing', '#8b5cf6', 0],
+      ['Transport', '#3b82f6', 0],
+      ['Shopping', '#ec4899', 0],
+      ['Utilities', '#06b6d4', 0],
+      ['Healthcare', '#22c55e', 0],
+      ['Travel', '#a855f7', 0],
+      ['Savings', '#6366f1', 0],
+    ];
+    starter.forEach(([name, color, isIncome]) => insertCategory.run(name, color, isIncome));
+  }
 }
 
 module.exports = { getDb };
