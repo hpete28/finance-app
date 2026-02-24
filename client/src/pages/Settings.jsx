@@ -52,10 +52,10 @@ function CategoriesTab() {
   const handleLearn = async () => {
     setLearning(true); setLearnResult(null);
     try {
-      const res = await fetch('/api/rules/learn', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ min_count: 2 }) });
+      const res = await fetch('/api/rules/learn', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ min_count: 3, max_new_rules: 60 }) });
       const data = await res.json();
       setLearnResult(data);
-      showToast(`🧠 Learned ${data.created} new rules from ${data.analyzed} transactions`);
+      showToast(`🧠 Learned ${data.created} new rules (${data.analyzed} analyzed)`);
     } catch (e) { showToast('Learning failed', 'error'); }
     finally { setLearning(false); }
   };
@@ -203,7 +203,7 @@ function RulesTab() {
     setApplying(true);
     try {
       const res = await rulesApi.apply(false);
-      showToast(`⚡ Applied to ${res.data.updated} transactions`);
+      showToast(`⚡ Applied to ${res.data.categorized} transactions`);
     } finally { setApplying(false); }
   };
 
