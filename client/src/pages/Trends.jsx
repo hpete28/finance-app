@@ -1,29 +1,117 @@
 // client/src/pages/Trends.jsx
-// New "Trends & Insights" page — add route in App.jsx:
-//   import Trends from './pages/Trends';
-//   <Route path="/trends" element={<Trends />} />
-// Add to Sidebar NAV: { to: '/trends', label: 'Trends', icon: Activity }
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ComposedChart, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Cell, Area, AreaChart
+  Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart
 } from 'recharts';
 import {
-  Activity, TrendingUp, TrendingDown, AlertTriangle, RefreshCw,
-  ChevronDown, ChevronRight, DollarSign, Repeat, Zap, Calendar
+  Activity, TrendingUp, TrendingDown, AlertTriangle,
+  DollarSign, Repeat, Zap, Calendar, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { analyticsApi } from '../utils/api';
+import api from '../utils/api';
 import { formatCurrency, formatMonth } from '../utils/format';
-import { StatCard, TrendBadge, DeltaPair, EmptyState, SkeletonCard, SectionHeading, PageHeader } from '../components/ui/Primitives';
 
-// ─── Custom tooltip ───────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label, valueKey = 'value' }) {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const get = (path, params = {}) => api.get(path, { params });
+
+// ─── Shared mini-components ───────────────────────────────────────────────────
+function Card({ children, className = '' }) {
+  return (
+    <div className={`card ${className}`} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '0.75rem' }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionHead({ title, sub, actions }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <div>
+        <h2 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+        {sub && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</p>}
+      </div>
+      {actions && <div className="flex items-center gap-2">{actions}</div>}
+    </div>
+  );
+}
+
+function Empty({ icon: Icon, title, desc }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      {Icon && (
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
+          style={{ background: 'var(--accent-glow)', border: '1px solid var(--border)' }}>
+          <Icon size={20} style={{ color: 'var(--accent)', opacity: 0.8 }} />
+        </div>
+      )}
+      <p className="font-medium text-sm mb-1" style={{ color: 'var(--text-primary)' }}>{title}</p>
+      {desc && <p className="text-xs max-w-xs" style={{ color: 'var(--text-muted)' }}>{desc}</p>}
+    </div>
+  );
+}
+
+function Skeleton({ h = 48 }) {
+  return <div className="rounded-xl animate-pulse w-full" style={{ height: h, background: 'var(--border)' }} />;
+}
+
+function KpiCard({ label, value, icon: Icon, color }) {
+  return (
+    <div className="rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)', letterSpacing: '0.06em' }}>{label}</span>
+        {Icon && <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: (color || 'var(--accent)') + '20' }}>
+          <Icon size={14} style={{ color: color || 'var(--accent)' }} />
+        </span>}
+      </div>
+      <p className="text-xl font-bold" style={{ color: color || 'var(--text-primary)' }}>{value}</p>
+    </div>
+  );
+}
+
+function TrendChip({ delta, inverse = false }) {
+  if (delta == null || isNaN(delta)) return null;
+  const up = delta > 0;
+  const neutral = Math.abs(delta) < 0.5;
+  const bad = neutral ? false : (up !== inverse);
+  const color = neutral ? 'var(--text-muted)' : bad ? 'var(--danger)' : 'var(--success)';
+  const Icon = neutral ? Activity : up ? TrendingUp : TrendingDown;
+  return (
+    <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-medium"
+      style={{ color, background: neutral ? 'transparent' : color + '18', border: `1px solid ${color}30` }}>
+      <Icon size={10} />
+      {neutral ? '~0%' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}%`}
+    </span>
+  );
+}
+
+function AnomalyBadge({ children }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+      style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.4)', color: '#fbbf24' }}>
+      {children}
+    </span>
+  );
+}
+
+function WinBtn({ active, onClick, children }) {
+  return (
+    <button onClick={onClick} className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all"
+      style={{
+        background: active ? 'var(--accent)' : 'var(--bg-card)',
+        color: active ? '#fff' : 'var(--text-secondary)',
+        border: '1px solid var(--border)',
+      }}>
+      {children}
+    </button>
+  );
+}
+
+function ChartTip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl px-3 py-2 text-xs shadow-2xl"
       style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', minWidth: 140 }}>
-      <p className="font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>{label}</p>
+      <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{label}</p>
       {payload.map((p, i) => (
         <div key={i} className="flex items-center justify-between gap-3">
           <span style={{ color: p.color || 'var(--text-secondary)' }}>{p.name}</span>
@@ -36,35 +124,16 @@ function ChartTooltip({ active, payload, label, valueKey = 'value' }) {
   );
 }
 
-// ─── Sparkline bar chart ──────────────────────────────────────────────────────
-function Sparkline({ data, valueKey = 'total', color = 'var(--accent)', height = 32 }) {
-  if (!data?.length) return <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>no data</span>;
-  const max = Math.max(...data.map(d => d[valueKey] || 0));
+function Sparkline({ data = [], color = 'var(--accent)', height = 28 }) {
+  if (!data.length) return null;
+  const max = Math.max(...data.map(d => d.total || 0));
   return (
     <div className="flex items-end gap-0.5" style={{ height }}>
       {data.map((d, i) => (
-        <div
-          key={i}
-          className="flex-1 rounded-t-sm transition-all"
-          style={{
-            height: `${max > 0 ? Math.max(4, (d[valueKey] / max) * height) : 4}px`,
-            background: color,
-            opacity: 0.65,
-            minWidth: 3,
-          }}
-          title={`${d.month || i}: ${formatCurrency(d[valueKey])}`}
-        />
+        <div key={i} className="flex-1 rounded-t-sm"
+          style={{ height: `${max > 0 ? Math.max(3, (d.total / max) * height) : 3}px`, background: color, opacity: 0.65, minWidth: 3 }}
+          title={`${d.month || i}: ${formatCurrency(d.total)}`} />
       ))}
-    </div>
-  );
-}
-
-// ─── Drilldown wrapper ────────────────────────────────────────────────────────
-function Drilldown({ open, children }) {
-  if (!open) return null;
-  return (
-    <div className="drilldown-panel mt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-      {children}
     </div>
   );
 }
@@ -72,100 +141,69 @@ function Drilldown({ open, children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Section: Rolling Trends
 // ─────────────────────────────────────────────────────────────────────────────
-function RollingTrendsSection({ accountId }) {
-  const [data, setData] = useState(null);
+function RollingTrends({ accountId }) {
+  const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
-  const [window, setWindow] = useState(18);
+  const [win, setWin]       = useState(18);
 
   useEffect(() => {
     setLoading(true);
-    analyticsApi.get('/rolling-trends', { params: { months: window, account_id: accountId || undefined } })
-      .then(r => setData(r.data))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
-  }, [window, accountId]);
+    get('/analytics/rolling-trends', { months: win, ...(accountId && { account_id: accountId }) })
+      .then(r => setData(r.data)).catch(() => setData(null)).finally(() => setLoading(false));
+  }, [win, accountId]);
 
   const latest = data?.monthly?.slice(-1)[0];
-  const prev   = data?.monthly?.slice(-2, -1)[0];
 
   return (
     <section>
-      <SectionHeading
+      <SectionHead
         title="Spending & Income Trends"
-        sub={`Rolling ${window}-month view with MoM deltas`}
-        actions={
-          <div className="flex gap-1.5">
-            {[6, 12, 18, 24].map(w => (
-              <button key={w}
-                onClick={() => setWindow(w)}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all"
-                style={{
-                  background: window === w ? 'var(--accent)' : 'var(--bg-card)',
-                  color: window === w ? '#fff' : 'var(--text-secondary)',
-                  border: '1px solid var(--border)',
-                }}
-              >{w}mo</button>
-            ))}
-          </div>
-        }
+        sub="Rolling monthly view with MoM & YoY deltas"
+        actions={<div className="flex gap-1">{[6,12,18,24].map(w => <WinBtn key={w} active={win===w} onClick={() => setWin(w)}>{w}mo</WinBtn>)}</div>}
       />
 
-      {/* Window KPIs */}
       {data?.windows && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <StatCard label="30-day spend" value={formatCurrency(data.windows.r30_expenses)}
-            icon={TrendingDown} color="var(--danger)" />
-          <StatCard label="90-day spend" value={formatCurrency(data.windows.r90_expenses)}
-            icon={Activity} />
-          <StatCard label="30-day income" value={formatCurrency(data.windows.r30_income)}
-            icon={TrendingUp} color="var(--success)" />
-          <StatCard label="90-day income" value={formatCurrency(data.windows.r90_income)}
-            icon={DollarSign} color="var(--success)" />
+          <KpiCard label="30-day spend"   value={formatCurrency(data.windows.r30_expenses)} icon={TrendingDown} color="var(--danger)" />
+          <KpiCard label="90-day spend"   value={formatCurrency(data.windows.r90_expenses)} icon={Activity} />
+          <KpiCard label="30-day income"  value={formatCurrency(data.windows.r30_income)}  icon={TrendingUp}  color="var(--success)" />
+          <KpiCard label="90-day income"  value={formatCurrency(data.windows.r90_income)}  icon={DollarSign}  color="var(--success)" />
         </div>
       )}
 
-      {/* Main chart */}
-      {loading ? (
-        <div className="h-56 rounded-xl skeleton" />
-      ) : data?.monthly?.length ? (
-        <div className="card p-4">
+      {loading ? <Skeleton h={240} /> : data?.monthly?.length ? (
+        <Card className="p-4">
           <ResponsiveContainer width="100%" height={220}>
             <ComposedChart data={data.monthly} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
               <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-              <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="expenses" name="Expenses" fill="var(--danger)" opacity={0.7} radius={[3,3,0,0]} />
+              <Tooltip content={<ChartTip />} />
+              <Bar dataKey="expenses" name="Expenses" fill="var(--danger)"  opacity={0.7} radius={[3,3,0,0]} />
               <Bar dataKey="income"   name="Income"   fill="var(--success)" opacity={0.7} radius={[3,3,0,0]} />
               <Line dataKey="net" name="Net" stroke="var(--accent)" strokeWidth={2} dot={false} />
               <ReferenceLine y={0} stroke="var(--border-strong)" />
             </ComposedChart>
           </ResponsiveContainer>
 
-          {/* MoM delta row */}
           {latest && (
-            <div className="flex flex-wrap gap-4 mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-              <div>
-                <p className="text-label mb-0.5">Expenses MoM</p>
-                <TrendBadge delta={latest.mom_expenses} />
-              </div>
-              <div>
-                <p className="text-label mb-0.5">Income MoM</p>
-                <TrendBadge delta={latest.mom_income} inverse />
-              </div>
-              <div>
-                <p className="text-label mb-0.5">Expenses YoY</p>
-                <TrendBadge delta={latest.yoy_expenses} />
-              </div>
-              <div>
-                <p className="text-label mb-0.5">Income YoY</p>
-                <TrendBadge delta={latest.yoy_income} inverse />
-              </div>
+            <div className="flex flex-wrap gap-5 mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+              {[
+                { l: 'Expenses MoM', d: latest.mom_expenses, inv: false },
+                { l: 'Income MoM',   d: latest.mom_income,   inv: true },
+                { l: 'Expenses YoY', d: latest.yoy_expenses, inv: false },
+                { l: 'Income YoY',   d: latest.yoy_income,   inv: true },
+              ].map(({ l, d, inv }) => (
+                <div key={l}>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10 }}>{l}</p>
+                  <TrendChip delta={d} inverse={inv} />
+                </div>
+              ))}
             </div>
           )}
-        </div>
+        </Card>
       ) : (
-        <EmptyState icon={Activity} title="No trend data yet" description="Import transactions to see your spending trends." />
+        <Empty icon={Activity} title="No trend data yet" desc="Import transactions to see your spending trends." />
       )}
     </section>
   );
@@ -174,7 +212,7 @@ function RollingTrendsSection({ accountId }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Section: Merchant Concentration
 // ─────────────────────────────────────────────────────────────────────────────
-function MerchantConcentrationSection({ accountId }) {
+function MerchantConcentration({ accountId }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
@@ -182,49 +220,28 @@ function MerchantConcentrationSection({ accountId }) {
 
   useEffect(() => {
     setLoading(true);
-    analyticsApi.get('/merchant-concentration', { params: { months, account_id: accountId || undefined } })
-      .then(r => setData(r.data))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
+    get('/analytics/merchant-concentration', { months, ...(accountId && { account_id: accountId }) })
+      .then(r => setData(r.data)).catch(() => setData(null)).finally(() => setLoading(false));
   }, [months, accountId]);
 
-  // Top 5 share of wallet
   const top5Share = data?.merchants?.slice(0, 5).reduce((s, m) => s + m.share_pct, 0) || 0;
 
   return (
     <section>
-      <SectionHeading
+      <SectionHead
         title="Merchant Concentration"
-        sub={`Where your money goes — top merchants by spend share`}
-        actions={
-          <div className="flex gap-1.5">
-            {[3, 6, 12].map(w => (
-              <button key={w} onClick={() => setMonths(w)}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all"
-                style={{
-                  background: months === w ? 'var(--accent)' : 'var(--bg-card)',
-                  color: months === w ? '#fff' : 'var(--text-secondary)',
-                  border: '1px solid var(--border)',
-                }}
-              >{w}mo</button>
-            ))}
-          </div>
-        }
+        sub="Where your money goes — share of wallet by merchant"
+        actions={<div className="flex gap-1">{[3,6,12].map(w => <WinBtn key={w} active={months===w} onClick={() => setMonths(w)}>{w}mo</WinBtn>)}</div>}
       />
 
       {loading ? (
-        <div className="space-y-2">{[...Array(5)].map((_, i) => <SkeletonCard key={i} />)}</div>
+        <div className="space-y-2"><Skeleton h={56} /><Skeleton h={56} /><Skeleton h={56} /></div>
       ) : data?.merchants?.length ? (
-        <div className="card overflow-hidden">
-          {/* Concentration KPI */}
-          <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+        <Card className="overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Top 5 share of wallet:</span>
-            <span className="font-bold text-sm" style={{ color: top5Share > 60 ? 'var(--warning)' : 'var(--text-primary)' }}>
-              {top5Share.toFixed(0)}%
-            </span>
-            {top5Share > 60 && (
-              <span className="anomaly-badge"><AlertTriangle size={10} /> Concentrated</span>
-            )}
+            <span className="font-bold text-sm" style={{ color: top5Share > 60 ? 'var(--warning)' : 'var(--text-primary)' }}>{top5Share.toFixed(0)}%</span>
+            {top5Share > 60 && <AnomalyBadge><AlertTriangle size={10} /> Concentrated</AnomalyBadge>}
           </div>
 
           {data.merchants.map((m, i) => (
@@ -232,68 +249,52 @@ function MerchantConcentrationSection({ accountId }) {
               <button
                 className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
                 onClick={() => setExpanded(expanded === i ? null : i)}
-                style={{ borderBottom: i < data.merchants.length - 1 ? '1px solid var(--border)' : 'none' }}
+                style={{ borderBottom: '1px solid var(--border)' }}
               >
-                {/* Rank */}
-                <span className="w-5 text-xs font-bold" style={{ color: 'var(--text-muted)' }}>#{i + 1}</span>
-
-                {/* Merchant + bar */}
+                <span className="w-5 text-xs font-bold flex-shrink-0" style={{ color: 'var(--text-muted)' }}>#{i+1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{m.merchant}</span>
-                    <span className="font-mono text-sm font-semibold ml-3" style={{ color: 'var(--text-primary)' }}>
-                      {formatCurrency(m.total)}
-                    </span>
+                    <span className="font-mono text-sm font-semibold ml-3" style={{ color: 'var(--text-primary)' }}>{formatCurrency(m.total)}</span>
                   </div>
-                  {/* Progress bar */}
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-input)' }}>
-                    <div className="h-full rounded-full transition-all"
-                      style={{ width: `${m.share_pct}%`, background: `hsl(${240 - i * 30}, 80%, 65%)` }} />
+                  <div className="h-1.5 rounded-full overflow-hidden mb-1" style={{ background: 'var(--bg-input)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${m.share_pct}%`, background: `hsl(${240 - i*30}, 70%, 60%)` }} />
                   </div>
-                  <div className="flex items-center gap-3 mt-1">
+                  <div className="flex gap-3">
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{m.share_pct.toFixed(1)}% of spend</span>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{m.tx_count} txns</span>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>avg {formatCurrency(m.avg_tx)}</span>
                   </div>
                 </div>
-
-                {/* Sparkline */}
-                <div className="w-20 flex-shrink-0">
-                  <Sparkline data={m.sparkline} color={`hsl(${240 - i * 30}, 80%, 65%)`} height={28} />
+                <div className="w-16 flex-shrink-0">
+                  <Sparkline data={m.sparkline} color={`hsl(${240 - i*30}, 70%, 60%)`} />
                 </div>
-
-                <ChevronDown size={14} style={{ color: 'var(--text-muted)', transform: expanded === i ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }} />
+                <ChevronDown size={13} style={{ color: 'var(--text-muted)', flexShrink: 0, transform: expanded === i ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }} />
               </button>
 
-              {/* Drilldown: monthly breakdown for this merchant */}
-              <Drilldown open={expanded === i}>
-                <div className="px-4 py-3">
+              {expanded === i && (
+                <div className="px-4 py-3 animate-fade-in" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
                   <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>Monthly spend — {m.merchant}</p>
                   {m.sparkline?.length ? (
-                    <ResponsiveContainer width="100%" height={100}>
+                    <ResponsiveContainer width="100%" height={90}>
                       <BarChart data={m.sparkline} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                         <XAxis dataKey="month" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} />
-                        <Tooltip content={<ChartTooltip />} />
-                        <Bar dataKey="total" name="Spend" fill={`hsl(${240 - i * 30}, 80%, 65%)`} radius={[2,2,0,0]} />
+                        <Tooltip content={<ChartTip />} />
+                        <Bar dataKey="total" name="Spend" fill={`hsl(${240-i*30},70%,60%)`} radius={[2,2,0,0]} />
                       </BarChart>
                     </ResponsiveContainer>
-                  ) : (
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No monthly breakdown available.</p>
-                  )}
-                  <a
-                    href={`/transactions?merchant=${encodeURIComponent(m.merchant)}`}
-                    className="inline-flex items-center gap-1 text-xs mt-2"
-                    style={{ color: 'var(--accent)' }}
-                  >
+                  ) : <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No monthly breakdown available.</p>}
+                  <a href={`/transactions?search=${encodeURIComponent(m.merchant)}`}
+                    className="inline-flex items-center gap-1 text-xs mt-2" style={{ color: 'var(--accent)' }}>
                     View all transactions <ChevronRight size={11} />
                   </a>
                 </div>
-              </Drilldown>
+              )}
             </div>
           ))}
-        </div>
+        </Card>
       ) : (
-        <EmptyState icon={Activity} title="No merchant data" description="Import transactions to analyze merchant concentration." />
+        <Empty icon={Activity} title="No merchant data" desc="Import transactions to analyse merchant concentration." />
       )}
     </section>
   );
@@ -302,69 +303,51 @@ function MerchantConcentrationSection({ accountId }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Section: Subscription Creep
 // ─────────────────────────────────────────────────────────────────────────────
-function SubscriptionCreepSection({ accountId }) {
+function SubscriptionCreep({ accountId }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    analyticsApi.get('/subscription-creep', { params: { account_id: accountId || undefined } })
-      .then(r => setData(r.data))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
+    get('/analytics/subscription-creep', accountId ? { account_id: accountId } : {})
+      .then(r => setData(r.data)).catch(() => setData(null)).finally(() => setLoading(false));
   }, [accountId]);
 
-  const subs = data?.subscriptions || [];
+  const subs    = data?.subscriptions || [];
   const visible = showAll ? subs : subs.slice(0, 8);
 
   return (
     <section>
-      <SectionHeading
+      <SectionHead
         title="Recurring & Subscriptions"
         sub="Detected recurring charges — flagged ones have rising costs"
-        actions={
-          data && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Est. annual: <strong style={{ color: 'var(--text-primary)' }}>{formatCurrency(data.total_annual)}</strong>
-              </span>
-              {data.creeping_count > 0 && (
-                <span className="anomaly-badge">
-                  <TrendingUp size={10} /> {data.creeping_count} creeping
-                </span>
-              )}
-            </div>
-          )
-        }
+        actions={data && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Est. annual: <strong style={{ color: 'var(--text-primary)' }}>{formatCurrency(data.total_annual)}</strong>
+            </span>
+            {data.creeping_count > 0 && <AnomalyBadge><TrendingUp size={10} /> {data.creeping_count} creeping</AnomalyBadge>}
+          </div>
+        )}
       />
 
-      {loading ? (
-        <div className="space-y-2">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
-      ) : subs.length ? (
+      {loading ? <div className="space-y-2"><Skeleton h={56} /><Skeleton h={56} /><Skeleton h={56} /></div>
+       : subs.length ? (
         <>
-          <div className="card overflow-hidden">
+          <Card className="overflow-hidden">
             {visible.map((s, i) => (
-              <div
-                key={s.merchant}
-                className="flex items-center gap-3 px-4 py-3"
-                style={{ borderBottom: i < visible.length - 1 ? '1px solid var(--border)' : 'none' }}
-              >
+              <div key={s.merchant} className="flex items-center gap-3 px-4 py-3"
+                style={{ borderBottom: i < visible.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <Repeat size={14} style={{ color: s.is_creeping ? 'var(--warning)' : 'var(--accent)', flexShrink: 0 }} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{s.merchant}</span>
-                    {s.is_creeping && (
-                      <span className="anomaly-badge">
-                        <TrendingUp size={9} /> +{s.creep_pct?.toFixed(0)}%
-                      </span>
-                    )}
+                    {s.is_creeping && <AnomalyBadge><TrendingUp size={9} /> +{s.creep_pct?.toFixed(0)}%</AnomalyBadge>}
                   </div>
-                  <div className="flex items-center gap-3 mt-0.5">
+                  <div className="flex gap-3 mt-0.5">
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.tx_count} charges</span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {formatCurrency(s.min_amount)} – {formatCurrency(s.max_amount)}
-                    </span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCurrency(s.min_amount)} – {formatCurrency(s.max_amount)}</span>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -374,11 +357,11 @@ function SubscriptionCreepSection({ accountId }) {
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatCurrency(s.annual_estimate)}/yr</p>
                 </div>
                 <div className="w-16 flex-shrink-0">
-                  <Sparkline data={s.monthly} color={s.is_creeping ? 'var(--warning)' : 'var(--accent)'} height={24} />
+                  <Sparkline data={s.monthly} color={s.is_creeping ? 'var(--warning)' : 'var(--accent)'} />
                 </div>
               </div>
             ))}
-          </div>
+          </Card>
           {subs.length > 8 && (
             <button onClick={() => setShowAll(v => !v)} className="mt-2 text-xs" style={{ color: 'var(--accent)' }}>
               {showAll ? 'Show less' : `Show all ${subs.length} subscriptions`}
@@ -386,8 +369,8 @@ function SubscriptionCreepSection({ accountId }) {
           )}
         </>
       ) : (
-        <EmptyState icon={Repeat} title="No recurring patterns detected"
-          description="Patterns appear after 3+ similar charges from the same merchant." />
+        <Empty icon={Repeat} title="No recurring patterns detected"
+          desc="Patterns appear after 3+ similar charges from the same merchant." />
       )}
     </section>
   );
@@ -396,35 +379,27 @@ function SubscriptionCreepSection({ accountId }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Section: Anomaly Flags
 // ─────────────────────────────────────────────────────────────────────────────
-function AnomaliesSection({ accountId }) {
+function Anomalies({ accountId }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    analyticsApi.get('/anomalies', { params: { account_id: accountId || undefined } })
-      .then(r => setData(r.data))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
+    get('/analytics/anomalies', accountId ? { account_id: accountId } : {})
+      .then(r => setData(r.data)).catch(() => setData(null)).finally(() => setLoading(false));
   }, [accountId]);
 
   return (
     <section>
-      <SectionHeading
+      <SectionHead
         title="Anomaly Flags"
         sub="Transactions significantly higher than your typical spend at that merchant"
-        actions={
-          data?.count > 0 && (
-            <span className="anomaly-badge"><AlertTriangle size={10} /> {data.count} flagged</span>
-          )
-        }
+        actions={data?.count > 0 && <AnomalyBadge><AlertTriangle size={10} /> {data.count} flagged</AnomalyBadge>}
       />
 
-      {loading ? (
-        <div className="space-y-2">{[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}</div>
-      ) : data?.anomalies?.length ? (
-        <div className="card overflow-hidden">
-          {/* Category surges first */}
+      {loading ? <div className="space-y-2"><Skeleton h={64} /><Skeleton h={64} /></div>
+       : data?.anomalies?.length ? (
+        <Card className="overflow-hidden">
           {data.category_surges?.length > 0 && (
             <div className="px-4 py-3" style={{ background: 'rgba(251,191,36,0.06)', borderBottom: '1px solid var(--border)' }}>
               <p className="text-xs font-semibold mb-2" style={{ color: 'var(--warning)' }}>
@@ -432,45 +407,36 @@ function AnomaliesSection({ accountId }) {
               </p>
               <div className="flex flex-wrap gap-2">
                 {data.category_surges.map(c => (
-                  <div key={c.category_id} className="text-xs px-2.5 py-1 rounded-lg"
+                  <span key={c.category_id} className="text-xs px-2 py-1 rounded-lg"
                     style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', color: 'var(--warning)' }}>
                     {c.category_name}: +{c.surge_pct?.toFixed(0)}%
                     <span className="opacity-60 ml-1">({formatCurrency(c.this_month)} vs avg {formatCurrency(c.avg_total)})</span>
-                  </div>
+                  </span>
                 ))}
               </div>
             </div>
           )}
-
-          {/* Transaction anomalies */}
           {data.anomalies.map((a, i) => (
-            <div
-              key={a.id}
-              className="flex items-center gap-3 px-4 py-3"
-              style={{ borderBottom: i < data.anomalies.length - 1 ? '1px solid var(--border)' : 'none' }}
-            >
+            <div key={a.id} className="flex items-center gap-3 px-4 py-3"
+              style={{ borderBottom: i < data.anomalies.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <Zap size={13} style={{ color: 'var(--warning)', flexShrink: 0 }} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-sm truncate font-medium" style={{ color: 'var(--text-primary)' }}>{a.merchant}</span>
-                  <span className="anomaly-badge">z={a.z_score?.toFixed(1)}</span>
+                  <AnomalyBadge>z={a.z_score?.toFixed(1)}</AnomalyBadge>
                 </div>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  {a.date} · {a.reason}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Expected: ~{formatCurrency(a.expected_amount)} · Overage: +{formatCurrency(a.overage)}
-                </p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.date} · {a.reason}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Expected ~{formatCurrency(a.expected_amount)} · Overage +{formatCurrency(a.overage)}</p>
               </div>
               <span className="font-mono font-semibold text-sm flex-shrink-0" style={{ color: 'var(--danger)' }}>
                 {formatCurrency(Math.abs(a.amount))}
               </span>
             </div>
           ))}
-        </div>
+        </Card>
       ) : (
-        <EmptyState icon={Zap} title="No anomalies detected"
-          description="Anomalies appear when a merchant charge is 2.5σ above your typical spend. Keep transacting and they'll surface naturally." />
+        <Empty icon={Zap} title="No anomalies detected"
+          desc="Anomalies appear when a merchant charge is 2.5σ above your typical spend." />
       )}
     </section>
   );
@@ -479,86 +445,70 @@ function AnomaliesSection({ accountId }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Section: Income Volatility
 // ─────────────────────────────────────────────────────────────────────────────
-function IncomeVolatilitySection({ accountId }) {
+function IncomeVolatility({ accountId }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    analyticsApi.get('/income-volatility', { params: { months: 12, account_id: accountId || undefined } })
-      .then(r => setData(r.data))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
+    get('/analytics/income-volatility', { months: 12, ...(accountId && { account_id: accountId }) })
+      .then(r => setData(r.data)).catch(() => setData(null)).finally(() => setLoading(false));
   }, [accountId]);
 
   const stabilityColor = { stable: 'var(--success)', moderate: 'var(--warning)', volatile: 'var(--danger)' };
+  const sc = stabilityColor[data?.stability] || 'var(--text-muted)';
 
   return (
     <section>
-      <SectionHeading
+      <SectionHead
         title="Income Volatility"
-        sub="Consistency of income across months + pay-cycle detection"
-        actions={
-          data?.stability && (
-            <span
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
-              style={{
-                color: stabilityColor[data.stability],
-                background: stabilityColor[data.stability] + '18',
-                border: `1px solid ${stabilityColor[data.stability]}30`,
-              }}
-            >
-              <Calendar size={11} />
-              {data.stability}
-            </span>
-          )
-        }
+        sub="Month-to-month income consistency and pay-cycle detection"
+        actions={data?.stability && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+            style={{ color: sc, background: sc + '18', border: `1px solid ${sc}30` }}>
+            <Calendar size={11} />{data.stability}
+          </span>
+        )}
       />
 
-      {loading ? (
-        <SkeletonCard />
-      ) : data?.monthly?.length ? (
+      {loading ? <Skeleton h={200} />
+       : data?.monthly?.length ? (
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatCard label="Avg monthly" value={formatCurrency(data.stats.avg)} icon={DollarSign} color="var(--success)" />
-            <StatCard label="Std deviation" value={formatCurrency(data.stats.std_dev)} icon={Activity} />
-            <StatCard label="Variability (CV)" value={`${data.stats.cv_pct?.toFixed(1)}%`}
-              icon={TrendingUp} color={stabilityColor[data.stability]} />
-            <StatCard
-              label="Pay cycle"
+            <KpiCard label="Avg monthly"     value={formatCurrency(data.stats.avg)}           icon={DollarSign} color="var(--success)" />
+            <KpiCard label="Std deviation"   value={formatCurrency(data.stats.std_dev)}       icon={Activity} />
+            <KpiCard label="Variability (CV)" value={`${data.stats.cv_pct?.toFixed(1)}%`}    icon={TrendingUp} color={sc} />
+            <KpiCard label="Pay cycle"
               value={data.pay_cycle.likely_biweekly ? 'Bi-weekly' : data.pay_cycle.likely_monthly ? 'Monthly' : 'Irregular'}
-              icon={Calendar}
-            />
+              icon={Calendar} />
           </div>
-
-          <div className="card p-4">
+          <Card className="p-4">
             <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={data.monthly} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--success)" stopOpacity={0.3} />
+                    <stop offset="5%"  stopColor="var(--success)" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="var(--success)" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-                <Tooltip content={<ChartTooltip />} />
-                <ReferenceLine y={data.stats.avg} stroke="var(--success)" strokeDasharray="4 4" opacity={0.6} label={{ value: 'avg', position: 'right', fontSize: 10, fill: 'var(--success)' }} />
+                <Tooltip content={<ChartTip />} />
+                <ReferenceLine y={data.stats.avg} stroke="var(--success)" strokeDasharray="4 4" opacity={0.6} />
                 <Area dataKey="income" name="Income" stroke="var(--success)" fill="url(#incomeGrad)" strokeWidth={2} dot={false} />
               </AreaChart>
             </ResponsiveContainer>
-
             {data.pay_cycle.peaks?.length > 0 && (
               <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
                 <Calendar size={11} className="inline mr-1" />
                 Income typically arrives around day{data.pay_cycle.peaks.length > 1 ? 's' : ''}: {data.pay_cycle.peaks.join(', ')} of the month
               </p>
             )}
-          </div>
+          </Card>
         </div>
       ) : (
-        <EmptyState icon={DollarSign} title="No income data" description="Configure income sources in Settings to see volatility analysis." />
+        <Empty icon={DollarSign} title="No income data" desc="Configure income sources in Settings to see volatility analysis." />
       )}
     </section>
   );
@@ -572,34 +522,31 @@ export default function Trends() {
   const [accounts, setAccounts]   = useState([]);
 
   useEffect(() => {
-    analyticsApi.get('/accounts-summary')
-      .then(r => setAccounts(r.data || []))
-      .catch(() => {});
+    get('/analytics/accounts-summary')
+      .then(r => setAccounts(r.data || [])).catch(() => {});
   }, []);
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-8 animate-fade-in">
-      <PageHeader
-        title="Trends & Insights"
-        description="Rolling analysis, patterns, and anomaly detection"
-        actions={
-          <select
-            value={accountId}
-            onChange={e => setAccountId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg text-xs"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-          >
-            <option value="">All accounts</option>
-            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-        }
-      />
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-10 animate-fade-in">
+      {/* Page header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Trends &amp; Insights</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Rolling analysis, patterns, and anomaly detection</p>
+        </div>
+        <select value={accountId} onChange={e => setAccountId(e.target.value)}
+          className="px-3 py-1.5 rounded-lg text-xs"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+          <option value="">All accounts</option>
+          {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+      </div>
 
-      <RollingTrendsSection accountId={accountId} />
-      <MerchantConcentrationSection accountId={accountId} />
-      <SubscriptionCreepSection accountId={accountId} />
-      <AnomaliesSection accountId={accountId} />
-      <IncomeVolatilitySection accountId={accountId} />
+      <RollingTrends       accountId={accountId} />
+      <MerchantConcentration accountId={accountId} />
+      <SubscriptionCreep   accountId={accountId} />
+      <Anomalies           accountId={accountId} />
+      <IncomeVolatility    accountId={accountId} />
     </div>
   );
 }
