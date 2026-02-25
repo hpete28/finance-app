@@ -479,9 +479,13 @@ export default function Transactions() {
   };
 
   const handleBulkUpdate = async () => {
-    await transactionsApi.bulk({ ids: [...selected], category_id: bulkCategory || null });
-    setSelected(new Set()); setBulkCategory(''); load();
-    showToast(`✅ Updated ${selected.size} transactions`);
+  if (!bulkCategory) return;
+  const categoryId = bulkCategory === '__uncategorized__' ? null : Number(bulkCategory);
+  await transactionsApi.bulk({ ids: [...selected], category_id: categoryId });
+  setSelected(new Set()); setBulkCategory(''); load();
+  showToast(categoryId === null
+    ? `✅ Removed category from ${selected.size} transactions`
+    : `✅ Updated ${selected.size} transactions`);
   };
 
   const handleBulkIncome = async (value) => {
@@ -656,9 +660,16 @@ export default function Transactions() {
           <div className="h-4 w-px" style={{ background: 'var(--border)' }} />
           <select className="select text-xs w-48" value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}>
             <option value="">Assign category…</option>
+            <option value="__uncategorized__">Uncategorized (remove category)</option>
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <button className="btn-primary text-xs" onClick={handleBulkUpdate}>Apply category</button>
+          <button
+            className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleBulkUpdate}
+            disabled={!bulkCategory}
+          >
+            Apply category
+          </button>
           <input className="input text-xs w-48" value={bulkTags} onChange={e => setBulkTags(e.target.value)} placeholder="🏷️ tags: travel, tax" />
           <button className="btn-secondary text-xs" onClick={() => handleBulkTags('append')}>Append tags</button>
           <button className="btn-secondary text-xs" onClick={() => handleBulkTags('replace')}>Replace tags</button>
