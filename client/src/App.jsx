@@ -25,7 +25,8 @@ function MonthSelector() {
     const d = new Date(y, m - 1 + dir, 1);
     setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}`);
   };
-  const label = new Date(selectedMonth + '-01').toLocaleDateString('en-CA', { year: 'numeric', month: 'long' });
+  const [year, month] = selectedMonth.split('-').map(Number);
+  const label = new Date(year, month - 1, 1).toLocaleDateString('en-CA', { year: 'numeric', month: 'long' });
   return (
     <div className="flex items-center gap-1 rounded-lg px-1 py-0.5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <button className="w-6 h-6 flex items-center justify-center rounded transition-colors text-sm" style={{ color: 'var(--text-muted)' }} onClick={() => navigate(-1)}>‹</button>
