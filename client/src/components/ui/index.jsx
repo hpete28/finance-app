@@ -82,7 +82,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
         onClick={onClose}
       />
       <div
-        className={`relative card w-full ${sizes[size]} animate-slide-up shadow-2xl`}
+        className={`relative card w-full ${sizes[size]} max-h-[90vh] overflow-hidden animate-slide-up shadow-2xl`}
         style={{ border: '1px solid rgba(99,102,241,0.3)' }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -95,7 +95,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
             <X size={15} />
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 max-h-[calc(90vh-72px)] overflow-y-auto">{children}</div>
       </div>
     </div>
   );

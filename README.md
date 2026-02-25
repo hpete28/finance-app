@@ -28,9 +28,21 @@ It focuses on practical day-to-day workflows:
 
 ### Categorization + Rules
 - Category management (system + custom categories, colors, income flag).
-- Rule engine (keyword + match type + priority).
-- Re-apply rules to existing transactions.
-- Auto-learn rules from consistent categorized history (with safety caps).
+- Advanced rule engine with transaction-context conditions:
+  - description contains/equals/starts-with/regex,
+  - merchant match,
+  - amount exact/range,
+  - amount sign (income/expense),
+  - optional account/date filters.
+- Rule actions:
+  - assign category,
+  - append/replace/remove tags,
+  - set merchant name,
+  - set income override / exclude-from-totals flags.
+- Behavior controls: priority, enable/disable, stop-processing.
+- Rule preview before save (match count estimate + sample transactions).
+- Re-apply rules to existing transactions with overwrite controls.
+- Auto-learn suggestion workflow (review + accept, confidence scored).
 
 ### Income Modeling
 - Income sources tab (keyword match rules for incoming transactions).
@@ -151,8 +163,10 @@ Core tables:
 ### Categorization
 - `GET/POST/PATCH/DELETE /api/categories`
 - `GET/POST/PATCH/DELETE /api/rules`
+- `POST /api/rules/preview`
 - `POST /api/rules/apply`
 - `POST /api/rules/learn`
+- `POST /api/rules/learn/apply`
 
 ### Income sources
 - `GET/POST/DELETE /api/income-sources`
@@ -186,6 +200,41 @@ Core tables:
 - `POST /api/setup/seed-rules`
 - `GET /api/health`
 - `POST /api/pdf-import/*` (PDF import utilities)
+
+---
+
+## Rules Engine Notes
+
+### Evaluation order
+- Rules are evaluated in deterministic order:
+  1. `priority DESC`
+  2. source rank (`manual` before `learned` before legacy `tag_rules`)
+  3. `id ASC`
+- Category assignment uses first-match-wins.
+- Merchant, income-override, and exclude-from-totals use first-write-wins.
+- Tag actions execute sequentially across matched rules.
+- If a rule has `stop_processing = true`, evaluation stops after that match.
+
+### Rule payload shape (API)
+- `conditions`:
+  - `description`: `{ operator, value, case_sensitive }`
+  - `merchant`: `{ operator, value, case_sensitive }`
+  - `amount`: `{ exact }` or `{ min, max }`
+  - `amount_sign`: `any | income | expense`
+  - `account_ids`: `number[]`
+  - `date_range`: `{ from, to }`
+- `actions`:
+  - `set_category_id`
+  - `tags`: `{ mode: append|replace|remove, values: string[] }`
+  - `set_merchant_name`
+  - `set_is_income_override`
+  - `set_exclude_from_totals`
+- `behavior`:
+  - `priority`, `is_enabled`, `stop_processing`, `source`, `confidence`
+
+### Backward compatibility
+- Existing legacy `rules` rows still work (keyword + match type + category).
+- Existing legacy `tag_rules` are still evaluated as compatibility tag append rules.
 
 ---
 

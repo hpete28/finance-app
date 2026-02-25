@@ -2,8 +2,7 @@
 const { parse } = require('csv-parse/sync');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../database');
-const { categorize } = require('./categorizer');
-const { getMatchedTags } = require('./tagger');
+const { applyRulesToTransactionInput, getCompiledRules } = require('./categorizer');
 const { recordImportRun } = require('./importHistory');
 
 const ACCOUNT_MAP = {
@@ -79,9 +78,10 @@ function importCSV(filename, buffer, accountNameOverride) {
   const rows = parseCSV(buffer);
   const insert = db.prepare(`
     INSERT INTO transactions
-      (id, account_id, date, description, amount, category_id, tags)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+      (id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
+  const compiledRules = getCompiledRules({ includeLegacyTagRules: true });
 
   let imported = 0;
   let skipped = 0;
@@ -92,11 +92,37 @@ function importCSV(filename, buffer, accountNameOverride) {
     for (const row of rows) {
       if (!row.date || !row.description) { skipped++; continue; }
 
-      const catResult = categorize(row.description);
-      const matchedTags = getMatchedTags(row.description);
+      const evaluated = applyRulesToTransactionInput({
+        account_id: account.id,
+        date: row.date,
+        description: row.description,
+        amount: row.amount,
+        category_id: null,
+        tags: [],
+        merchant_name: null,
+        is_income_override: 0,
+        exclude_from_totals: 0,
+      }, {
+        compiledRules,
+        overwrite_category: true,
+        overwrite_tags: true,
+        overwrite_merchant: true,
+        overwrite_flags: true,
+        includeLegacyTagRules: true,
+      });
       const txId = uuidv4();
-      insert.run(txId, account.id, row.date, row.description, row.amount,
-        catResult ? catResult.category_id : null, JSON.stringify(matchedTags));
+      insert.run(
+        txId,
+        account.id,
+        row.date,
+        row.description,
+        row.amount,
+        evaluated.category_id ?? null,
+        JSON.stringify(evaluated.tags || []),
+        evaluated.merchant_name || null,
+        evaluated.is_income_override ? 1 : 0,
+        evaluated.exclude_from_totals ? 1 : 0
+      );
       imported++;
       if (!fromDate || row.date < fromDate) fromDate = row.date;
       if (!toDate || row.date > toDate) toDate = row.date;

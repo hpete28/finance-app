@@ -1,31 +1,234 @@
 // src/pages/Settings.jsx
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Play, DollarSign, Building2, Pencil, Check, X, Zap, RefreshCw, Tag } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Plus, Trash2, Pencil, Check, X, Zap, RefreshCw, Eye, AlertTriangle, Sparkles, CheckSquare, Square,
+} from 'lucide-react';
 import { categoriesApi, rulesApi, tagRulesApi } from '../utils/api';
 import { Card, Modal, SectionHeader, Badge, EmptyState, Spinner } from '../components/ui';
 import useAppStore from '../stores/appStore';
 
-const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899','#14b8a6','#64748b','#a3e635','#fb923c'];
+const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899', '#14b8a6', '#64748b', '#a3e635', '#fb923c'];
+const MATCH_OPTIONS = [
+  { value: 'contains', label: 'Contains' },
+  { value: 'starts_with', label: 'Starts with' },
+  { value: 'equals', label: 'Exact equals' },
+  { value: 'regex', label: 'Regex (advanced)' },
+];
+const BOOL_MODES = [
+  { value: 'ignore', label: 'Do not change' },
+  { value: 'true', label: 'Set to true' },
+  { value: 'false', label: 'Set to false' },
+];
 
-// ─── Categories Tab ────────────────────────────────────────────────────────────
+const emptyRuleForm = {
+  id: null,
+  name: '',
+  description_operator: 'contains',
+  description_value: '',
+  description_case_sensitive: false,
+  merchant_enabled: false,
+  merchant_operator: 'contains',
+  merchant_value: '',
+  merchant_case_sensitive: false,
+  amount_mode: 'any',
+  amount_exact: '',
+  amount_min: '',
+  amount_max: '',
+  amount_sign: 'any',
+  account_ids: [],
+  date_from: '',
+  date_to: '',
+  action_category_id: '',
+  action_tags_mode: 'append',
+  action_tags_values: '',
+  action_set_merchant_name: '',
+  action_income_override: 'ignore',
+  action_exclude_totals: 'ignore',
+  priority: 10,
+  is_enabled: true,
+  stop_processing: false,
+  source: 'manual',
+  confidence: '',
+};
+
+function parseTagsInput(raw) {
+  return [...new Set(String(raw || '').split(',').map((t) => t.trim()).filter(Boolean))];
+}
+
+function boolModeToValue(mode) {
+  if (mode === 'true') return true;
+  if (mode === 'false') return false;
+  return undefined;
+}
+
+function buildRulePayload(form, forceSave = false) {
+  const conditions = {};
+  if (form.description_value.trim()) {
+    conditions.description = {
+      operator: form.description_operator,
+      value: form.description_value.trim(),
+      case_sensitive: !!form.description_case_sensitive,
+    };
+  }
+  if (form.merchant_enabled && form.merchant_value.trim()) {
+    conditions.merchant = {
+      operator: form.merchant_operator,
+      value: form.merchant_value.trim(),
+      case_sensitive: !!form.merchant_case_sensitive,
+    };
+  }
+  if (form.amount_mode === 'exact' && form.amount_exact !== '') conditions.amount = { exact: Number(form.amount_exact) };
+  if (form.amount_mode === 'range') {
+    const amount = {};
+    if (form.amount_min !== '') amount.min = Number(form.amount_min);
+    if (form.amount_max !== '') amount.max = Number(form.amount_max);
+    if (Object.keys(amount).length) conditions.amount = amount;
+  }
+  if (form.amount_sign !== 'any') conditions.amount_sign = form.amount_sign;
+  if (form.account_ids.length) conditions.account_ids = form.account_ids.map((v) => Number(v));
+  if (form.date_from || form.date_to) conditions.date_range = { from: form.date_from || null, to: form.date_to || null };
+
+  const actions = {};
+  if (form.action_category_id) actions.set_category_id = Number(form.action_category_id);
+  const tagValues = parseTagsInput(form.action_tags_values);
+  if (tagValues.length) actions.tags = { mode: form.action_tags_mode, values: tagValues };
+  if (form.action_set_merchant_name.trim()) actions.set_merchant_name = form.action_set_merchant_name.trim();
+  const incomeOverride = boolModeToValue(form.action_income_override);
+  if (incomeOverride !== undefined) actions.set_is_income_override = incomeOverride;
+  const excludeTotals = boolModeToValue(form.action_exclude_totals);
+  if (excludeTotals !== undefined) actions.set_exclude_from_totals = excludeTotals;
+
+  return {
+    name: form.name.trim() || null,
+    keyword: form.description_value.trim() || form.merchant_value.trim() || '',
+    match_type: 'contains_case_insensitive',
+    category_id: actions.set_category_id ?? null,
+    conditions,
+    actions,
+    behavior: {
+      priority: Number(form.priority) || 10,
+      is_enabled: !!form.is_enabled,
+      stop_processing: !!form.stop_processing,
+      source: form.source || 'manual',
+      confidence: form.confidence === '' ? null : Number(form.confidence),
+    },
+    priority: Number(form.priority) || 10,
+    is_enabled: !!form.is_enabled,
+    stop_processing: !!form.stop_processing,
+    source: form.source || 'manual',
+    confidence: form.confidence === '' ? null : Number(form.confidence),
+    force_save: !!forceSave,
+  };
+}
+
+function ruleToForm(rule) {
+  const c = rule.conditions || {};
+  const a = rule.actions || {};
+  const d = c.description || {};
+  const m = c.merchant || {};
+  const amt = c.amount || {};
+  let amountMode = 'any';
+  if (amt.exact !== undefined && amt.exact !== null) amountMode = 'exact';
+  else if (amt.min !== undefined || amt.max !== undefined) amountMode = 'range';
+
+  return {
+    ...emptyRuleForm,
+    id: rule.id,
+    name: rule.name || '',
+    description_operator: d.operator || 'contains',
+    description_value: d.value || rule.keyword || '',
+    description_case_sensitive: !!d.case_sensitive,
+    merchant_enabled: !!m.value,
+    merchant_operator: m.operator || 'contains',
+    merchant_value: m.value || '',
+    merchant_case_sensitive: !!m.case_sensitive,
+    amount_mode: amountMode,
+    amount_exact: amt.exact ?? '',
+    amount_min: amt.min ?? '',
+    amount_max: amt.max ?? '',
+    amount_sign: c.amount_sign || 'any',
+    account_ids: Array.isArray(c.account_ids) ? c.account_ids.map((v) => Number(v)) : [],
+    date_from: c?.date_range?.from || '',
+    date_to: c?.date_range?.to || '',
+    action_category_id: a.set_category_id ?? rule.category_id ?? '',
+    action_tags_mode: a?.tags?.mode || 'append',
+    action_tags_values: (a?.tags?.values || []).join(', '),
+    action_set_merchant_name: a.set_merchant_name || '',
+    action_income_override:
+      a.set_is_income_override === true || a.set_is_income_override === 1 ? 'true' :
+      (a.set_is_income_override === false || a.set_is_income_override === 0 ? 'false' : 'ignore'),
+    action_exclude_totals:
+      a.set_exclude_from_totals === true || a.set_exclude_from_totals === 1 ? 'true' :
+      (a.set_exclude_from_totals === false || a.set_exclude_from_totals === 0 ? 'false' : 'ignore'),
+    priority: rule.priority ?? 10,
+    is_enabled: !!rule.is_enabled,
+    stop_processing: !!rule.stop_processing,
+    source: rule.source || 'manual',
+    confidence: rule.confidence ?? '',
+  };
+}
+
+function summarizeRule(rule, categoriesById = {}) {
+  const parts = [];
+  const c = { ...(rule.conditions || {}) };
+  const a = { ...(rule.actions || {}) };
+  // Legacy fallback so old rules still show meaningful list summaries.
+  if ((!c.description || !c.description.value) && rule.keyword) {
+    c.description = {
+      operator:
+        rule.match_type === 'exact' ? 'equals' :
+        rule.match_type === 'starts_with' ? 'starts_with' :
+        rule.match_type === 'regex' ? 'regex' : 'contains',
+      value: rule.keyword,
+      case_sensitive: false,
+    };
+  }
+  if (a.set_category_id === undefined && rule.category_id) {
+    a.set_category_id = rule.category_id;
+  }
+  if (c.description?.value) parts.push(`desc ${c.description.operator} "${c.description.value}"`);
+  if (c.merchant?.value) parts.push(`merchant ${c.merchant.operator} "${c.merchant.value}"`);
+  if (c.amount?.exact !== undefined) parts.push(`amt = ${c.amount.exact}`);
+  if (c.amount?.min !== undefined || c.amount?.max !== undefined) parts.push(`amt ${c.amount.min ?? '-inf'}..${c.amount.max ?? '+inf'}`);
+  if (c.amount_sign && c.amount_sign !== 'any') parts.push(c.amount_sign);
+  if (c.account_ids?.length) parts.push(`${c.account_ids.length} account filter`);
+  if (c.date_range?.from || c.date_range?.to) parts.push(`date ${c.date_range.from || '*'} to ${c.date_range.to || '*'}`);
+
+  const actionParts = [];
+  if (a.set_category_id) actionParts.push(`category: ${categoriesById[a.set_category_id] || a.set_category_id}`);
+  if (a.tags?.values?.length) actionParts.push(`${a.tags.mode} tags: ${a.tags.values.join(', ')}`);
+  if (a.set_merchant_name) actionParts.push(`merchant -> ${a.set_merchant_name}`);
+  if (a.set_is_income_override !== undefined) actionParts.push(`income override -> ${a.set_is_income_override ? 'true' : 'false'}`);
+  if (a.set_exclude_from_totals !== undefined) actionParts.push(`exclude totals -> ${a.set_exclude_from_totals ? 'true' : 'false'}`);
+
+  return {
+    conditions: parts.length ? parts.join(' · ') : 'No conditions',
+    actions: actionParts.length ? actionParts.join(' · ') : 'No actions',
+  };
+}
+
 function CategoriesTab() {
   const { showToast } = useAppStore();
-  const [cats, setCats]     = useState([]);
+  const [cats, setCats] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [editId, setEditId]   = useState(null);
-  const [form, setForm]     = useState({ name: '', color: '#6366f1', parent_id: '', is_income: false });
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ name: '', color: '#6366f1', parent_id: '', is_income: false });
   const [editForm, setEditForm] = useState({});
   const [learning, setLearning] = useState(false);
   const [learnResult, setLearnResult] = useState(null);
+  const [selectedSuggestions, setSelectedSuggestions] = useState(new Set());
+  const [applyingSuggestions, setApplyingSuggestions] = useState(false);
 
-  const load = () => categoriesApi.list().then(r => setCats(r.data));
+  const load = () => categoriesApi.list().then((r) => setCats(r.data));
   useEffect(() => { load(); }, []);
 
   const handleAdd = async () => {
     if (!form.name.trim()) return;
     await categoriesApi.create({ name: form.name, color: form.color, parent_id: form.parent_id || null, is_income: form.is_income });
-    setShowAdd(false); setForm({ name: '', color: '#6366f1', parent_id: '', is_income: false }); load();
-    showToast('✅ Category created');
+    setShowAdd(false);
+    setForm({ name: '', color: '#6366f1', parent_id: '', is_income: false });
+    load();
+    showToast('Category created');
   };
 
   const startEdit = (cat) => {
@@ -35,357 +238,352 @@ function CategoriesTab() {
 
   const saveEdit = async (id) => {
     await categoriesApi.update(id, editForm);
-    setEditId(null); load(); showToast('✅ Category updated');
+    setEditId(null);
+    load();
+    showToast('Category updated');
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this category? Transactions will become uncategorized.')) return;
-    await categoriesApi.delete(id); load(); showToast('🗑 Category deleted');
+    await categoriesApi.delete(id);
+    load();
+    showToast('Category deleted');
   };
 
-  const handleToggleIncome = async (cat) => {
-    await categoriesApi.update(cat.id, { is_income: cat.is_income ? 0 : 1 });
-    load(); showToast(cat.is_income ? 'Income flag removed' : '💰 Marked as income category');
-  };
-
-  // Auto-learn: creates rules from manually categorized transactions
   const handleLearn = async () => {
-    setLearning(true); setLearnResult(null);
+    setLearning(true);
+    setLearnResult(null);
     try {
-      const res = await fetch('/api/rules/learn', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ min_count: 3, max_new_rules: 60 }) });
-      const data = await res.json();
+      const res = await rulesApi.learn({ min_count: 3, max_suggestions: 60 });
+      const data = res.data;
       setLearnResult(data);
-      showToast(`🧠 Learned ${data.created} new rules (${data.analyzed} analyzed)`);
-    } catch (e) { showToast('Learning failed', 'error'); }
-    finally { setLearning(false); }
+      const initial = new Set((data.suggestions || []).map((_, i) => i));
+      setSelectedSuggestions(initial);
+      showToast(`Generated ${data.suggestions_count || 0} suggestions`);
+    } catch {
+      showToast('Learning failed', 'error');
+    } finally {
+      setLearning(false);
+    }
+  };
+
+  const applySuggestions = async () => {
+    if (!learnResult?.suggestions?.length) return;
+    const picked = learnResult.suggestions.filter((_, idx) => selectedSuggestions.has(idx));
+    if (!picked.length) return;
+    setApplyingSuggestions(true);
+    try {
+      const res = await rulesApi.applyLearned(picked, picked.length);
+      showToast(`Applied ${res.data.created} learned rules`);
+      setLearnResult(null);
+    } catch {
+      showToast('Failed to apply learned suggestions', 'error');
+    } finally {
+      setApplyingSuggestions(false);
+    }
+  };
+
+  const toggleSuggestion = (index) => {
+    setSelectedSuggestions((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index); else next.add(index);
+      return next;
+    });
   };
 
   return (
     <div>
-      <SectionHeader title="🏷️ Categories" subtitle={`${cats.length} categories · sorted alphabetically`}
-        actions={
+      <SectionHeader
+        title="Categories"
+        subtitle={`${cats.length} categories`}
+        actions={(
           <div className="flex items-center gap-2">
             <button className="btn-secondary text-xs flex items-center gap-1.5" onClick={handleLearn} disabled={learning}>
-              {learning ? <Spinner size={12} /> : <Zap size={12} />}
-              {learning ? 'Learning…' : 'Auto-learn rules'}
+              {learning ? <Spinner size={12} /> : <Sparkles size={12} />}
+              {learning ? 'Learning…' : 'Auto-learn suggestions'}
             </button>
             <button className="btn-primary text-xs flex items-center gap-1.5" onClick={() => setShowAdd(true)}>
               <Plus size={12} /> Add Category
             </button>
           </div>
-        } />
+        )}
+      />
 
       {learnResult && (
-        <div className="mt-3 mb-4 p-3 rounded-xl text-sm animate-slide-up"
-          style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
-          <p className="text-emerald-300 font-semibold">🧠 Learning complete</p>
-          <p className="text-slate-400 text-xs mt-1">Analyzed {learnResult.analyzed} manually-categorized transactions →
-            created <strong className="text-emerald-400">{learnResult.created}</strong> new rules,
-            skipped {learnResult.skipped} (already existed).</p>
-          <button className="text-xs text-slate-500 hover:text-slate-300 mt-1" onClick={() => setLearnResult(null)}>Dismiss</button>
+        <div className="mt-3 mb-5 p-3 rounded-xl" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
+          <p className="text-sm font-semibold text-emerald-300">Auto-learn suggestions</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            {learnResult.suggestions_count || 0} candidate rules from {learnResult.analyzed} categorized transactions.
+          </p>
+          <div className="mt-3 space-y-2 max-h-56 overflow-y-auto pr-1">
+            {(learnResult.suggestions || []).map((s, idx) => (
+              <label key={idx} className="flex gap-3 p-2 rounded-lg cursor-pointer" style={{ border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+                <input type="checkbox" checked={selectedSuggestions.has(idx)} onChange={() => toggleSuggestion(idx)} />
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-200">{s.name || 'Learned rule'} <span className="text-emerald-400">({Math.round((s.confidence || 0) * 100)}%)</span></p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{(s.rationale || []).join(' · ')}</p>
+                  {s.preview && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Matches {s.preview.match_count} tx ({(s.preview.match_ratio * 100).toFixed(1)}%)</p>}
+                </div>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 mt-3">
+            <button className="btn-secondary text-xs" onClick={() => setLearnResult(null)}>Dismiss</button>
+            <button className="btn-primary text-xs" disabled={applyingSuggestions || !selectedSuggestions.size} onClick={applySuggestions}>
+              {applyingSuggestions ? 'Applying…' : `Apply selected (${selectedSuggestions.size})`}
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="mt-4 space-y-1.5">
-        {cats.map(c => (
-          <div key={c.id}
-            className={`rounded-xl overflow-hidden ${c.parent_id ? 'ml-8' : ''}`}
-            style={{ border: `1px solid ${editId === c.id ? 'var(--border-strong)' : 'var(--border)'}`, background: 'var(--bg-card)' }}>
+      <div className="mt-3 space-y-1.5">
+        {cats.map((c) => (
+          <div key={c.id} className={`rounded-xl overflow-hidden ${c.parent_id ? 'ml-8' : ''}`} style={{ border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
             {editId === c.id ? (
-              // ── Edit row ──
               <div className="flex items-center gap-3 px-4 py-2.5">
-                <div className="flex items-center gap-2">
-                  {COLORS.map(col => (
-                    <button key={col} onClick={() => setEditForm(f => ({...f, color: col}))}
-                      className="w-5 h-5 rounded-full transition-transform hover:scale-110"
-                      style={{ background: col, outline: editForm.color === col ? `2px solid white` : 'none', outlineOffset: '2px' }} />
-                  ))}
-                </div>
-                <input className="input flex-1 py-1.5 text-sm" value={editForm.name}
-                  onChange={e => setEditForm(f => ({...f, name: e.target.value}))}
-                  onKeyDown={e => e.key === 'Enter' && saveEdit(c.id)} autoFocus />
-                <label className="flex items-center gap-1.5 text-xs cursor-pointer whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
-                  <input type="checkbox" checked={editForm.is_income} onChange={e => setEditForm(f => ({...f, is_income: e.target.checked}))} />
-                  Income
-                </label>
+                <div className="flex items-center gap-2">{COLORS.map((col) => <button key={col} onClick={() => setEditForm((f) => ({ ...f, color: col }))} className="w-5 h-5 rounded-full" style={{ background: col, outline: editForm.color === col ? '2px solid white' : 'none' }} />)}</div>
+                <input className="input flex-1 py-1.5 text-sm" value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} onKeyDown={(e) => e.key === 'Enter' && saveEdit(c.id)} autoFocus />
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer whitespace-nowrap" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={editForm.is_income} onChange={(e) => setEditForm((f) => ({ ...f, is_income: e.target.checked }))} />Income</label>
                 <button className="btn-primary text-xs py-1 px-3" onClick={() => saveEdit(c.id)}><Check size={12} /></button>
                 <button className="btn-ghost text-xs py-1 px-2" onClick={() => setEditId(null)}><X size={12} /></button>
               </div>
             ) : (
-              // ── View row ──
               <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full shrink-0" style={{ background: c.color }} />
-                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{c.name}</span>
-                  {c.is_income && <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">💰 Income</span>}
-                  {c.is_system && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>system</span>}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{c.tx_count || 0} tx</span>
-                  <button onClick={() => startEdit(c)} className="btn-ghost text-xs p-1.5" title="Edit">
-                    <Pencil size={12} />
-                  </button>
-                  <button onClick={() => handleToggleIncome(c)} title={c.is_income ? 'Remove income flag' : 'Mark as income'}
-                    className={`p-1.5 rounded-lg text-xs transition-colors ${c.is_income ? 'text-emerald-400 bg-emerald-500/10' : 'hover:text-emerald-400 hover:bg-emerald-500/10'}`}
-                    style={{ color: c.is_income ? undefined : 'var(--text-muted)' }}>
-                    <DollarSign size={12} />
-                  </button>
-                  {!c.is_system && (
-                    <button className="p-1.5 rounded-lg text-xs transition-colors hover:bg-red-500/10 hover:text-red-400"
-                      style={{ color: 'var(--text-muted)' }} onClick={() => handleDelete(c.id)}>
-                      <Trash2 size={12} />
-                    </button>
-                  )}
-                </div>
+                <div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full shrink-0" style={{ background: c.color }} /><span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{c.name}</span>{c.is_income && <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Income</span>}</div>
+                <div className="flex items-center gap-2"><span className="text-xs" style={{ color: 'var(--text-muted)' }}>{c.tx_count || 0} tx</span><button onClick={() => startEdit(c)} className="btn-ghost text-xs p-1.5"><Pencil size={12} /></button>{!c.is_system && <button className="p-1.5 rounded-lg text-xs transition-colors hover:bg-red-500/10 hover:text-red-400" style={{ color: 'var(--text-muted)' }} onClick={() => handleDelete(c.id)}><Trash2 size={12} /></button>}</div>
               </div>
             )}
           </div>
         ))}
       </div>
 
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="➕ Add Category" size="sm">
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Category" size="sm">
         <div className="space-y-4">
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Name</label>
-            <input className="input" placeholder="e.g. Entertainment"
-              value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))}
-              onKeyDown={e => e.key === 'Enter' && handleAdd()} autoFocus />
-          </div>
-          <div>
-            <label className="text-xs block mb-2" style={{ color: 'var(--text-muted)' }}>Color</label>
-            <div className="flex flex-wrap gap-2">
-              {COLORS.map(col => (
-                <button key={col} onClick={() => setForm(f => ({...f, color: col}))}
-                  className="w-7 h-7 rounded-full transition-transform hover:scale-110"
-                  style={{ background: col, outline: form.color === col ? '2px solid white' : 'none', outlineOffset: '2px' }} />
-              ))}
-            </div>
-          </div>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={form.is_income} onChange={e => setForm(f => ({...f, is_income: e.target.checked}))} />
-            <div>
-              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>Income category</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Transactions here count as income, not expenses</p>
-            </div>
-          </label>
-          <div className="flex gap-2 justify-end pt-2">
-            <button className="btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleAdd}>Create</button>
-          </div>
+          <div><label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Name</label><input className="input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} autoFocus /></div>
+          <div><label className="text-xs block mb-2" style={{ color: 'var(--text-muted)' }}>Color</label><div className="flex flex-wrap gap-2">{COLORS.map((col) => <button key={col} onClick={() => setForm((f) => ({ ...f, color: col }))} className="w-7 h-7 rounded-full" style={{ background: col, outline: form.color === col ? '2px solid white' : 'none' }} />)}</div></div>
+          <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={form.is_income} onChange={(e) => setForm((f) => ({ ...f, is_income: e.target.checked }))} />Income category</label>
+          <div className="flex gap-2 justify-end pt-2"><button className="btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button><button className="btn-primary" onClick={handleAdd}>Create</button></div>
         </div>
       </Modal>
     </div>
   );
 }
 
-// ─── Rules Tab ─────────────────────────────────────────────────────────────────
 function RulesTab() {
   const { showToast } = useAppStore();
+  const accounts = useAppStore((s) => s.accounts || []);
   const [rules, setRules] = useState([]);
-  const [tagRules, setTagRules] = useState([]);
-  const [cats, setCats]   = useState([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showAddTagRule, setShowAddTagRule] = useState(false);
-  const [applying, setApplying] = useState(false);
-  const [applyingTags, setApplyingTags] = useState(false);
-  const [form, setForm] = useState({ keyword: '', match_type: 'contains_case_insensitive', category_id: '', priority: 10 });
-  const [tagForm, setTagForm] = useState({ keyword: '', match_type: 'contains_case_insensitive', tag: '', priority: 10 });
+  const [legacyTagRules, setLegacyTagRules] = useState([]);
+  const [cats, setCats] = useState([]);
+  const [showBuilder, setShowBuilder] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [needsForceSave, setNeedsForceSave] = useState(false);
+  const [applyBusy, setApplyBusy] = useState(false);
+  const [applyOptions, setApplyOptions] = useState({ overwrite_category: false, overwrite_tags: false, overwrite_merchant: false, overwrite_flags: false, only_uncategorized: true });
+  const [form, setForm] = useState({ ...emptyRuleForm });
+
+  const categoriesById = useMemo(() => {
+    const map = {};
+    cats.forEach((c) => { map[c.id] = c.name; });
+    return map;
+  }, [cats]);
 
   const load = () => Promise.all([
-    rulesApi.list().then(r => setRules(r.data)),
-    tagRulesApi.list().then(r => setTagRules(r.data)),
+    rulesApi.list().then((r) => setRules(r.data || [])),
+    categoriesApi.list().then((r) => setCats(r.data || [])),
+    tagRulesApi.list().then((r) => setLegacyTagRules(r.data || [])),
   ]);
-  useEffect(() => {
-    load();
-    categoriesApi.list().then(r => setCats(r.data));
-  }, []);
 
-  const handleAdd = async () => {
-    if (!form.keyword || !form.category_id) return;
-    await rulesApi.create(form); setShowAdd(false); load();
-    setForm({ keyword: '', match_type: 'contains_case_insensitive', category_id: '', priority: 10 });
-    showToast('✅ Rule created');
+  useEffect(() => { load(); }, []);
+
+  const openNew = () => { setForm({ ...emptyRuleForm }); setPreview(null); setNeedsForceSave(false); setShowBuilder(true); };
+  const openEdit = (rule) => { setForm(ruleToForm(rule)); setPreview(null); setNeedsForceSave(false); setShowBuilder(true); };
+
+  const runPreview = async () => {
+    setPreviewing(true);
+    setNeedsForceSave(false);
+    try {
+      const res = await rulesApi.preview(buildRulePayload(form, false), 30);
+      setPreview(res.data);
+      if (res.data?.requires_force) setNeedsForceSave(true);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Preview failed', 'error');
+    } finally {
+      setPreviewing(false);
+    }
   };
 
-  const handleDelete = async (id) => { await rulesApi.delete(id); load(); showToast('🗑 Rule deleted'); };
-  const handleDeleteTagRule = async (id) => { await tagRulesApi.delete(id); load(); showToast('🗑 Tag rule deleted'); };
+  const saveRule = async () => {
+    setSaving(true);
+    try {
+      const payload = buildRulePayload(form, needsForceSave);
+      if (form.id) await rulesApi.update(form.id, payload);
+      else await rulesApi.create(payload);
+      setShowBuilder(false);
+      setForm({ ...emptyRuleForm });
+      setPreview(null);
+      setNeedsForceSave(false);
+      await load();
+      showToast('Rule saved');
+    } catch (err) {
+      const data = err?.response?.data;
+      if (data?.requires_force) {
+        setPreview(data.preview || null);
+        setNeedsForceSave(true);
+        showToast('Rule is broad. Review preview and save again to confirm.', 'error');
+      } else {
+        showToast(data?.error || 'Failed to save rule', 'error');
+      }
+    } finally { setSaving(false); }
+  };
+
+  const deleteRule = async (id) => { await rulesApi.delete(id); await load(); showToast('Rule deleted'); };
+  const toggleRuleEnabled = async (rule) => {
+    try {
+      await rulesApi.update(rule.id, { is_enabled: !rule.is_enabled });
+      await load();
+      showToast(rule.is_enabled ? 'Rule disabled' : 'Rule enabled');
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to toggle rule', 'error');
+    }
+  };
 
   const handleApply = async () => {
-    setApplying(true);
+    setApplyBusy(true);
     try {
-      const res = await rulesApi.apply(false);
-      showToast(`⚡ Applied to ${res.data.categorized} transactions`);
-    } finally { setApplying(false); }
+      const res = await rulesApi.apply(applyOptions);
+      showToast(`Updated ${res.data.updated} transactions`);
+    } catch {
+      showToast('Failed to apply rules', 'error');
+    } finally { setApplyBusy(false); }
   };
 
-  const handleAddTagRule = async () => {
-    if (!tagForm.keyword || !tagForm.tag) return;
-    await tagRulesApi.create(tagForm);
-    setShowAddTagRule(false);
-    setTagForm({ keyword: '', match_type: 'contains_case_insensitive', tag: '', priority: 10 });
-    load();
-    showToast('✅ Tag rule created');
-  };
-
-  const handleApplyTagRules = async () => {
-    setApplyingTags(true);
-    try {
-      const res = await tagRulesApi.apply(false);
-      showToast(`🏷️ Tagged ${res.data.tagged} transactions`);
-    } finally { setApplyingTags(false); }
-  };
-
-  const matchLabels = {
-    contains_case_insensitive: 'Contains',
-    starts_with: 'Starts with',
-    exact: 'Exact',
-    regex: 'Regex',
-  };
+  const summaryRows = rules.map((rule) => ({ rule, summary: summarizeRule(rule, categoriesById) }));
 
   return (
     <div>
-      <SectionHeader title="⚡ Rules Engine" subtitle={`${rules.length} active rules · applied in priority order`}
-        actions={
-          <div className="flex gap-2">
-            <button className="btn-secondary text-xs flex items-center gap-1.5" onClick={handleApply} disabled={applying}>
-              {applying ? <Spinner size={12} /> : <RefreshCw size={12} />}
-              {applying ? 'Applying…' : 'Apply to all'}
-            </button>
-            <button className="btn-primary text-xs flex items-center gap-1.5" onClick={() => setShowAdd(true)}>
-              <Plus size={12} /> Add Rule
-            </button>
-          </div>
-        } />
+      <SectionHeader title="Rules Engine" subtitle={`${rules.length} rules · deterministic order`} actions={<div className="flex gap-2"><button className="btn-secondary text-xs flex items-center gap-1.5" onClick={handleApply} disabled={applyBusy}>{applyBusy ? <Spinner size={12} /> : <RefreshCw size={12} />}{applyBusy ? 'Applying…' : 'Apply rules'}</button><button className="btn-primary text-xs flex items-center gap-1.5" onClick={openNew}><Plus size={12} /> New Rule</button></div>} />
 
-      <div className="mt-4 space-y-1.5">
-        {rules.length === 0 && <EmptyState icon={Zap} title="No rules yet" description="Add rules to auto-categorize transactions. Or use Auto-learn in Categories." />}
-        {rules.map(r => (
-          <div key={r.id} className="flex items-center justify-between px-4 py-3 rounded-xl"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-3 min-w-0">
-              <Badge color={r.category_color || '#6366f1'}>{r.category_name}</Badge>
-              <span className="font-mono text-sm" style={{ color: 'var(--text-primary)' }}>{r.keyword}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-card-hover)', color: 'var(--text-muted)' }}>
-                {matchLabels[r.match_type] || r.match_type}
-              </span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>priority {r.priority}</span>
+      <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Apply options</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.overwrite_category} onChange={(e) => setApplyOptions((v) => ({ ...v, overwrite_category: e.target.checked, only_uncategorized: e.target.checked ? false : v.only_uncategorized }))} />Overwrite existing category</label>
+          <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.overwrite_tags} onChange={(e) => setApplyOptions((v) => ({ ...v, overwrite_tags: e.target.checked }))} />Overwrite existing tags</label>
+          <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.overwrite_merchant} onChange={(e) => setApplyOptions((v) => ({ ...v, overwrite_merchant: e.target.checked }))} />Overwrite existing merchant</label>
+          <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.only_uncategorized} onChange={(e) => setApplyOptions((v) => ({ ...v, only_uncategorized: e.target.checked }))} />Only uncategorized rows</label>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {summaryRows.length === 0 && <EmptyState icon={Zap} title="No rules yet" description="Create an advanced rule with conditions and actions." />}
+        {summaryRows.map(({ rule, summary }) => (
+          <div key={rule.id} className="rounded-xl p-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap"><Badge color={rule.category_color || '#6366f1'}>{rule.name || rule.keyword || `Rule #${rule.id}`}</Badge><span className="text-xs" style={{ color: 'var(--text-muted)' }}>priority {rule.priority}</span><span className="text-xs" style={{ color: 'var(--text-muted)' }}>source {rule.source || 'manual'}</span>{rule.stop_processing ? <span className="text-xs text-amber-300">stop processing</span> : null}{!rule.is_enabled ? <span className="text-xs text-slate-400">disabled</span> : null}</div>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{summary.conditions}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{summary.actions}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0"><button className="btn-ghost text-xs p-1.5" onClick={() => toggleRuleEnabled(rule)}>{rule.is_enabled ? <CheckSquare size={13} /> : <Square size={13} />}</button><button className="btn-ghost text-xs p-1.5" onClick={() => openEdit(rule)}><Pencil size={13} /></button><button className="btn-ghost text-xs p-1.5 text-red-400" onClick={() => deleteRule(rule.id)}><Trash2 size={13} /></button></div>
             </div>
-            <button className="p-1.5 rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-400 shrink-0"
-              style={{ color: 'var(--text-muted)' }} onClick={() => handleDelete(r.id)}>
-              <Trash2 size={12} />
-            </button>
           </div>
         ))}
       </div>
 
       <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
-        <SectionHeader title="🏷️ Tag Rules" subtitle={`${tagRules.length} active tag rules · append tags by keyword match`}
-          actions={
-            <div className="flex gap-2">
-              <button className="btn-secondary text-xs flex items-center gap-1.5" onClick={handleApplyTagRules} disabled={applyingTags}>
-                {applyingTags ? <Spinner size={12} /> : <RefreshCw size={12} />}
-                {applyingTags ? 'Applying…' : 'Apply tags'}
-              </button>
-              <button className="btn-primary text-xs flex items-center gap-1.5" onClick={() => setShowAddTagRule(true)}>
-                <Tag size={12} /> Add Tag Rule
-              </button>
-            </div>
-          } />
-
-        <div className="mt-4 space-y-1.5">
-          {tagRules.length === 0 && <EmptyState icon={Tag} title="No tag rules yet" description="Create tag rules to add detail labels automatically." />}
-          {tagRules.map(r => (
-            <div key={r.id} className="flex items-center justify-between px-4 py-3 rounded-xl"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-3 min-w-0">
-                <Badge className="text-xs">{r.tag}</Badge>
-                <span className="font-mono text-sm" style={{ color: 'var(--text-primary)' }}>{r.keyword}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-card-hover)', color: 'var(--text-muted)' }}>
-                  {matchLabels[r.match_type] || r.match_type}
-                </span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>priority {r.priority}</span>
-              </div>
-              <button className="p-1.5 rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-400 shrink-0"
-                style={{ color: 'var(--text-muted)' }} onClick={() => handleDeleteTagRule(r.id)}>
-                <Trash2 size={12} />
-              </button>
-            </div>
-          ))}
+        <SectionHeader title="Legacy Tag Rules" subtitle={`${legacyTagRules.length} legacy rules still evaluated for compatibility`} />
+        <div className="mt-3 space-y-1.5">
+          {legacyTagRules.length === 0 && <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No legacy tag rules.</p>}
+          {legacyTagRules.map((r) => <div key={r.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card)' }}><div className="flex items-center gap-2 min-w-0"><Badge>{r.tag}</Badge><span className="font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>{r.keyword}</span><span className="text-xs" style={{ color: 'var(--text-muted)' }}>{r.match_type}</span></div><span className="text-xs" style={{ color: 'var(--text-muted)' }}>priority {r.priority}</span></div>)}
         </div>
       </div>
 
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="➕ Add Categorization Rule" size="sm">
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Keyword / Pattern</label>
-            <input className="input font-mono" placeholder="e.g. AMAZON"
-              value={form.keyword} onChange={e => setForm(f => ({...f, keyword: e.target.value}))} autoFocus />
+      <Modal open={showBuilder} onClose={() => setShowBuilder(false)} title={form.id ? 'Edit Rule' : 'New Rule'} size="xl">
+        <div className="space-y-4 max-h-[78vh] overflow-y-auto pr-2">
+          <div className="p-3 rounded-lg text-xs" style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border)' }}>Build conditions with AND logic. Use Preview before saving.</div>
+          <div><label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Rule name</label><input className="input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Netflix monthly" /></div>
+          <div className="space-y-3 p-3 rounded-lg" style={{ border: '1px solid var(--border)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Conditions (AND)</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><select className="select" value={form.description_operator} onChange={(e) => setForm((f) => ({ ...f, description_operator: e.target.value }))}>{MATCH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><input className="input md:col-span-2" value={form.description_value} onChange={(e) => setForm((f) => ({ ...f, description_value: e.target.value }))} placeholder="Description pattern" /></div>
+            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={form.description_case_sensitive} onChange={(e) => setForm((f) => ({ ...f, description_case_sensitive: e.target.checked }))} />Description case-sensitive</label>
+            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={form.merchant_enabled} onChange={(e) => setForm((f) => ({ ...f, merchant_enabled: e.target.checked }))} />Add merchant condition</label>
+            {form.merchant_enabled && <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><select className="select" value={form.merchant_operator} onChange={(e) => setForm((f) => ({ ...f, merchant_operator: e.target.value }))}>{MATCH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><input className="input md:col-span-2" value={form.merchant_value} onChange={(e) => setForm((f) => ({ ...f, merchant_value: e.target.value }))} placeholder="Merchant value" /></div>}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2"><select className="select" value={form.amount_mode} onChange={(e) => setForm((f) => ({ ...f, amount_mode: e.target.value }))}><option value="any">Any amount</option><option value="exact">Exact amount</option><option value="range">Amount range</option></select>{form.amount_mode === 'exact' && <input className="input md:col-span-3" type="number" step="0.01" value={form.amount_exact} onChange={(e) => setForm((f) => ({ ...f, amount_exact: e.target.value }))} placeholder="Exact amount" />}{form.amount_mode === 'range' && <><input className="input md:col-span-1" type="number" step="0.01" value={form.amount_min} onChange={(e) => setForm((f) => ({ ...f, amount_min: e.target.value }))} placeholder="Min" /><input className="input md:col-span-2" type="number" step="0.01" value={form.amount_max} onChange={(e) => setForm((f) => ({ ...f, amount_max: e.target.value }))} placeholder="Max" /></>}</div>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Amount uses absolute value; combine with sign for income/expense.</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><select className="select" value={form.amount_sign} onChange={(e) => setForm((f) => ({ ...f, amount_sign: e.target.value }))}><option value="any">Any sign</option><option value="expense">Expense (negative)</option><option value="income">Income (positive)</option></select><select multiple className="select md:col-span-2 h-24" value={form.account_ids.map(String)} onChange={(e) => setForm((f) => ({ ...f, account_ids: [...e.target.selectedOptions].map((o) => Number(o.value)) }))}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2"><input type="date" className="input" value={form.date_from} onChange={(e) => setForm((f) => ({ ...f, date_from: e.target.value }))} /><input type="date" className="input" value={form.date_to} onChange={(e) => setForm((f) => ({ ...f, date_to: e.target.value }))} /></div>
           </div>
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Match type</label>
-            <select className="select w-full" value={form.match_type} onChange={e => setForm(f => ({...f, match_type: e.target.value}))}>
-              <option value="contains_case_insensitive">Contains (case-insensitive) — recommended</option>
-              <option value="starts_with">Starts with</option>
-              <option value="exact">Exact match</option>
-              <option value="regex">Regex</option>
-            </select>
+          <div className="space-y-3 p-3 rounded-lg" style={{ border: '1px solid var(--border)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Actions</p>
+            <select className="select w-full" value={form.action_category_id} onChange={(e) => setForm((f) => ({ ...f, action_category_id: e.target.value }))}><option value="">No category change</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><select className="select" value={form.action_tags_mode} onChange={(e) => setForm((f) => ({ ...f, action_tags_mode: e.target.value }))}><option value="append">Append tags</option><option value="replace">Replace tags</option><option value="remove">Remove tags</option></select><input className="input md:col-span-2" value={form.action_tags_values} onChange={(e) => setForm((f) => ({ ...f, action_tags_values: e.target.value }))} placeholder="tag1, tag2" /></div>
+            <input className="input" value={form.action_set_merchant_name} onChange={(e) => setForm((f) => ({ ...f, action_set_merchant_name: e.target.value }))} placeholder="Set merchant normalized name" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2"><select className="select" value={form.action_income_override} onChange={(e) => setForm((f) => ({ ...f, action_income_override: e.target.value }))}>{BOOL_MODES.map((o) => <option key={o.value} value={o.value}>Income override: {o.label}</option>)}</select><select className="select" value={form.action_exclude_totals} onChange={(e) => setForm((f) => ({ ...f, action_exclude_totals: e.target.value }))}>{BOOL_MODES.map((o) => <option key={o.value} value={o.value}>Exclude from totals: {o.label}</option>)}</select></div>
           </div>
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Category</label>
-            <select className="select w-full" value={form.category_id} onChange={e => setForm(f => ({...f, category_id: e.target.value}))}>
-              <option value="">Select category…</option>
-              {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Priority (higher = checked first)</label>
-            <input className="input" type="number" min={1} max={100} value={form.priority}
-              onChange={e => setForm(f => ({...f, priority: parseInt(e.target.value) || 10}))} />
-          </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <button className="btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleAdd}>Add Rule</button>
-          </div>
-        </div>
-      </Modal>
+          <div className="space-y-3 p-3 rounded-lg" style={{ border: '1px solid var(--border)' }}><p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Behavior</p><div className="grid grid-cols-1 md:grid-cols-3 gap-2"><input className="input" type="number" min={1} max={1000} value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: Number(e.target.value) || 10 }))} /><label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={form.is_enabled} onChange={(e) => setForm((f) => ({ ...f, is_enabled: e.target.checked }))} />Enabled</label><label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={form.stop_processing} onChange={(e) => setForm((f) => ({ ...f, stop_processing: e.target.checked }))} />Stop processing</label></div></div>
 
-      <Modal open={showAddTagRule} onClose={() => setShowAddTagRule(false)} title="➕ Add Tag Rule" size="sm">
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Keyword / Pattern</label>
-            <input className="input font-mono" placeholder="e.g. REBATE"
-              value={tagForm.keyword} onChange={e => setTagForm(f => ({...f, keyword: e.target.value}))} autoFocus />
-          </div>
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Tag label</label>
-            <input className="input" placeholder="e.g. cashback"
-              value={tagForm.tag} onChange={e => setTagForm(f => ({...f, tag: e.target.value}))} />
-          </div>
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Match type</label>
-            <select className="select w-full" value={tagForm.match_type} onChange={e => setTagForm(f => ({...f, match_type: e.target.value}))}>
-              <option value="contains_case_insensitive">Contains (case-insensitive) — recommended</option>
-              <option value="starts_with">Starts with</option>
-              <option value="exact">Exact match</option>
-              <option value="regex">Regex</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Priority (higher = checked first)</label>
-            <input className="input" type="number" min={1} max={100} value={tagForm.priority}
-              onChange={e => setTagForm(f => ({...f, priority: parseInt(e.target.value) || 10}))} />
-          </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <button className="btn-secondary" onClick={() => setShowAddTagRule(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleAddTagRule}>Add Tag Rule</button>
-          </div>
+          {preview && (
+            <div
+              className="p-3 rounded-lg"
+              style={{
+                border: `1px solid ${preview.requires_force ? 'rgba(245,158,11,0.4)' : 'var(--border)'}`,
+                background: preview.requires_force ? 'rgba(245,158,11,0.08)' : 'var(--bg-card)',
+              }}
+            >
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Preview: {preview.match_count} / {preview.total_count} matches ({(preview.match_ratio * 100).toFixed(1)}%)
+              </p>
+              {(preview.warnings || []).map((w, i) => (
+                <p key={i} className="text-xs mt-1 flex items-center gap-1" style={{ color: '#fbbf24' }}>
+                  <AlertTriangle size={12} /> {w}
+                </p>
+              ))}
+
+              <div className="mt-3">
+                <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  Sample matching transactions
+                </p>
+                {(preview.sample || []).length === 0 ? (
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                    No sample transactions returned.
+                  </p>
+                ) : (
+                  <div className="mt-2 max-h-52 overflow-y-auto rounded-lg" style={{ border: '1px solid var(--border)' }}>
+                    {(preview.sample || []).map((tx) => {
+                      const amount = Number(tx.amount || 0);
+                      const categoryLabel = tx.category_id ? (categoriesById[tx.category_id] || `Category ${tx.category_id}`) : 'Uncategorized';
+                      return (
+                        <div key={tx.id} className="px-3 py-2 text-xs border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{tx.date}</span>
+                            <span className={`font-mono ${amount < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              {amount < 0 ? '-' : '+'}${Math.abs(amount).toFixed(2)}
+                            </span>
+                          </div>
+                          <p className="mt-1 truncate" style={{ color: 'var(--text-primary)' }} title={tx.description}>
+                            {tx.description}
+                          </p>
+                          <p className="mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            {tx.account_name || `Account ${tx.account_id}`} · {categoryLabel}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-between pt-1"><button className="btn-secondary flex items-center gap-1.5" onClick={runPreview} disabled={previewing}>{previewing ? <Spinner size={12} /> : <Eye size={12} />}Preview</button><div className="flex gap-2"><button className="btn-secondary" onClick={() => setShowBuilder(false)}>Cancel</button><button className="btn-primary" onClick={saveRule} disabled={saving}>{saving ? 'Saving…' : (needsForceSave ? 'Save anyway (force)' : 'Save rule')}</button></div></div>
         </div>
       </Modal>
     </div>
   );
 }
 
-// ─── Income Sources Tab ────────────────────────────────────────────────────────
 function IncomeSourcesTab() {
   const { showToast } = useAppStore();
   const [sources, setSources] = useState([]);
@@ -394,160 +592,40 @@ function IncomeSourcesTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ keyword: '', match_type: 'contains', notes: '' });
 
-  const load = () => fetch('/api/income-sources').then(r => r.json()).then(setSources);
+  const load = () => fetch('/api/income-sources').then((r) => r.json()).then(setSources);
   useEffect(() => { load(); }, []);
 
   const handleAdd = async () => {
     if (!form.keyword.trim()) return;
-    await fetch('/api/income-sources', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(form) });
-    setShowAdd(false); setForm({ keyword: '', match_type: 'contains', notes: '' }); load();
-    showToast('💰 Income source added');
+    await fetch('/api/income-sources', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    setShowAdd(false);
+    setForm({ keyword: '', match_type: 'contains', notes: '' });
+    load();
+    showToast('Income source added');
   };
 
-  const handleDelete = async (id) => {
-    await fetch(`/api/income-sources/${id}`, { method: 'DELETE' }); load();
-    showToast('🗑 Income source removed');
-  };
-
-  const handlePreview = async () => {
-    setLoadingPreview(true);
-    const res = await fetch('/api/income-sources/preview'); const data = await res.json();
-    setPreview(data); setLoadingPreview(false);
-  };
+  const handleDelete = async (id) => { await fetch(`/api/income-sources/${id}`, { method: 'DELETE' }); load(); showToast('Income source removed'); };
+  const handlePreview = async () => { setLoadingPreview(true); const data = await fetch('/api/income-sources/preview').then((r) => r.json()); setPreview(data); setLoadingPreview(false); };
 
   return (
     <div>
-      <SectionHeader title="💰 Income Sources"
-        subtitle="Define which merchant keywords count as income. Only matching positive transactions are treated as income."
-        actions={
-          <div className="flex gap-2">
-            <button className="btn-secondary text-xs flex items-center gap-1.5" onClick={handlePreview} disabled={loadingPreview}>
-              {loadingPreview ? <Spinner size={12}/> : <Play size={12}/>}
-              Verify matches
-            </button>
-            <button className="btn-primary text-xs flex items-center gap-1.5" onClick={() => setShowAdd(true)}>
-              <Plus size={12}/> Add Source
-            </button>
-          </div>
-        } />
-
-      <div className="mt-3 mb-5 p-4 rounded-xl text-xs" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
-        <p className="font-semibold text-emerald-300 mb-1">How this works</p>
-        <p style={{ color: 'var(--text-muted)' }}>
-          Add a keyword for each income source — your employer's payroll description, "DIRECT DEPOSIT", "PAYROLL", a freelance client name, etc.
-          Any <strong style={{ color: 'var(--text-primary)' }}>positive transaction</strong> matching a keyword counts as income.
-          Payments, refunds and transfers that don't match are <strong style={{ color: 'var(--text-primary)' }}>excluded from income totals</strong>.
-          <br/><span className="text-emerald-400 mt-1 block">✓ Sources are saved instantly when added — no extra apply step needed.</span>
-        </p>
-      </div>
-
-      <div className="space-y-1.5">
-        {sources.length === 0 && <EmptyState icon={Building2} title="No income sources" description="Add keywords to start recognizing income transactions." />}
-        {sources.map(s => (
-          <div key={s.id} className="flex items-center justify-between px-4 py-3 rounded-xl"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-3">
-              <Building2 size={14} className="text-emerald-500 shrink-0" />
-              <span className="font-mono text-sm" style={{ color: 'var(--text-primary)' }}>{s.keyword}</span>
-              <span className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>{s.match_type}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">✓ active</span>
-              {s.notes && <span className="text-xs italic" style={{ color: 'var(--text-muted)' }}>{s.notes}</span>}
-            </div>
-            <button className="p-1.5 rounded-lg transition-colors hover:bg-red-500/10 hover:text-red-400"
-              style={{ color: 'var(--text-muted)' }} onClick={() => handleDelete(s.id)}>
-              <Trash2 size={12} />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {preview && (
-        <div className="mt-5 rounded-xl overflow-hidden animate-slide-up" style={{ border: '1px solid var(--border-strong)' }}>
-          <div className="flex items-center justify-between px-4 py-3" style={{ background: 'rgba(99,102,241,0.1)' }}>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Matched income transactions (all time)</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {preview.transactions?.length} shown · Total: <span className="font-mono text-emerald-400">${preview.total?.toFixed(2)}</span>
-              </p>
-            </div>
-            <button className="text-xs hover:text-slate-300" style={{ color: 'var(--text-muted)' }} onClick={() => setPreview(null)}>Close ×</button>
-          </div>
-          <div className="max-h-64 overflow-y-auto">
-            {preview.transactions?.length === 0
-              ? <p className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>No transactions matched</p>
-              : preview.transactions?.map((t, i) => (
-                <div key={i} className="flex items-center justify-between px-4 py-2 text-xs border-b" style={{ borderColor: 'var(--border)' }}>
-                  <div className="flex gap-4">
-                    <span className="font-mono w-20 shrink-0" style={{ color: 'var(--text-muted)' }}>{t.date}</span>
-                    <span className="truncate max-w-72" style={{ color: 'var(--text-secondary)' }}>{t.description}</span>
-                  </div>
-                  <span className="font-mono text-emerald-400 shrink-0 ml-4">${t.amount?.toFixed(2)}</span>
-                </div>
-              ))
-            }
-          </div>
-        </div>
-      )}
-
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="➕ Add Income Source" size="sm">
-        <div className="space-y-4">
-          <div className="p-3 rounded-lg text-xs" style={{ background: 'var(--bg-card-hover)', color: 'var(--text-muted)' }}>
-            Look at your positive transactions to find the description pattern. Examples:
-            <span className="block font-mono text-indigo-300 mt-1">NAV CANADA PAY · CANADA PAY · CHILD TAX BEN CCB</span>
-          </div>
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Keyword</label>
-            <input className="input font-mono" placeholder="e.g. EMPLOYER NAME"
-              value={form.keyword} onChange={e => setForm(f => ({...f, keyword: e.target.value.toUpperCase()}))} autoFocus />
-          </div>
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Match type</label>
-            <select className="select w-full" value={form.match_type} onChange={e => setForm(f => ({...f, match_type: e.target.value}))}>
-              <option value="contains">Contains — matches anywhere (recommended)</option>
-              <option value="exact">Exact match only</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Notes (optional)</label>
-            <input className="input" placeholder="e.g. Main salary" value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} />
-          </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <button className="btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleAdd}>Add Source</button>
-          </div>
-        </div>
-      </Modal>
+      <SectionHeader title="Income Sources" subtitle="Keyword rules for income recognition" actions={<div className="flex gap-2"><button className="btn-secondary text-xs" onClick={handlePreview} disabled={loadingPreview}>{loadingPreview ? <Spinner size={12} /> : 'Verify matches'}</button><button className="btn-primary text-xs" onClick={() => setShowAdd(true)}><Plus size={12} /> Add Source</button></div>} />
+      <div className="mt-4 space-y-1.5">{sources.length === 0 && <EmptyState icon={Zap} title="No income sources" description="Add merchant/description keywords for income." />}{sources.map((s) => <div key={s.id} className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}><div className="flex items-center gap-3 min-w-0"><span className="font-mono text-sm" style={{ color: 'var(--text-primary)' }}>{s.keyword}</span><span className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.match_type}</span>{s.notes && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.notes}</span>}</div><button className="btn-ghost text-xs p-1.5 text-red-400" onClick={() => handleDelete(s.id)}><Trash2 size={12} /></button></div>)}</div>
+      {preview && <div className="mt-5 rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-strong)' }}><div className="px-4 py-3" style={{ background: 'rgba(99,102,241,0.1)' }}><p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Matched transactions: {preview.transactions?.length || 0}</p><p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Total: ${preview.total?.toFixed?.(2) || '0.00'}</p></div></div>}
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Income Source" size="sm"><div className="space-y-4"><div><label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Keyword</label><input className="input font-mono" value={form.keyword} onChange={(e) => setForm((f) => ({ ...f, keyword: e.target.value.toUpperCase() }))} autoFocus /></div><div><label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Match type</label><select className="select w-full" value={form.match_type} onChange={(e) => setForm((f) => ({ ...f, match_type: e.target.value }))}><option value="contains">Contains</option><option value="exact">Exact</option></select></div><div><label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Notes</label><input className="input" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div><div className="flex gap-2 justify-end"><button className="btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button><button className="btn-primary" onClick={handleAdd}>Add</button></div></div></Modal>
     </div>
   );
 }
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('income');
-  const tabs = [
-    { id: 'income',     label: '💰 Income Sources' },
-    { id: 'categories', label: '🏷️ Categories' },
-    { id: 'rules',      label: '⚡ Rules Engine' },
-  ];
+  const tabs = [{ id: 'income', label: 'Income Sources' }, { id: 'categories', label: 'Categories' }, { id: 'rules', label: 'Rules Engine' }];
+
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>⚙️ Settings</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Income sources, categories & categorization rules</p>
-      </div>
-      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === t.id ? 'text-white shadow-sm' : 'hover:opacity-80'}`}
-            style={{ background: activeTab === t.id ? 'var(--accent)' : 'transparent', color: activeTab === t.id ? 'white' : 'var(--text-muted)' }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <Card className="p-6">
-        {activeTab === 'income'     && <IncomeSourcesTab />}
-        {activeTab === 'categories' && <CategoriesTab />}
-        {activeTab === 'rules'      && <RulesTab />}
-      </Card>
+    <div className="space-y-6 animate-fade-in max-w-4xl">
+      <div><h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Settings</h1><p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Income sources, categories, and advanced transaction rules</p></div>
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>{tabs.map((t) => <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === t.id ? 'text-white shadow-sm' : 'hover:opacity-80'}`} style={{ background: activeTab === t.id ? 'var(--accent)' : 'transparent', color: activeTab === t.id ? 'white' : 'var(--text-muted)' }}>{t.label}</button>)}</div>
+      <Card className="p-6">{activeTab === 'income' && <IncomeSourcesTab />}{activeTab === 'categories' && <CategoriesTab />}{activeTab === 'rules' && <RulesTab />}</Card>
     </div>
   );
 }

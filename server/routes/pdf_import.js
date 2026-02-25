@@ -8,8 +8,7 @@ const fs       = require('fs');
 const os       = require('os');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../database');
-const { categorize } = require('../services/categorizer');
-const { getMatchedTags } = require('../services/tagger');
+const { applyRulesToTransactionInput, getCompiledRules } = require('../services/categorizer');
 const { guessAccountFromFilename } = require('../services/csvParser');
 const { recordImportRun } = require('../services/importHistory');
 
@@ -127,16 +126,47 @@ router.post('/import', upload.array('files'), async (req, res) => {
         continue;
       }
 
-      const insert   = db.prepare(`INSERT INTO transactions (id, account_id, date, description, amount, category_id, tags) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+      const insert = db.prepare(`
+        INSERT INTO transactions
+          (id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      const compiledRules = getCompiledRules({ includeLegacyTagRules: true });
 
       let imported = 0, skipped = 0;
       let fromDate = null, toDate = null;
       db.transaction(() => {
         for (const row of (parsed.transactions || [])) {
           if (!row.Date || !row.Description) { skipped++; continue; }
-          const cat = categorize(row.Description);
-          const matchedTags = getMatchedTags(row.Description);
-          insert.run(uuidv4(), account.id, row.Date, row.Description, row.Amount, cat ? cat.category_id : null, JSON.stringify(matchedTags));
+          const evaluated = applyRulesToTransactionInput({
+            account_id: account.id,
+            date: row.Date,
+            description: row.Description,
+            amount: row.Amount,
+            category_id: null,
+            tags: [],
+            merchant_name: null,
+            is_income_override: 0,
+            exclude_from_totals: 0,
+          }, {
+            compiledRules,
+            overwrite_category: true,
+            overwrite_tags: true,
+            overwrite_merchant: true,
+            overwrite_flags: true,
+          });
+          insert.run(
+            uuidv4(),
+            account.id,
+            row.Date,
+            row.Description,
+            row.Amount,
+            evaluated.category_id ?? null,
+            JSON.stringify(evaluated.tags || []),
+            evaluated.merchant_name || null,
+            evaluated.is_income_override ? 1 : 0,
+            evaluated.exclude_from_totals ? 1 : 0
+          );
           imported++;
           if (!fromDate || row.Date < fromDate) fromDate = row.Date;
           if (!toDate || row.Date > toDate) toDate = row.Date;

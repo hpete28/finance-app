@@ -36,7 +36,13 @@ export const rulesApi = {
   create: (data) => api.post('/rules', data),
   update: (id, data) => api.patch(`/rules/${id}`, data),
   delete: (id) => api.delete(`/rules/${id}`),
-  apply: (overwrite = false) => api.post('/rules/apply', { overwrite }),
+  preview: (rule, sample_limit = 20) => api.post('/rules/preview', { rule, sample_limit }),
+  apply: (options = {}) => {
+    if (typeof options === 'boolean') return api.post('/rules/apply', { overwrite: options });
+    return api.post('/rules/apply', options);
+  },
+  learn: (data = {}) => api.post('/rules/learn', data),
+  applyLearned: (suggestions, max_create) => api.post('/rules/learn/apply', { suggestions, max_create }),
 };
 
 
