@@ -39,7 +39,7 @@ router.get('/rolling-trends', (req, res) => {
     const account_id = req.query.account_id;
     const incomeFlag = getIncomeFlag(db);
 
-    let where = ['t.exclude_from_totals = 0'];
+    let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0'];
     let params = [];
     if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
 
@@ -98,7 +98,7 @@ router.get('/rolling-trends', (req, res) => {
         SUM(CASE WHEN t.amount > 0 AND date >= ? AND ${incomeFlag} THEN t.amount ELSE 0 END) as r90_income
       FROM transactions t
       LEFT JOIN categories cat ON cat.id = t.category_id
-      WHERE t.exclude_from_totals = 0 ${account_id ? 'AND t.account_id = ?' : ''}
+      WHERE t.exclude_from_totals = 0 AND t.is_transfer = 0 ${account_id ? 'AND t.account_id = ?' : ''}
     `);
 
     const windowParams = account_id
@@ -130,7 +130,7 @@ router.get('/merchant-concentration', (req, res) => {
     startDate.setMonth(startDate.getMonth() - months);
     const start = startDate.toISOString().slice(0, 10);
 
-    let where = ['t.exclude_from_totals = 0', 't.amount < 0', `t.date >= '${start}'`,
+    let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0', 't.amount < 0', `t.date >= '${start}'`,
                  '(cat.is_income IS NULL OR cat.is_income = 0)'];
     let params = [];
     if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
@@ -178,6 +178,7 @@ router.get('/merchant-concentration', (req, res) => {
           SELECT strftime('%Y-%m', t.date) as month, SUM(ABS(t.amount)) as total
           FROM transactions t
           WHERE t.exclude_from_totals = 0
+            AND t.is_transfer = 0
             AND t.amount < 0
             AND t.date >= ?
             AND COALESCE(NULLIF(TRIM(t.merchant_name), ''), t.description) = ?
@@ -222,7 +223,7 @@ router.get('/subscription-creep', (req, res) => {
     if (!patterns.length) {
       // Fallback: find merchants with ≥3 transactions, std dev < 15% of mean (stable amount)
       // appearing ≥ monthly
-      let where = ['t.exclude_from_totals = 0', 't.amount < 0'];
+      let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0', 't.amount < 0'];
       let params = [];
       if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
 
@@ -263,6 +264,7 @@ router.get('/subscription-creep', (req, res) => {
         SELECT strftime('%Y-%m', date) as month, ABS(amount) as amount
         FROM transactions
         WHERE exclude_from_totals = 0
+          AND is_transfer = 0
           AND COALESCE(NULLIF(TRIM(merchant_name), ''), description) = ?
           ${accountFilter}
         ORDER BY month ASC
@@ -316,7 +318,7 @@ router.get('/income-volatility', (req, res) => {
     const account_id = req.query.account_id;
     const incomeFlag = getIncomeFlag(db);
 
-    let where = ['t.exclude_from_totals = 0', `t.amount > 0`];
+    let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0', `t.amount > 0`];
     let params = [];
     if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
 
@@ -343,7 +345,7 @@ router.get('/income-volatility', (req, res) => {
     const cv = avg > 0 ? (stdDev / avg) * 100 : 0;
 
     // Pay-cycle detection: look at day-of-month distribution of income transactions
-    let payCycleWhere = ['t.exclude_from_totals = 0', 't.amount > 0'];
+    let payCycleWhere = ['t.exclude_from_totals = 0', 't.is_transfer = 0', 't.amount > 0'];
     let payCycleParams = [];
     if (account_id) { payCycleWhere.push('t.account_id = ?'); payCycleParams.push(account_id); }
 
@@ -396,7 +398,7 @@ router.get('/anomalies', (req, res) => {
     startDate.setMonth(startDate.getMonth() - months);
     const start = startDate.toISOString().slice(0, 10);
 
-    let where = ['t.exclude_from_totals = 0', 't.amount < 0', `t.date >= '${start}'`];
+    let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0', 't.amount < 0', `t.date >= '${start}'`];
     let params = [];
     if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
 
@@ -475,7 +477,7 @@ router.get('/anomalies', (req, res) => {
           SUM(ABS(t.amount)) as total
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.category_id
-        WHERE t.exclude_from_totals = 0 AND t.amount < 0
+        WHERE t.exclude_from_totals = 0 AND t.is_transfer = 0 AND t.amount < 0
           ${account_id ? 'AND t.account_id = ?' : ''}
         GROUP BY t.category_id, month
       ),
@@ -533,7 +535,7 @@ router.get('/budget-variance-trend', (req, res) => {
       const actuals = db.prepare(`
         SELECT t.category_id, SUM(ABS(t.amount)) as actual
         FROM transactions t
-        WHERE t.exclude_from_totals = 0 AND t.amount < 0
+        WHERE t.exclude_from_totals = 0 AND t.is_transfer = 0 AND t.amount < 0
           AND strftime('%Y-%m', t.date) = ?
         GROUP BY t.category_id
       `).all(month);

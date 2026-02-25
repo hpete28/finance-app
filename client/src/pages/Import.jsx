@@ -1,7 +1,7 @@
 // src/pages/Import.jsx
 import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, CheckCircle, AlertCircle, FileText, Zap, FileSearch } from 'lucide-react';
-import { uploadApi, rulesApi, importHistoryApi } from '../utils/api';
+import { uploadApi, rulesApi, importHistoryApi, transactionsApi } from '../utils/api';
 import { Card, SectionHeader, Spinner } from '../components/ui';
 import useAppStore from '../stores/appStore';
 
@@ -63,6 +63,7 @@ function CsvImportTab({ onImported }) {
   const [rulesFile, setRulesFile] = useState(null);
   const [loading, setLoading]     = useState(false);
   const [results, setResults]     = useState(null);
+  const [transferCandidateCount, setTransferCandidateCount] = useState(null);
   const [step, setStep]           = useState(1);
 
   const recognizedFiles = csvFiles.filter(f => EXACT_FILES.includes(f.name));
@@ -79,6 +80,12 @@ function CsvImportTab({ onImported }) {
       if (rulesFile) await rulesApi.upload(rulesFile);
       const res = await uploadApi.transactions(csvFiles);
       setResults(res.data);
+      try {
+        const c = await transactionsApi.transferCandidates({ limit: 120, days_window: 3, min_confidence: 0.55 });
+        setTransferCandidateCount(c.data?.count || c.data?.candidates?.length || 0);
+      } catch {
+        setTransferCandidateCount(null);
+      }
       setStep(3);
       onImported?.();
     } catch (err) {
@@ -198,8 +205,14 @@ function CsvImportTab({ onImported }) {
           </div>
           <div className="mt-5 flex gap-3">
             <a href="/transactions" className="btn-primary text-sm">View Transactions →</a>
-            <button className="btn-secondary text-sm" onClick={() => { setStep(1); setCsvFiles([]); setResults(null); }}>Import More</button>
+            <button className="btn-secondary text-sm" onClick={() => { setStep(1); setCsvFiles([]); setResults(null); setTransferCandidateCount(null); }}>Import More</button>
           </div>
+          {transferCandidateCount > 0 && (
+            <div className="mt-3 px-3 py-2 rounded-lg text-xs"
+              style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', color: '#67e8f9' }}>
+              {transferCandidateCount} transfer candidates detected. Review and confirm them in Transactions.
+            </div>
+          )}
         </Card>
       )}
     </div>
@@ -218,6 +231,7 @@ function PdfImportTab({ onImported }) {
   const [loading, setLoading]       = useState(false);
   const [importing, setImporting]   = useState(false);
   const [results, setResults]       = useState(null);
+  const [transferCandidateCount, setTransferCandidateCount] = useState(null);
   const [pythonOk, setPythonOk]     = useState(null);   // null=checking, true/false
 
   // Check Python availability
@@ -260,6 +274,12 @@ function PdfImportTab({ onImported }) {
       const res = await fetch('/api/pdf-import/import', { method: 'POST', body: form });
       const data = await res.json();
       setResults(data);
+      try {
+        const c = await transactionsApi.transferCandidates({ limit: 120, days_window: 3, min_confidence: 0.55 });
+        setTransferCandidateCount(c.data?.count || c.data?.candidates?.length || 0);
+      } catch {
+        setTransferCandidateCount(null);
+      }
       onImported?.();
     } catch (err) {
       showToast('Import failed: ' + err.message, 'error');
@@ -326,8 +346,14 @@ function PdfImportTab({ onImported }) {
         </div>
         <div className="mt-5 flex gap-3">
           <a href="/transactions" className="btn-primary text-sm">View Transactions →</a>
-          <button className="btn-secondary text-sm" onClick={() => { setPdfFiles([]); setResults(null); setPreviews(null); }}>Import More</button>
+          <button className="btn-secondary text-sm" onClick={() => { setPdfFiles([]); setResults(null); setPreviews(null); setTransferCandidateCount(null); }}>Import More</button>
         </div>
+        {transferCandidateCount > 0 && (
+          <div className="mt-3 px-3 py-2 rounded-lg text-xs"
+            style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', color: '#67e8f9' }}>
+            {transferCandidateCount} transfer candidates detected. Review and confirm them in Transactions.
+          </div>
+        )}
       </Card>
     );
   }

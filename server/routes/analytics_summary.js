@@ -68,6 +68,7 @@ router.post('/refresh-summary', (req, res) => {
         datetime('now')
       FROM transactions t
       WHERE t.exclude_from_totals = 0
+        AND t.is_transfer = 0
       GROUP BY month, t.account_id
     `).run();
 

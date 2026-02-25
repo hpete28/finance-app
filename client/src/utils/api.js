@@ -17,6 +17,8 @@ export const transactionsApi = {
   restore: (transactions) => api.post('/transactions/restore', { transactions }),
   split: (id, splits) => api.post(`/transactions/${id}/split`, { splits }),
   monthlySummary: (params) => api.get('/transactions/summary/monthly', { params }),
+  transferCandidates: (params) => api.get('/transactions/transfer-candidates', { params }),
+  applyTransferCandidates: (data) => api.post('/transactions/apply-transfer-candidates', data),
 };
 
 // Categories

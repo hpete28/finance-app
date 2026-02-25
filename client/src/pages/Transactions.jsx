@@ -291,6 +291,7 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
   const [tags, setTags] = useState('');
   const [merchantName, setMerchantName] = useState('');
   const [excludeFromTotals, setExcludeFromTotals] = useState(false);
+  const [isTransfer, setIsTransfer] = useState(false);
 
   useEffect(() => {
     if (transaction) {
@@ -299,6 +300,7 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
       setTags((transaction.tags || []).join(', '));
       setMerchantName(transaction.merchant_name || '');
       setExcludeFromTotals(!!transaction.exclude_from_totals);
+      setIsTransfer(!!transaction.is_transfer);
     }
   }, [transaction]);
 
@@ -336,10 +338,15 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
             <input type="checkbox" checked={excludeFromTotals} onChange={e => setExcludeFromTotals(e.target.checked)} />
             Exclude from income/expense totals
           </label>
+          <label className="flex items-center gap-2 text-xs text-slate-400">
+            <input type="checkbox" checked={isTransfer} onChange={e => setIsTransfer(e.target.checked)} />
+            Mark as internal transfer
+          </label>
           <div className="flex gap-2 justify-end pt-2">
             <button className="btn-secondary" onClick={onClose}>Cancel</button>
             <button className="btn-primary" onClick={async () => {
               await onSave({ category_id: categoryId || null, notes, merchant_name: merchantName.trim() || null,
+                is_transfer: isTransfer,
                 exclude_from_totals: excludeFromTotals,
                 tags: tags.split(',').map(t => t.trim()).filter(Boolean), reviewed: true });
               onClose();
@@ -407,6 +414,11 @@ export default function Transactions() {
   const [bulkMerchant, setBulkMerchant] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [undoDelete, setUndoDelete] = useState(null);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferCandidates, setTransferCandidates] = useState([]);
+  const [selectedTransferPairIds, setSelectedTransferPairIds] = useState(new Set());
+  const [loadingTransferCandidates, setLoadingTransferCandidates] = useState(false);
+  const [applyingTransferPairs, setApplyingTransferPairs] = useState(false);
   const undoTimer = useRef();
 
   const hasFilters = search || filterCategory || filterAccount || startDate || endDate || showUncategorized || filterType || amountSearch;
@@ -536,6 +548,68 @@ export default function Transactions() {
     load();
   };
 
+  const handleBulkTransfer = async (value) => {
+    const count = selected.size;
+    await transactionsApi.bulk({ ids: [...selected], is_transfer: value });
+    showToast(value ? `🔁 Marked ${count} transactions as transfer` : `Removed transfer flag from ${count} transactions`);
+    setSelected(new Set());
+    load();
+  };
+
+  const loadTransferCandidates = async () => {
+    setLoadingTransferCandidates(true);
+    try {
+      const params = { days_window: 3, limit: 150, min_confidence: 0.55 };
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+
+      const res = await transactionsApi.transferCandidates(params);
+      let candidates = res.data.candidates || [];
+
+      if (filterAccount) {
+        candidates = candidates.filter(c =>
+          String(c.debit?.account_id) === String(filterAccount)
+          || String(c.credit?.account_id) === String(filterAccount)
+        );
+      }
+
+      setTransferCandidates(candidates);
+      setSelectedTransferPairIds(new Set(candidates.map(c => c.pair_id)));
+      setShowTransferModal(true);
+      if (!candidates.length) showToast('No high-confidence transfer candidates found');
+    } finally {
+      setLoadingTransferCandidates(false);
+    }
+  };
+
+  const toggleTransferCandidate = (pairId) => {
+    setSelectedTransferPairIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(pairId)) next.delete(pairId);
+      else next.add(pairId);
+      return next;
+    });
+  };
+
+  const applySelectedTransferCandidates = async () => {
+    const selectedPairs = transferCandidates
+      .filter(c => selectedTransferPairIds.has(c.pair_id))
+      .map(c => ({ debit_tx_id: c.debit_tx_id, credit_tx_id: c.credit_tx_id }));
+    if (!selectedPairs.length) return;
+
+    setApplyingTransferPairs(true);
+    try {
+      const res = await transactionsApi.applyTransferCandidates({ pairs: selectedPairs });
+      showToast(`🔁 Marked ${res.data.updated || selectedPairs.length} transactions as transfer`);
+      setShowTransferModal(false);
+      setTransferCandidates([]);
+      setSelectedTransferPairIds(new Set());
+      load();
+    } finally {
+      setApplyingTransferPairs(false);
+    }
+  };
+
   const queueUndo = (deletedRows, countLabel) => {
     clearTimeout(undoTimer.current);
     setUndoDelete({ rows: deletedRows, countLabel });
@@ -586,6 +660,7 @@ export default function Transactions() {
     : null;
 
   const rowTotal = transactions.reduce((s, t) => s + t.amount, 0);
+  const selectedTransferCount = selectedTransferPairIds.size;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -615,6 +690,9 @@ export default function Transactions() {
             <option value="expense">Expenses only</option>
             <option value="income">Income only</option>
           </select>
+          <button className="btn-secondary text-xs" onClick={loadTransferCandidates} disabled={loadingTransferCandidates}>
+            {loadingTransferCandidates ? <><Spinner size={12} /> Finding transfers…</> : 'Review transfer candidates'}
+          </button>
           {hasFilters && (
             <button className="btn-ghost text-xs text-slate-500 flex items-center gap-1" onClick={clearFilters}>
               <X size={12} /> Clear all
@@ -705,6 +783,8 @@ export default function Transactions() {
           </button>
           <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(true)}>🚫 Exclude from totals</button>
           <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(false)}>Include in totals</button>
+          <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(true)}>🔁 Mark transfer</button>
+          <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(false)}>Unmark transfer</button>
           <button
             className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5"
             style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}
@@ -781,6 +861,11 @@ export default function Transactions() {
                             ✦ income
                           </span>
                         ) : null}
+                        {tx.is_transfer ? (
+                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/25 font-sans font-normal">
+                            🔁 transfer
+                          </span>
+                        ) : null}
                         <span className={amountClass(tx.amount)}>{formatCurrency(tx.amount, tx.currency)}</span>
                       </div>
                     </td>
@@ -833,6 +918,75 @@ export default function Transactions() {
           </div>
         )}
       </Card>
+
+      <Modal open={showTransferModal} onClose={() => setShowTransferModal(false)} title="Review Transfer Candidates" size="md">
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Suggestions are high-confidence internal transfers (opposite signs, same amount, nearby dates).
+            Selected pairs will be marked as transfer and excluded from analytics totals.
+          </p>
+
+          {transferCandidates.length === 0 ? (
+            <EmptyState icon={Filter} title="No candidates found" description="Try a wider date range and run detection again." />
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400">{transferCandidates.length} candidate pair(s)</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="btn-ghost text-xs"
+                    onClick={() => setSelectedTransferPairIds(new Set(transferCandidates.map(c => c.pair_id)))}
+                  >
+                    Select all
+                  </button>
+                  <button className="btn-ghost text-xs" onClick={() => setSelectedTransferPairIds(new Set())}>
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {transferCandidates.map((cand) => (
+                  <label key={cand.pair_id}
+                    className="flex gap-3 px-3 py-2.5 rounded-lg cursor-pointer"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedTransferPairIds.has(cand.pair_id)}
+                      onChange={() => toggleTransferCandidate(cand.pair_id)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs text-cyan-300">{formatCurrency(cand.amount)}</span>
+                        <span className="text-xs text-slate-500">
+                          confidence {(cand.confidence * 100).toFixed(0)}% · {cand.day_diff}d
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        <span className="text-rose-300">{cand.debit?.account_name}</span> {formatCurrency(cand.debit?.amount)} · {cand.debit?.date}
+                        <span className="mx-1 text-slate-600">→</span>
+                        <span className="text-emerald-300">{cand.credit?.account_name}</span> {formatCurrency(cand.credit?.amount)} · {cand.credit?.date}
+                      </p>
+                      <p className="text-xs text-slate-600 truncate mt-0.5">
+                        {cand.reasons?.join(' • ')}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button className="btn-secondary" onClick={() => setShowTransferModal(false)}>Cancel</button>
+                <button
+                  className="btn-primary"
+                  disabled={!selectedTransferCount || applyingTransferPairs}
+                  onClick={applySelectedTransferCandidates}
+                >
+                  {applyingTransferPairs ? 'Applying…' : `Mark ${selectedTransferCount} pair(s)`}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
 
       <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Confirm permanent deletion" size="sm">
         {confirmDelete && (

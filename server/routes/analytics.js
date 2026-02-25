@@ -43,7 +43,7 @@ router.get('/spending-by-category', (req, res) => {
   const db = getDb();
   const { month, account_id, start_date, end_date } = req.query;
 
-  let where = ['t.exclude_from_totals = 0', 't.amount < 0', '(cat.is_income IS NULL OR cat.is_income = 0)'];
+  let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0', 't.amount < 0', '(cat.is_income IS NULL OR cat.is_income = 0)'];
   let params = [];
   if (month)      { where.push("strftime('%Y-%m', t.date) = ?"); params.push(month); }
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
@@ -71,7 +71,7 @@ router.get('/monthly-trend', (req, res) => {
   const { months = 18, account_id } = req.query;
   const { incomeFlag } = getIncomeCTE(db);
 
-  let where = ['t.exclude_from_totals = 0'];
+  let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0'];
   let params = [];
   if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
 
@@ -93,7 +93,7 @@ router.get('/category-breakdown', (req, res) => {
   const db = getDb();
   const { category_id, start_date, end_date, account_id } = req.query;
 
-  let where = ['t.exclude_from_totals = 0', 't.amount < 0'];
+  let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0', 't.amount < 0'];
   let params = [];
 
   if (category_id === 'null' || !category_id) {
@@ -130,7 +130,7 @@ router.get('/month-transactions', (req, res) => {
   const db = getDb();
   const { month, category_id, start_date, end_date, sort = 'date', order = 'desc' } = req.query;
 
-  let where = ['t.exclude_from_totals = 0'];
+  let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0'];
   let params = [];
   if (month)      { where.push("strftime('%Y-%m', t.date) = ?"); params.push(month); }
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
@@ -171,7 +171,7 @@ router.get('/merchant-search', (req, res) => {
   if (!q || q.length < 2) return res.json([]);
 
   const merchantLabelExpr = "COALESCE(NULLIF(TRIM(merchant_name), ''), description)";
-  let where = ['exclude_from_totals = 0', `UPPER(${merchantLabelExpr}) LIKE ?`];
+  let where = ['exclude_from_totals = 0', 'is_transfer = 0', `UPPER(${merchantLabelExpr}) LIKE ?`];
   let params = [`%${q.toUpperCase()}%`];
   if (start_date) { where.push('date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('date <= ?'); params.push(end_date); }
@@ -191,7 +191,7 @@ router.get('/merchant-search', (req, res) => {
 router.get('/top-merchants', (req, res) => {
   const db = getDb();
   const { month, limit = 15, account_id } = req.query;
-  let where = ['exclude_from_totals = 0', 'amount < 0'];
+  let where = ['exclude_from_totals = 0', 'is_transfer = 0', 'amount < 0'];
   let params = [];
   if (month)      { where.push("strftime('%Y-%m', date) = ?"); params.push(month); }
   if (account_id) { where.push('account_id = ?'); params.push(account_id); }
@@ -209,7 +209,7 @@ router.get('/cashflow', (req, res) => {
   const { start_date, end_date, account_id } = req.query;
   const { incomeFlag } = getIncomeCTE(db);
 
-  let where = ['t.exclude_from_totals = 0'];
+  let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0'];
   let params = [];
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('t.date <= ?'); params.push(end_date); }
@@ -246,7 +246,7 @@ router.get('/year-summary', (req, res) => {
   const account_id = req.query.account_id;
   const { incomeFlag } = getIncomeCTE(db);
 
-  let where = ['t.exclude_from_totals = 0', `strftime('%Y', t.date) = '${year}'`];
+  let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0', `strftime('%Y', t.date) = '${year}'`];
   let params = [];
   if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
   const wc = where.join(' AND ');
@@ -298,7 +298,7 @@ router.get('/dashboard-summary', (req, res) => {
       SUM(CASE WHEN t.amount < 0 AND (cat.is_income IS NULL OR cat.is_income = 0) THEN ABS(t.amount) ELSE 0 END) as expenses
     FROM transactions t
     LEFT JOIN categories cat ON cat.id = t.category_id
-    WHERE t.exclude_from_totals = 0 AND strftime('%Y-%m', t.date) = ?
+    WHERE t.exclude_from_totals = 0 AND t.is_transfer = 0 AND strftime('%Y-%m', t.date) = ?
   `).get(m);
 
   res.json({ ...summary, month: m });

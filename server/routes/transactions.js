@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { getDb } = require('../database');
 const { categorize } = require('../services/categorizer');
+const { detectTransferCandidates } = require('../services/transferDetection');
 const { v4: uuidv4 } = require('uuid');
 
 // GET /api/transactions — list with filtering, pagination, sorting
@@ -14,7 +15,8 @@ router.get('/', (req, res) => {
     sort = 'date', order = 'desc',
     amount_search,   // partial amount string e.g. "432" matches $432.xx
     amount_min, amount_max,
-    exclude_from_totals
+    exclude_from_totals,
+    is_transfer
   } = req.query;
 
   let where = [];
@@ -43,6 +45,8 @@ router.get('/', (req, res) => {
   if (is_recurring === 'true') { where.push('t.is_recurring = 1'); }
   if (exclude_from_totals === 'true') { where.push('t.exclude_from_totals = 1'); }
   if (exclude_from_totals === 'false') { where.push('t.exclude_from_totals = 0'); }
+  if (is_transfer === 'true') { where.push('t.is_transfer = 1'); }
+  if (is_transfer === 'false') { where.push('t.is_transfer = 0'); }
 
   // Amount search — matches partial dollar amounts live as user types
   if (amount_search && amount_search.trim()) {
@@ -70,9 +74,11 @@ router.get('/', (req, res) => {
         params.push(`%${s.keyword}%`);
       }
     }
+    where.push('t.is_transfer = 0');
     where.push('t.amount > 0');
     where.push(`(${conds.join(' OR ')})`);
   } else if (req.query.type === 'expense') {
+    where.push('t.is_transfer = 0');
     where.push('t.amount < 0');
     // Exclude income-category transactions from expenses
     const incomeCats = db.prepare("SELECT id FROM categories WHERE is_income = 1").all();
@@ -121,7 +127,7 @@ router.get('/summary/monthly', (req, res) => {
   const db = getDb();
   const { months = 12, account_id } = req.query;
 
-  let where = 'WHERE exclude_from_totals = 0';
+  let where = 'WHERE exclude_from_totals = 0 AND is_transfer = 0';
   let params = [];
   if (account_id) { where += ' AND account_id = ?'; params.push(account_id); }
 
@@ -139,6 +145,83 @@ router.get('/summary/monthly', (req, res) => {
   `).all(...params, parseInt(months));
 
   res.json(rows.reverse());
+});
+
+// GET /api/transactions/transfer-candidates — suggest likely internal-transfer pairs
+router.get('/transfer-candidates', (req, res) => {
+  const db = getDb();
+  const {
+    start_date,
+    end_date,
+    days_window = 3,
+    limit = 150,
+    min_confidence = 0.55,
+  } = req.query;
+
+  const result = detectTransferCandidates(db, {
+    start_date,
+    end_date,
+    days_window,
+    limit,
+    min_confidence,
+  });
+
+  res.json({
+    count: result.candidates.length,
+    options: result.options,
+    candidates: result.candidates,
+  });
+});
+
+// POST /api/transactions/apply-transfer-candidates — mark selected candidates as transfer
+router.post('/apply-transfer-candidates', (req, res) => {
+  const db = getDb();
+  const { pairs = [], transaction_ids = [], pair_ids = [], candidates = [], candidate_options = {} } = req.body || {};
+  const txIds = new Set(Array.isArray(transaction_ids) ? transaction_ids : []);
+
+  if (Array.isArray(pairs)) {
+    pairs.forEach((p) => {
+      if (p?.debit_tx_id) txIds.add(p.debit_tx_id);
+      if (p?.credit_tx_id) txIds.add(p.credit_tx_id);
+    });
+  }
+
+  if (Array.isArray(pair_ids) && Array.isArray(candidates) && candidates.length) {
+    const selected = new Set(pair_ids);
+    candidates.forEach((c) => {
+      if (!selected.has(c.pair_id)) return;
+      if (c.debit_tx_id) txIds.add(c.debit_tx_id);
+      if (c.credit_tx_id) txIds.add(c.credit_tx_id);
+    });
+  }
+
+  if (Array.isArray(pair_ids) && pair_ids.length && txIds.size === 0) {
+    const selected = new Set(pair_ids);
+    const detected = detectTransferCandidates(db, {
+      ...candidate_options,
+      limit: Math.max(parseInt(candidate_options.limit || 500, 10) || 500, pair_ids.length),
+      min_confidence: candidate_options.min_confidence ?? 0,
+    });
+    detected.candidates.forEach((c) => {
+      if (!selected.has(c.pair_id)) return;
+      if (c.debit_tx_id) txIds.add(c.debit_tx_id);
+      if (c.credit_tx_id) txIds.add(c.credit_tx_id);
+    });
+  }
+
+  if (!txIds.size) {
+    return res.status(400).json({ error: 'No transactions selected' });
+  }
+
+  const ids = [...txIds];
+  const placeholders = ids.map(() => '?').join(',');
+  const info = db.prepare(`
+    UPDATE transactions
+    SET is_transfer = 1, exclude_from_totals = 1
+    WHERE id IN (${placeholders})
+  `).run(...ids);
+
+  res.json({ updated: info.changes, ids });
 });
 
 // GET /api/transactions/:id
@@ -171,6 +254,7 @@ router.patch('/:id', (req, res) => {
   const { category_id, notes, tags, is_transfer, reviewed, is_income_override, exclude_from_totals, merchant_name } = req.body;
   const fields = [];
   const vals = [];
+  const forceExclude = is_transfer === true || is_transfer === 1;
 
   if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(category_id || null); }
   if (notes !== undefined) { fields.push('notes = ?'); vals.push(notes); }
@@ -178,7 +262,10 @@ router.patch('/:id', (req, res) => {
   if (is_transfer !== undefined) { fields.push('is_transfer = ?'); vals.push(is_transfer ? 1 : 0); }
   if (reviewed !== undefined) { fields.push('reviewed = ?'); vals.push(reviewed ? 1 : 0); }
   if (is_income_override !== undefined) { fields.push('is_income_override = ?'); vals.push(is_income_override ? 1 : 0); }
-  if (exclude_from_totals !== undefined) { fields.push('exclude_from_totals = ?'); vals.push(exclude_from_totals ? 1 : 0); }
+  if (exclude_from_totals !== undefined || forceExclude) {
+    fields.push('exclude_from_totals = ?');
+    vals.push(forceExclude ? 1 : (exclude_from_totals ? 1 : 0));
+  }
   if (merchant_name !== undefined) { fields.push('merchant_name = ?'); vals.push(merchant_name || null); }
 
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
@@ -190,13 +277,14 @@ router.patch('/:id', (req, res) => {
 // POST /api/transactions/bulk — bulk update
 router.post('/bulk', (req, res) => {
   const db = getDb();
-  const { ids, category_id, tags, tags_mode = 'replace', reviewed, is_income_override, exclude_from_totals, merchant_name } = req.body;
+  const { ids, category_id, tags, tags_mode = 'replace', reviewed, is_income_override, exclude_from_totals, merchant_name, is_transfer } = req.body;
   if (!ids || !ids.length) return res.status(400).json({ error: 'No IDs provided' });
 
   const placeholders = ids.map(() => '?').join(',');
   const fields = [];
   const vals = [];
   let updatedViaAppend = 0;
+  const forceExclude = is_transfer === true || is_transfer === 1;
 
   if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(category_id || null); }
   if (tags !== undefined) {
@@ -215,7 +303,11 @@ router.post('/bulk', (req, res) => {
   }
   if (reviewed !== undefined) { fields.push('reviewed = ?'); vals.push(reviewed ? 1 : 0); }
   if (is_income_override !== undefined) { fields.push('is_income_override = ?'); vals.push(is_income_override ? 1 : 0); }
-  if (exclude_from_totals !== undefined) { fields.push('exclude_from_totals = ?'); vals.push(exclude_from_totals ? 1 : 0); }
+  if (is_transfer !== undefined) { fields.push('is_transfer = ?'); vals.push(is_transfer ? 1 : 0); }
+  if (exclude_from_totals !== undefined || forceExclude) {
+    fields.push('exclude_from_totals = ?');
+    vals.push(forceExclude ? 1 : (exclude_from_totals ? 1 : 0));
+  }
   if (merchant_name !== undefined) { fields.push('merchant_name = ?'); vals.push(merchant_name || null); }
 
   let updated = updatedViaAppend;

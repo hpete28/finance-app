@@ -147,6 +147,7 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_transactions_date       ON transactions(date);
     CREATE INDEX IF NOT EXISTS idx_transactions_account    ON transactions(account_id);
     CREATE INDEX IF NOT EXISTS idx_transactions_category   ON transactions(category_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_transfer_date ON transactions(is_transfer, date);
     CREATE INDEX IF NOT EXISTS idx_budgets_month           ON budgets(month);
     CREATE INDEX IF NOT EXISTS idx_tag_rules_priority      ON tag_rules(priority DESC);
 
