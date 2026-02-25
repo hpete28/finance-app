@@ -353,9 +353,17 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Transactions() {
-  const { showToast } = useAppStore();
+  const { showToast, selectedMonth } = useAppStore();
   const accounts = useAppStore(s => s.accounts);
   const [searchParams, setSearchParams] = useSearchParams();
+  const monthSyncInitialized = useRef(false);
+
+  const monthToDateRange = useCallback((month) => {
+    if (!month) return { start: '', end: '' };
+    const [y, mo] = month.split('-').map(Number);
+    const last = new Date(y, mo, 0).getDate();
+    return { start: `${month}-01`, end: `${month}-${String(last).padStart(2, '0')}` };
+  }, []);
 
   const [transactions, setTransactions] = useState([]);
   const [total, setTotal]   = useState(0);
@@ -369,12 +377,8 @@ export default function Transactions() {
     const ed = searchParams.get('end_date');
     const m  = searchParams.get('month');
     if (sd) return { start: sd, end: ed || '' };
-    if (m) {
-      const [y, mo] = m.split('-').map(Number);
-      const last = new Date(y, mo, 0).getDate();
-      return { start: `${m}-01`, end: `${m}-${String(last).padStart(2,'0')}` };
-    }
-    return { start: '', end: '' };
+    if (m) return monthToDateRange(m);
+    return monthToDateRange(selectedMonth);
   };
   const _initD = initDates();
 
@@ -435,6 +439,16 @@ export default function Transactions() {
     [search, filterCategory, filterAccount, startDate, endDate, showUncategorized, filterType, amountSearch]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { categoriesApi.list().then(r => setCategories(r.data)); }, []);
+  useEffect(() => {
+    if (!monthSyncInitialized.current) {
+      monthSyncInitialized.current = true;
+      return;
+    }
+    const next = monthToDateRange(selectedMonth);
+    setStartDate(next.start);
+    setEndDate(next.end);
+    setPage(1);
+  }, [selectedMonth, monthToDateRange]);
 
   useEffect(() => () => clearTimeout(undoTimer.current), []);
 

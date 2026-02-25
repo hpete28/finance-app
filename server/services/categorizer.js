@@ -159,44 +159,95 @@ function recategorizeAll(overwriteExisting = false) {
  */
 function detectRecurring() {
   const db = getDb();
-
-  // Group by description, look for patterns
-  const groups = db.prepare(`
+  const rows = db.prepare(`
     SELECT
+      date,
       description,
-      COUNT(*) as count,
-      AVG(ABS(amount)) as avg_amount,
-      MIN(date) as first_seen,
-      MAX(date) as last_seen,
+      ABS(amount) as amount,
       category_id
     FROM transactions
     WHERE amount < 0
-    GROUP BY description
-    HAVING count >= 2
-    ORDER BY count DESC
+    ORDER BY date ASC
   `).all();
 
-  const insertPattern = db.prepare(`
-    INSERT OR IGNORE INTO recurring_patterns
-      (description_pattern, avg_amount, frequency_days, category_id, last_seen)
-    VALUES (?, ?, ?, ?, ?)
-  `);
+  const normalize = (value) => String(value || '')
+    .toUpperCase()
+    .replace(/\d+/g, ' ')
+    .replace(/[^A-Z]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  const insert = db.transaction(() => {
-    for (const g of groups) {
-      // Estimate frequency
-      const daysDiff = Math.round(
-        (new Date(g.last_seen) - new Date(g.first_seen)) / (1000 * 86400) / (g.count - 1)
-      );
-      const freqDays = daysDiff > 0 ? daysDiff : 30;
+  const grouped = new Map();
+  for (const row of rows) {
+    const key = normalize(row.description);
+    if (!key) continue;
+    const list = grouped.get(key) || [];
+    list.push(row);
+    grouped.set(key, list);
+  }
 
-      if (freqDays <= 35) { // Monthly or more frequent
-        insertPattern.run(g.description, g.avg_amount, freqDays, g.category_id, g.last_seen);
-      }
+  const isWithin = (value, target, tolerance) => Math.abs(value - target) <= tolerance;
+  const median = (nums) => {
+    if (!nums.length) return 0;
+    const sorted = [...nums].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 0) return (sorted[mid - 1] + sorted[mid]) / 2;
+    return sorted[mid];
+  };
+
+  const patterns = [];
+  for (const txs of grouped.values()) {
+    if (txs.length < 3) continue;
+
+    const amounts = txs.map(t => t.amount).filter(a => a > 0);
+    if (amounts.length < 3) continue;
+    const avgAmount = amounts.reduce((s, a) => s + a, 0) / amounts.length;
+    const variance = amounts.reduce((s, a) => s + ((a - avgAmount) ** 2), 0) / amounts.length;
+    const stdDev = Math.sqrt(variance);
+    const amountCv = avgAmount > 0 ? stdDev / avgAmount : 1;
+
+    // Recurring bills/subscriptions are typically stable in amount.
+    if (amountCv > 0.2) continue;
+
+    const intervals = [];
+    for (let i = 1; i < txs.length; i++) {
+      const days = Math.round((new Date(txs[i].date) - new Date(txs[i - 1].date)) / 86400000);
+      if (days > 0) intervals.push(days);
+    }
+    if (intervals.length < 2) continue;
+
+    const freqDays = Math.round(median(intervals));
+
+    // Keep this focused on true recurring bills (roughly monthly cadence).
+    if (freqDays < 20 || freqDays > 40) continue;
+
+    const consistentIntervals = intervals.filter(d => isWithin(d, freqDays, 4)).length;
+    if (consistentIntervals / intervals.length < 0.6) continue;
+
+    const lastTx = txs[txs.length - 1];
+    patterns.push({
+      description_pattern: lastTx.description,
+      avg_amount: avgAmount,
+      frequency_days: freqDays,
+      category_id: lastTx.category_id || null,
+      last_seen: lastTx.date,
+    });
+  }
+
+  const refreshPatterns = db.transaction(() => {
+    db.prepare(`DELETE FROM recurring_patterns`).run();
+    const insertPattern = db.prepare(`
+      INSERT INTO recurring_patterns
+        (description_pattern, avg_amount, frequency_days, category_id, last_seen)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    for (const p of patterns) {
+      insertPattern.run(p.description_pattern, p.avg_amount, p.frequency_days, p.category_id, p.last_seen);
     }
   });
 
-  insert();
+  refreshPatterns();
 
   return db.prepare(`
     SELECT rp.*, c.name as category_name
