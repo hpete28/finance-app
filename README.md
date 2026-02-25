@@ -141,6 +141,7 @@ Core tables:
 
 ### Transactions
 - `GET /api/transactions`
+- `GET /api/transactions/export.csv`
 - `GET /api/transactions/:id`
 - `PATCH /api/transactions/:id`
 - `POST /api/transactions/bulk`

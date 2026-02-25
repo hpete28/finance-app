@@ -190,10 +190,12 @@ router.get('/merchant-search', (req, res) => {
 // GET /api/analytics/top-merchants
 router.get('/top-merchants', (req, res) => {
   const db = getDb();
-  const { month, limit = 15, account_id } = req.query;
+  const { month, start_date, end_date, limit = 15, account_id } = req.query;
   let where = ['exclude_from_totals = 0', 'is_transfer = 0', 'amount < 0'];
   let params = [];
   if (month)      { where.push("strftime('%Y-%m', date) = ?"); params.push(month); }
+  if (start_date) { where.push('date >= ?'); params.push(start_date); }
+  if (end_date)   { where.push('date <= ?'); params.push(end_date); }
   if (account_id) { where.push('account_id = ?'); params.push(account_id); }
   res.json(db.prepare(`
     SELECT COALESCE(NULLIF(TRIM(merchant_name), ''), description) as description,

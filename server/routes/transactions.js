@@ -6,18 +6,74 @@ const { categorize } = require('../services/categorizer');
 const { detectTransferCandidates } = require('../services/transferDetection');
 const { v4: uuidv4 } = require('uuid');
 
-// GET /api/transactions — list with filtering, pagination, sorting
-router.get('/', (req, res) => {
-  const db = getDb();
+const TRANSACTION_SELECT_SQL = `
+  SELECT t.*,
+         a.name as account_name, a.currency,
+         c.name as category_name, c.color as category_color
+  FROM transactions t
+  JOIN accounts a ON a.id = t.account_id
+  LEFT JOIN categories c ON c.id = t.category_id
+`;
+
+const EXPORT_COLUMNS = [
+  'id',
+  'date',
+  'description',
+  'amount',
+  'currency',
+  'account_id',
+  'account_name',
+  'category_id',
+  'category_name',
+  'category_color',
+  'tags',
+  'notes',
+  'merchant_name',
+  'is_transfer',
+  'is_recurring',
+  'reviewed',
+  'is_income_override',
+  'exclude_from_totals',
+  'created_at',
+];
+
+function parseTags(rawTags) {
+  try {
+    const parsed = JSON.parse(rawTags || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function csvEscape(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (/[",\r\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
+
+function buildCsvFilename(query = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const start = /^\d{4}-\d{2}-\d{2}$/.test(query.start_date || '') ? query.start_date : '';
+  const end = /^\d{4}-\d{2}-\d{2}$/.test(query.end_date || '') ? query.end_date : '';
+
+  let base = `transactions-export-${today}`;
+  if (start && end) base += `-${start}_to_${end}`;
+  else if (start) base += `-${start}`;
+  else if (end) base += `-${end}`;
+  return `${base}.csv`;
+}
+
+function buildTransactionsQueryState(db, query = {}) {
   const {
-    page = 1, limit = 50, account_id, category_id, month,
+    account_id, category_id, month,
     start_date, end_date, search, tag, uncategorized, is_recurring,
     sort = 'date', order = 'desc',
-    amount_search,   // partial amount string e.g. "432" matches $432.xx
-    amount_min, amount_max,
+    amount_search, amount_min, amount_max,
     exclude_from_totals,
-    is_transfer
-  } = req.query;
+    is_transfer,
+  } = query;
 
   let where = [];
   let params = [];
@@ -41,29 +97,26 @@ router.get('/', (req, res) => {
     const searchTerm = `%${search.toUpperCase()}%`;
     params.push(searchTerm, searchTerm);
   }
-  if (tag) { where.push("t.tags LIKE ?"); params.push(`%${tag}%`); }
+  if (tag) { where.push('t.tags LIKE ?'); params.push(`%${tag}%`); }
   if (is_recurring === 'true') { where.push('t.is_recurring = 1'); }
   if (exclude_from_totals === 'true') { where.push('t.exclude_from_totals = 1'); }
   if (exclude_from_totals === 'false') { where.push('t.exclude_from_totals = 0'); }
   if (is_transfer === 'true') { where.push('t.is_transfer = 1'); }
   if (is_transfer === 'false') { where.push('t.is_transfer = 0'); }
 
-  // Amount search — matches partial dollar amounts live as user types
   if (amount_search && amount_search.trim()) {
-    // Strip leading $ or - so user can type "432" or "$432" or "432.27"
     const cleaned = amount_search.replace(/^[$-]+/, '').replace(/,/g, '');
-    where.push(`CAST(ABS(t.amount) AS TEXT) LIKE ?`);
+    where.push('CAST(ABS(t.amount) AS TEXT) LIKE ?');
     params.push(`${cleaned}%`);
   }
   if (amount_min) { where.push('ABS(t.amount) >= ?'); params.push(parseFloat(amount_min)); }
   if (amount_max) { where.push('ABS(t.amount) <= ?'); params.push(parseFloat(amount_max)); }
 
-  // Income-source filtering: only show transactions matching income_sources keywords
-  if (req.query.type === 'income') {
+  if (query.type === 'income') {
     const sources = db.prepare('SELECT keyword, match_type FROM income_sources').all();
     const conds = [
       't.is_income_override = 1',
-      `EXISTS (SELECT 1 FROM categories ic WHERE ic.id = t.category_id AND ic.is_income = 1)`,
+      'EXISTS (SELECT 1 FROM categories ic WHERE ic.id = t.category_id AND ic.is_income = 1)',
     ];
     for (const s of sources) {
       if (s.match_type === 'exact') {
@@ -77,49 +130,111 @@ router.get('/', (req, res) => {
     where.push('t.is_transfer = 0');
     where.push('t.amount > 0');
     where.push(`(${conds.join(' OR ')})`);
-  } else if (req.query.type === 'expense') {
+  } else if (query.type === 'expense') {
     where.push('t.is_transfer = 0');
     where.push('t.amount < 0');
-    // Exclude income-category transactions from expenses
-    const incomeCats = db.prepare("SELECT id FROM categories WHERE is_income = 1").all();
+    const incomeCats = db.prepare('SELECT id FROM categories WHERE is_income = 1').all();
     if (incomeCats.length) {
       const ids = incomeCats.map(c => c.id).join(',');
       where.push(`(t.category_id IS NULL OR t.category_id NOT IN (${ids}))`);
     }
   }
 
-  const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const allowedSort = ['date', 'amount', 'description'];
   const sortCol = allowedSort.includes(sort) ? sort : 'date';
   const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
-  const offset = (parseInt(page) - 1) * parseInt(limit);
+
+  return { whereClause, params, sortCol, sortOrder };
+}
+
+// GET /api/transactions — list with filtering, pagination, sorting
+router.get('/', (req, res) => {
+  const db = getDb();
+  const { page = 1, limit = 50 } = req.query;
+  const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+  const limitNum = Math.max(parseInt(limit, 10) || 50, 1);
+  const offset = (pageNum - 1) * limitNum;
+  const { whereClause, params, sortCol, sortOrder } = buildTransactionsQueryState(db, req.query);
 
   const countRow = db.prepare(`
     SELECT COUNT(*) as total FROM transactions t ${whereClause}
   `).get(...params);
 
   const rows = db.prepare(`
-    SELECT t.*,
-           a.name as account_name, a.currency,
-           c.name as category_name, c.color as category_color
-    FROM transactions t
-    JOIN accounts a ON a.id = t.account_id
-    LEFT JOIN categories c ON c.id = t.category_id
+    ${TRANSACTION_SELECT_SQL}
     ${whereClause}
     ORDER BY t.${sortCol} ${sortOrder}
     LIMIT ? OFFSET ?
-  `).all(...params, parseInt(limit), offset);
+  `).all(...params, limitNum, offset);
 
   // Parse tags JSON
-  const transactions = rows.map(r => ({ ...r, tags: JSON.parse(r.tags || '[]') }));
+  const transactions = rows.map(r => ({ ...r, tags: parseTags(r.tags) }));
 
   res.json({
     transactions,
     total: countRow.total,
-    page: parseInt(page),
-    limit: parseInt(limit),
-    pages: Math.ceil(countRow.total / parseInt(limit))
+    page: pageNum,
+    limit: limitNum,
+    pages: Math.ceil(countRow.total / limitNum)
   });
+});
+
+// GET /api/transactions/export.csv — full filtered export (ignores pagination)
+router.get('/export.csv', (req, res) => {
+  const db = getDb();
+
+  try {
+    const { whereClause, params, sortCol, sortOrder } = buildTransactionsQueryState(db, req.query);
+    const stmt = db.prepare(`
+      ${TRANSACTION_SELECT_SQL}
+      ${whereClause}
+      ORDER BY t.${sortCol} ${sortOrder}
+    `);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${buildCsvFilename(req.query)}"`);
+    res.setHeader('Cache-Control', 'no-store');
+
+    // UTF-8 BOM helps Excel auto-detect encoding.
+    res.write('\uFEFF');
+    res.write(`${EXPORT_COLUMNS.join(',')}\r\n`);
+
+    for (const row of stmt.iterate(...params)) {
+      const exported = {
+        id: row.id,
+        date: row.date,
+        description: row.description,
+        amount: row.amount,
+        currency: row.currency,
+        account_id: row.account_id,
+        account_name: row.account_name,
+        category_id: row.category_id,
+        category_name: row.category_name,
+        category_color: row.category_color,
+        tags: parseTags(row.tags).join(', '),
+        notes: row.notes,
+        merchant_name: row.merchant_name,
+        is_transfer: row.is_transfer,
+        is_recurring: row.is_recurring,
+        reviewed: row.reviewed,
+        is_income_override: row.is_income_override,
+        exclude_from_totals: row.exclude_from_totals,
+        created_at: row.created_at,
+      };
+
+      const line = EXPORT_COLUMNS.map(col => csvEscape(exported[col])).join(',');
+      res.write(`${line}\r\n`);
+    }
+
+    res.end();
+  } catch (err) {
+    console.error('CSV export failed:', err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Failed to export CSV' });
+    }
+    res.end();
+  }
 });
 
 // GET /api/transactions/summary/monthly — income/expense summary

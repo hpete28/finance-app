@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Search, SplitSquareHorizontal, CheckSquare, Square,
-  ChevronLeft, ChevronRight, Edit2, X, Calendar, Filter, Trash2, Undo2
+  ChevronLeft, ChevronRight, Edit2, X, Calendar, Filter, Trash2, Undo2, Download
 } from 'lucide-react';
 import { transactionsApi, categoriesApi } from '../utils/api';
 import { formatCurrency, formatDate, amountClass } from '../utils/format';
@@ -376,6 +376,7 @@ export default function Transactions() {
   const [total, setTotal]   = useState(0);
   const [pages, setPages]   = useState(1);
   const [loading, setLoading] = useState(true);
+  const [exportingCsv, setExportingCsv] = useState(false);
   const [categories, setCategories] = useState([]);
 
   // Compute initial dates from URL params synchronously (avoids race conditions)
@@ -423,21 +424,30 @@ export default function Transactions() {
 
   const hasFilters = search || filterCategory || filterAccount || startDate || endDate || showUncategorized || filterType || amountSearch;
 
+  const buildTransactionParams = useCallback(({ includePagination = true } = {}) => {
+    const params = { sort, order };
+    if (includePagination) {
+      params.page = page;
+      params.limit = 200;
+    }
+    if (search) params.search = search;
+    if (filterAccount) params.account_id = filterAccount;
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    if (showUncategorized) params.uncategorized = true;
+    else if (filterCategory) params.category_id = filterCategory;
+    if (filterType) params.type = filterType;
+    if (amountSearch) params.amount_search = amountSearch;
+    return params;
+  }, [
+    page, sort, order, search, filterAccount, startDate, endDate,
+    showUncategorized, filterCategory, filterType, amountSearch
+  ]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 200, sort, order };
-      if (search)            params.search = search;
-      if (filterAccount)     params.account_id = filterAccount;
-      if (startDate)         params.start_date = startDate;
-      if (endDate)           params.end_date = endDate;
-      if (showUncategorized) params.uncategorized = true;
-      else if (filterCategory) params.category_id = filterCategory;
-
-      // Pass type filter to server (income uses income_sources, expense excludes income cats)
-      if (filterType) params.type = filterType;
-      if (amountSearch) params.amount_search = amountSearch;
-
+      const params = buildTransactionParams({ includePagination: true });
       const res = await transactionsApi.list(params);
       const txs = res.data.transactions;
 
@@ -445,7 +455,7 @@ export default function Transactions() {
       setTotal(res.data.total);
       setPages(res.data.pages);
     } finally { setLoading(false); }
-  }, [page, search, filterCategory, filterAccount, startDate, endDate, showUncategorized, filterType, sort, order, amountSearch]);
+  }, [buildTransactionParams]);
 
   useEffect(() => { setPage(1); setSelected(new Set()); },
     [search, filterCategory, filterAccount, startDate, endDate, showUncategorized, filterType, amountSearch]);
@@ -655,6 +665,45 @@ export default function Transactions() {
     else { setSort(col); setOrder('desc'); }
   };
 
+  const buildExportFilename = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const isIsoDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+    const start = isIsoDate(startDate) ? startDate : '';
+    const end = isIsoDate(endDate) ? endDate : '';
+
+    let base = `transactions-export-${today}`;
+    if (start && end) base += `-${start}_to_${end}`;
+    else if (start) base += `-${start}`;
+    else if (end) base += `-${end}`;
+    return `${base}.csv`;
+  };
+
+  const handleExportCsv = async () => {
+    setExportingCsv(true);
+    try {
+      const params = buildTransactionParams({ includePagination: false });
+      const res = await transactionsApi.exportCsv(params);
+      const blob = res.data instanceof Blob
+        ? res.data
+        : new Blob([res.data], { type: 'text/csv;charset=utf-8' });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = buildExportFilename();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('📄 Exported filtered transactions to CSV');
+    } catch (err) {
+      console.error('CSV export failed:', err);
+      showToast('CSV export failed', 'error');
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+
   const SortArrow = ({ col }) => sort === col
     ? <span className="text-indigo-400 ml-0.5">{order === 'asc' ? '↑' : '↓'}</span>
     : null;
@@ -690,6 +739,11 @@ export default function Transactions() {
             <option value="expense">Expenses only</option>
             <option value="income">Income only</option>
           </select>
+          <button className="btn-secondary text-xs" onClick={handleExportCsv} disabled={exportingCsv}>
+            {exportingCsv
+              ? <><Spinner size={12} /> Exporting CSV…</>
+              : <><Download size={12} /> Export CSV</>}
+          </button>
           <button className="btn-secondary text-xs" onClick={loadTransferCandidates} disabled={loadingTransferCandidates}>
             {loadingTransferCandidates ? <><Spinner size={12} /> Finding transfers…</> : 'Review transfer candidates'}
           </button>

@@ -781,41 +781,352 @@ function CashFlow() {
 }
 
 // ─── Top Merchants ─────────────────────────────────────────────────────────────
+const TOP_MERCHANT_PRESETS = [
+  { id: 'this_month', label: 'This month' },
+  { id: 'last_month', label: 'Last month' },
+  { id: 'last_3_months', label: 'Last 3 months' },
+  { id: 'last_6_months', label: 'Last 6 months' },
+  { id: 'ytd', label: 'Year to date' },
+  { id: 'custom', label: 'Custom' },
+];
+
+const TOP_MERCHANT_PRESET_LABELS = {
+  this_month: 'This month',
+  last_month: 'Last month',
+  last_3_months: 'Last 3 months',
+  last_6_months: 'Last 6 months',
+  ytd: 'Year to date',
+  custom: 'Custom range',
+  month: 'Month',
+};
+
+const TOP_MERCHANT_PRESET_IDS = new Set([
+  'this_month', 'last_month', 'last_3_months', 'last_6_months', 'ytd', 'custom', 'month'
+]);
+
+function isIsoDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+}
+
+function isIsoMonth(value) {
+  if (!/^\d{4}-\d{2}$/.test(value || '')) return false;
+  const month = Number(value.slice(5, 7));
+  return month >= 1 && month <= 12;
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function toIsoDate(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function currentIsoMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+}
+
+function getMonthBounds(month) {
+  if (!isIsoMonth(month)) return null;
+  const [year, mon] = month.split('-').map(Number);
+  const lastDay = new Date(year, mon, 0).getDate();
+  return { start: `${month}-01`, end: `${month}-${pad2(lastDay)}` };
+}
+
+function isValidDateRange(start, end) {
+  return isIsoDate(start) && isIsoDate(end) && start <= end;
+}
+
+function getTopMerchantsPresetRange(preset) {
+  const now = new Date();
+  const today = toIsoDate(now);
+
+  switch (preset) {
+    case 'this_month':
+      return { start: `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-01`, end: today };
+    case 'last_month': {
+      const y = now.getFullYear();
+      const m = now.getMonth();
+      const start = new Date(y, m - 1, 1);
+      const end = new Date(y, m, 0);
+      return { start: toIsoDate(start), end: toIsoDate(end) };
+    }
+    case 'last_3_months': {
+      const start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+      return { start: toIsoDate(start), end: today };
+    }
+    case 'last_6_months': {
+      const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      return { start: toIsoDate(start), end: today };
+    }
+    case 'ytd':
+      return { start: `${now.getFullYear()}-01-01`, end: today };
+    default:
+      return null;
+  }
+}
+
+function buildInitialTopMerchantsState(searchParams, selectedMonth) {
+  const rawPreset = searchParams.get('merch_preset');
+  const rawMonth = searchParams.get('merch_month');
+  const rawStart = searchParams.get('merch_start');
+  const rawEnd = searchParams.get('merch_end');
+  const safeMonth = isIsoMonth(selectedMonth) ? selectedMonth : currentIsoMonth();
+  const month = isIsoMonth(rawMonth) ? rawMonth : safeMonth;
+  const hasValidCustom = isValidDateRange(rawStart, rawEnd);
+
+  if (hasValidCustom) {
+    return {
+      preset: 'custom',
+      month,
+      customStartInput: rawStart,
+      customEndInput: rawEnd,
+      appliedCustomStart: rawStart,
+      appliedCustomEnd: rawEnd,
+    };
+  }
+
+  const preset = TOP_MERCHANT_PRESET_IDS.has(rawPreset) ? rawPreset : null;
+  if (preset) {
+    const seedRange = preset === 'month'
+      ? getMonthBounds(month)
+      : preset === 'custom'
+        ? getMonthBounds(month)
+        : getTopMerchantsPresetRange(preset);
+    return {
+      preset,
+      month,
+      customStartInput: seedRange?.start || '',
+      customEndInput: seedRange?.end || '',
+      appliedCustomStart: seedRange?.start || '',
+      appliedCustomEnd: seedRange?.end || '',
+    };
+  }
+
+  if (isIsoMonth(rawMonth)) {
+    const seedRange = getMonthBounds(month);
+    return {
+      preset: 'month',
+      month,
+      customStartInput: seedRange?.start || '',
+      customEndInput: seedRange?.end || '',
+      appliedCustomStart: seedRange?.start || '',
+      appliedCustomEnd: seedRange?.end || '',
+    };
+  }
+
+  const defaultRange = getMonthBounds(safeMonth);
+  return {
+    preset: 'month',
+    month: safeMonth,
+    customStartInput: defaultRange?.start || '',
+    customEndInput: defaultRange?.end || '',
+    appliedCustomStart: defaultRange?.start || '',
+    appliedCustomEnd: defaultRange?.end || '',
+  };
+}
+
 function TopMerchants() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { selectedMonth } = useAppStore();
-  const [month, setMonth] = useState(searchParams.get('merch_month') || selectedMonth);
-  const [data, setData]   = useState([]);
+  const [initialState] = useState(() => buildInitialTopMerchantsState(searchParams, selectedMonth));
+
+  const [preset, setPreset] = useState(initialState.preset);
+  const [month, setMonth] = useState(initialState.month);
+  const [customStartInput, setCustomStartInput] = useState(initialState.customStartInput);
+  const [customEndInput, setCustomEndInput] = useState(initialState.customEndInput);
+  const [appliedCustomStart, setAppliedCustomStart] = useState(initialState.appliedCustomStart);
+  const [appliedCustomEnd, setAppliedCustomEnd] = useState(initialState.appliedCustomEnd);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const customAppliedRange = isValidDateRange(appliedCustomStart, appliedCustomEnd)
+    ? { start: appliedCustomStart, end: appliedCustomEnd }
+    : null;
+
+  let appliedRange = null;
+  if (preset === 'month') appliedRange = getMonthBounds(month);
+  else if (preset === 'custom') appliedRange = customAppliedRange;
+  else appliedRange = getTopMerchantsPresetRange(preset);
+
+  const appliedStart = appliedRange?.start || '';
+  const appliedEnd = appliedRange?.end || '';
+  const hasAppliedRange = !!(appliedStart && appliedEnd);
+  const customRangeValid = isValidDateRange(customStartInput, customEndInput);
+  const customHasChanges = customStartInput !== appliedCustomStart || customEndInput !== appliedCustomEnd;
+  const showCustomRangeError = preset === 'custom' && customStartInput && customEndInput && customStartInput > customEndInput;
+  const appliedModeLabel = TOP_MERCHANT_PRESET_LABELS[preset] || 'Custom range';
+  const appliedRangeLabel = hasAppliedRange
+    ? `${formatDate(appliedStart)} -> ${formatDate(appliedEnd)}`
+    : 'No date range applied';
 
   useEffect(() => {
-    analyticsApi.topMerchants({ month, limit: 20 }).then(r => setData(r.data));
-  }, [month]);
+    let cancelled = false;
+
+    const load = async () => {
+      if (!hasAppliedRange) {
+        setData([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const params = { limit: 20 };
+        if (preset === 'month') params.month = month;
+        else {
+          params.start_date = appliedStart;
+          params.end_date = appliedEnd;
+        }
+        const response = await analyticsApi.topMerchants(params);
+        if (!cancelled) setData(response.data || []);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [preset, month, appliedStart, appliedEnd, hasAppliedRange]);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (month) p.set('merch_month', month);
+    p.set('merch_preset', preset);
+
+    if (preset === 'month' && isIsoMonth(month)) p.set('merch_month', month);
+    else p.delete('merch_month');
+
+    if (preset === 'custom' && isValidDateRange(appliedCustomStart, appliedCustomEnd)) {
+      p.set('merch_start', appliedCustomStart);
+      p.set('merch_end', appliedCustomEnd);
+    } else {
+      p.delete('merch_start');
+      p.delete('merch_end');
+    }
+
     setSearchParams(p, { replace: true });
-  }, [month, setSearchParams]);
+  }, [preset, month, appliedCustomStart, appliedCustomEnd, setSearchParams]);
+
+  const applyCustomRange = () => {
+    if (!customRangeValid) return;
+    setAppliedCustomStart(customStartInput);
+    setAppliedCustomEnd(customEndInput);
+    setPreset('custom');
+  };
+
+  const handlePresetChange = (nextPreset) => {
+    if (nextPreset === 'custom') {
+      const fallback = appliedRange || getMonthBounds(month) || getTopMerchantsPresetRange('this_month');
+      if (!isValidDateRange(customStartInput, customEndInput) && fallback) {
+        setCustomStartInput(fallback.start);
+        setCustomEndInput(fallback.end);
+        setAppliedCustomStart(fallback.start);
+        setAppliedCustomEnd(fallback.end);
+      } else if (!isValidDateRange(appliedCustomStart, appliedCustomEnd) && isValidDateRange(customStartInput, customEndInput)) {
+        setAppliedCustomStart(customStartInput);
+        setAppliedCustomEnd(customEndInput);
+      }
+    }
+    setPreset(nextPreset);
+  };
+
+  const handleMonthChange = (nextMonth) => {
+    if (!isIsoMonth(nextMonth)) return;
+    setMonth(nextMonth);
+    setPreset('month');
+  };
+
+  const navigateToMerchantTransactions = (merchant) => {
+    const params = new URLSearchParams({ search: merchant });
+    if (preset === 'month') params.set('month', month);
+    else if (hasAppliedRange) {
+      params.set('start_date', appliedStart);
+      params.set('end_date', appliedEnd);
+    }
+    navigate(`/transactions?${params.toString()}`);
+  };
 
   return (
-    <div>
-      <div className="flex items-center gap-3 mb-4">
-        <label className="text-xs text-slate-500">Month:</label>
-        <input type="month" className="input w-36" value={month} onChange={e => setMonth(e.target.value)} />
-      </div>
-      <div className="space-y-2.5">
-        {data.map((d, i) => (
-          <button key={i} onClick={() => navigate(`/transactions?month=${month}&search=${encodeURIComponent(d.description)}`)}
-            className="w-full flex items-center gap-3 text-sm hover:bg-white/5 rounded-lg px-2 py-1.5 -mx-2 transition-colors group">
-            <span className="text-slate-600 font-mono text-xs w-5 shrink-0">{i+1}</span>
-            <span className="flex-1 text-slate-300 text-xs text-left truncate">{d.description}</span>
-            <span className="text-xs text-slate-500 shrink-0">×{d.count}</span>
-            <span className="font-mono text-xs text-rose-400 w-20 text-right shrink-0">{formatCurrency(d.total)}</span>
-            <ArrowRight size={11} className="text-slate-600 group-hover:text-slate-400 shrink-0" />
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        {TOP_MERCHANT_PRESETS.map(opt => (
+          <button
+            key={opt.id}
+            onClick={() => handlePresetChange(opt.id)}
+            className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+              preset === opt.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+            }`}
+          >
+            {opt.label}
           </button>
         ))}
+        <div className="h-5 w-px bg-slate-700 mx-1" />
+        <label className="text-xs text-slate-500">Quick month</label>
+        <input type="month" className="input w-36 text-xs" value={month} onChange={e => handleMonthChange(e.target.value)} />
       </div>
+
+      {preset === 'custom' && (
+        <div className="flex items-end gap-2 flex-wrap">
+          <div className="space-y-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-wider">Start</p>
+            <input
+              type="date"
+              className="input text-xs w-40"
+              value={customStartInput}
+              onChange={e => setCustomStartInput(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-wider">End</p>
+            <input
+              type="date"
+              className="input text-xs w-40"
+              value={customEndInput}
+              onChange={e => setCustomEndInput(e.target.value)}
+            />
+          </div>
+          <button
+            className="btn-primary text-xs"
+            disabled={!customRangeValid || !customHasChanges}
+            onClick={applyCustomRange}
+          >
+            Apply range
+          </button>
+          {showCustomRangeError && (
+            <span className="text-xs text-rose-400">Start date must be on or before end date.</span>
+          )}
+        </div>
+      )}
+
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
+        style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
+        <span className="text-slate-400">Applied:</span>
+        <span className="font-medium text-slate-200">{appliedRangeLabel}</span>
+        <span className="text-slate-500">({appliedModeLabel})</span>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-10"><Spinner size={24} /></div>
+      ) : !hasAppliedRange ? (
+        <EmptyState icon={Calendar} title="Choose a date range" description="Set a valid custom start and end date, then apply." />
+      ) : data.length === 0 ? (
+        <EmptyState icon={BarChart2} title="No merchants for this period" description="Try another preset or adjust the custom range." />
+      ) : (
+        <div className="space-y-2.5">
+          {data.map((d, i) => (
+            <button key={i} onClick={() => navigateToMerchantTransactions(d.description)}
+              className="w-full flex items-center gap-3 text-sm hover:bg-white/5 rounded-lg px-2 py-1.5 -mx-2 transition-colors group">
+              <span className="text-slate-600 font-mono text-xs w-5 shrink-0">{i+1}</span>
+              <span className="flex-1 text-slate-300 text-xs text-left truncate">{d.description}</span>
+              <span className="text-xs text-slate-500 shrink-0">×{d.count}</span>
+              <span className="font-mono text-xs text-rose-400 w-20 text-right shrink-0">{formatCurrency(d.total)}</span>
+              <ArrowRight size={11} className="text-slate-600 group-hover:text-slate-400 shrink-0" />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

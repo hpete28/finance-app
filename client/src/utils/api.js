@@ -17,6 +17,7 @@ export const transactionsApi = {
   restore: (transactions) => api.post('/transactions/restore', { transactions }),
   split: (id, splits) => api.post(`/transactions/${id}/split`, { splits }),
   monthlySummary: (params) => api.get('/transactions/summary/monthly', { params }),
+  exportCsv: (params) => api.get('/transactions/export.csv', { params, responseType: 'blob' }),
   transferCandidates: (params) => api.get('/transactions/transfer-candidates', { params }),
   applyTransferCandidates: (data) => api.post('/transactions/apply-transfer-candidates', data),
 };
