@@ -40,7 +40,8 @@ const EXPORT_COLUMNS = [
 function parseTags(rawTags) {
   try {
     const parsed = JSON.parse(rawTags || '[]');
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.map((tag) => String(tag || '').trim()).filter(Boolean))];
   } catch {
     return [];
   }
@@ -403,13 +404,20 @@ router.post('/bulk', (req, res) => {
 
   if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(category_id || null); }
   if (tags !== undefined) {
-    if (tags_mode === 'append') {
+    if (tags_mode === 'append' || tags_mode === 'remove') {
       const rows = db.prepare(`SELECT id, tags FROM transactions WHERE id IN (${placeholders})`).all(...ids);
       const updateOne = db.prepare(`UPDATE transactions SET tags = ? WHERE id = ?`);
+      const nextTags = parseTags(JSON.stringify(tags));
+      const nextTagSet = new Set(nextTags.map((tag) => tag.toLowerCase()));
       rows.forEach(r => {
-        const existing = JSON.parse(r.tags || '[]');
-        const merged = [...new Set([...existing, ...tags])];
-        updateOne.run(JSON.stringify(merged), r.id);
+        const existing = parseTags(r.tags);
+        if (tags_mode === 'append') {
+          const merged = [...new Set([...existing, ...nextTags])];
+          updateOne.run(JSON.stringify(merged), r.id);
+          return;
+        }
+        const filtered = existing.filter((tag) => !nextTagSet.has(String(tag || '').toLowerCase()));
+        updateOne.run(JSON.stringify(filtered), r.id);
       });
       updatedViaAppend = rows.length;
     } else {

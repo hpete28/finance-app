@@ -301,6 +301,53 @@ function normalizeLearnKey(row) {
   return { key: `D:${compact.slice(0, 48)}`, kind: 'description' };
 }
 
+function getDominantSign(rows = []) {
+  let positive = 0;
+  let negative = 0;
+  rows.forEach((r) => {
+    const amount = Number(r.amount) || 0;
+    if (amount > 0) positive += 1;
+    if (amount < 0) negative += 1;
+  });
+  const total = positive + negative;
+  if (!total) return null;
+  const posRatio = positive / total;
+  const negRatio = negative / total;
+  if (posRatio >= 0.95) return 'income';
+  if (negRatio >= 0.95) return 'expense';
+  return null;
+}
+
+function analyzeSuggestionPrecision(categorizedRows, compiledRule, categoryId) {
+  let matched = 0;
+  let matchingCategory = 0;
+  let conflictingCategory = 0;
+
+  for (const row of categorizedRows) {
+    const evaluated = evaluateTransactionWithRules({
+      ...row,
+      tags: parseTags(row.tags),
+    }, [compiledRule], {
+      overwrite_category: true,
+      overwrite_tags: true,
+      overwrite_merchant: true,
+      overwrite_flags: true,
+    });
+    if (!evaluated.matched_rule_ids.length) continue;
+    matched += 1;
+    if (Number(row.category_id) === Number(categoryId)) matchingCategory += 1;
+    else conflictingCategory += 1;
+  }
+
+  const precision = matched > 0 ? matchingCategory / matched : 0;
+  return {
+    matched,
+    matching_category: matchingCategory,
+    conflicting_category: conflictingCategory,
+    precision: Number(precision.toFixed(3)),
+  };
+}
+
 function buildLearnSuggestions(db, { min_count = 3, max_suggestions = 60 } = {}) {
   const categoryNames = new Map(
     db.prepare(`SELECT id, name FROM categories`).all().map((c) => [Number(c.id), c.name])
@@ -328,7 +375,7 @@ function buildLearnSuggestions(db, { min_count = 3, max_suggestions = 60 } = {})
   const seenSuggestionSignatures = new Set();
 
   for (const group of grouped.values()) {
-    if (group.rows.length < min_count) continue;
+    if (group.rows.length < Math.max(min_count, 4)) continue;
 
     const byCategory = new Map();
     group.rows.forEach((r) => byCategory.set(r.category_id, (byCategory.get(r.category_id) || 0) + 1));
@@ -337,7 +384,7 @@ function buildLearnSuggestions(db, { min_count = 3, max_suggestions = 60 } = {})
 
     const dominantRows = group.rows.filter((r) => r.category_id === Number(dominantCategory.key));
     const purity = dominantRows.length / group.rows.length;
-    if (dominantRows.length < min_count || purity < 0.85) continue;
+    if (dominantRows.length < Math.max(min_count, 4) || purity < 0.9) continue;
 
     const conditions = {};
     const actions = { set_category_id: Number(dominantCategory.key) };
@@ -355,17 +402,39 @@ function buildLearnSuggestions(db, { min_count = 3, max_suggestions = 60 } = {})
       actions.set_merchant_name = bestMerchant.key;
       rationale.push('Uses merchant-normalized matching');
     } else {
+      const weakTokens = new Set([
+        'PAYMENT', 'TRANSFER', 'PURCHASE', 'DEBIT', 'CREDIT', 'CARD', 'ONLINE', 'PREAUTH',
+        'POS', 'CANADA', 'STORE', 'MARKET', 'SERVICE', 'AUTOPAY', 'RECURRING',
+      ]);
       const tokenCounts = new Map();
       dominantRows.forEach((r) => {
         const tokens = normalizeForMatching(r.description || '')
           .split(' ')
-          .filter((t) => t.length >= 4 && !['PAYMENT', 'TRANSFER', 'PURCHASE', 'DEBIT', 'CREDIT', 'CARD'].includes(t));
+          .filter((t) => t.length >= 5 && !weakTokens.has(t));
         tokens.forEach((t) => tokenCounts.set(t, (tokenCounts.get(t) || 0) + 1));
       });
       const bestToken = commonFromMap(tokenCounts);
-      if (!bestToken || bestToken.count < Math.ceil(dominantRows.length * 0.7)) continue;
+      if (!bestToken || bestToken.count < Math.ceil(dominantRows.length * 0.85)) continue;
       conditions.description = { operator: 'contains', value: bestToken.key, case_sensitive: false };
       rationale.push('Derived from recurring description token');
+    }
+
+    const dominantSign = getDominantSign(dominantRows);
+    if (dominantSign) {
+      conditions.amount_sign = dominantSign;
+      rationale.push(`Constrained to ${dominantSign} transactions`);
+    }
+
+    const accountCounts = new Map();
+    dominantRows.forEach((r) => {
+      if (r.account_id !== null && r.account_id !== undefined) {
+        accountCounts.set(Number(r.account_id), (accountCounts.get(Number(r.account_id)) || 0) + 1);
+      }
+    });
+    const topAccount = commonFromMap(accountCounts);
+    if (topAccount && topAccount.count >= Math.ceil(dominantRows.length * 0.9)) {
+      conditions.account_ids = [Number(topAccount.key)];
+      rationale.push('Scoped to dominant account');
     }
 
     const absAmounts = dominantRows.map((r) => Math.abs(Number(r.amount) || 0)).filter((v) => v > 0);
@@ -441,14 +510,27 @@ function buildLearnSuggestions(db, { min_count = 3, max_suggestions = 60 } = {})
     const signature = buildRuleSignature(compiled);
     if (existingSignatures.has(signature) || seenSuggestionSignatures.has(signature)) continue;
 
+    const precision = analyzeSuggestionPrecision(rows, compiled, actions.set_category_id);
+    if (precision.matched < Math.max(min_count, 4)) continue;
+    if (precision.precision < 0.9) continue;
+    if (precision.conflicting_category >= 3 && precision.precision < 0.95) continue;
+
     const preview = previewRule(db, compiled, 5);
-    if (preview.match_ratio > 0.2 && !compiled.conditions.amount && !(compiled.conditions.account_ids || []).length) continue;
+    const hasScope = !!compiled.conditions.amount
+      || !!compiled.conditions.merchant
+      || !!compiled.conditions.amount_sign
+      || (compiled.conditions.account_ids || []).length > 0
+      || !!compiled.conditions.date_range;
+    if (preview.match_ratio > 0.25) continue;
+    if (!hasScope && preview.match_ratio > 0.12) continue;
 
     suggestion.preview = {
       match_count: preview.match_count,
       match_ratio: preview.match_ratio,
       warnings: preview.warnings,
     };
+    suggestion.stats.precision = precision.precision;
+    suggestion.stats.conflicting_matches = precision.conflicting_category;
     suggestion.signature = signature;
     suggestions.push(suggestion);
     seenSuggestionSignatures.add(signature);
@@ -456,6 +538,112 @@ function buildLearnSuggestions(db, { min_count = 3, max_suggestions = 60 } = {})
 
   suggestions.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
   return suggestions.slice(0, Math.max(1, Number(max_suggestions) || 60));
+}
+
+function getLearnedCompiledRules() {
+  const learnedRows = getRules().filter((r) => String(r.source || 'manual').toLowerCase() === 'learned');
+  return compileRules(learnedRows, { includeLegacyTagRules: false });
+}
+
+function scanTransactionsMatchedByLearnedCategoryRules(db, {
+  sample_limit = 50,
+  created_from = null,
+  created_to = null,
+  only_unreviewed = false,
+} = {}) {
+  const learnedRules = getLearnedCompiledRules();
+  if (!learnedRules.length) {
+    return {
+      scanned: 0,
+      learned_rules_count: 0,
+      match_count: 0,
+      transaction_ids: [],
+      sample: [],
+      created_at_histogram: [],
+    };
+  }
+
+  const where = ['t.category_id IS NOT NULL'];
+  const params = [];
+  if (created_from) {
+    where.push('t.created_at >= ?');
+    params.push(created_from);
+  }
+  if (created_to) {
+    where.push('t.created_at <= ?');
+    params.push(created_to);
+  }
+  if (only_unreviewed) {
+    where.push('COALESCE(t.reviewed, 0) = 0');
+  }
+
+  const rows = db.prepare(`
+    SELECT
+      t.id, t.account_id, t.date, t.description, t.amount, t.category_id,
+      t.tags, t.merchant_name, t.is_income_override, t.exclude_from_totals, t.reviewed, t.created_at,
+      a.name as account_name
+    FROM transactions t
+    LEFT JOIN accounts a ON a.id = t.account_id
+    WHERE ${where.join(' AND ')}
+    ORDER BY t.date DESC
+  `).all(...params);
+
+  const txIds = [];
+  const sample = [];
+  const seen = new Set();
+  const minuteHistogram = new Map();
+
+  for (const row of rows) {
+    const evaluated = evaluateTransactionWithRules({
+      ...row,
+      tags: parseTags(row.tags),
+    }, learnedRules, {
+      overwrite_category: true,
+      overwrite_tags: true,
+      overwrite_merchant: true,
+      overwrite_flags: true,
+    });
+
+    if (!evaluated.matched_rule_ids.length) continue;
+    if (evaluated.category_id === null || evaluated.category_id === undefined) continue;
+    // conservative: only target rows currently in the same category the learned rule would assign
+    if (Number(row.category_id) !== Number(evaluated.category_id)) continue;
+    if (seen.has(String(row.id))) continue;
+
+    seen.add(String(row.id));
+    txIds.push(String(row.id));
+    const minute = String(row.created_at || '').slice(0, 16);
+    minuteHistogram.set(minute, (minuteHistogram.get(minute) || 0) + 1);
+    if (sample.length < sample_limit) {
+      sample.push({
+        id: row.id,
+        date: row.date,
+        description: row.description,
+        amount: row.amount,
+        account_id: row.account_id,
+        account_name: row.account_name,
+        category_id: row.category_id,
+        merchant_name: row.merchant_name,
+        tags: parseTags(row.tags),
+        reviewed: row.reviewed ? 1 : 0,
+        created_at: row.created_at,
+      });
+    }
+  }
+
+  const createdAtHistogram = [...minuteHistogram.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 30)
+    .map(([minute, count]) => ({ minute, count }));
+
+  return {
+    scanned: rows.length,
+    learned_rules_count: learnedRules.length,
+    match_count: txIds.length,
+    transaction_ids: txIds,
+    sample,
+    created_at_histogram: createdAtHistogram,
+  };
 }
 
 router.get('/', (req, res) => {
@@ -738,6 +926,66 @@ router.post('/learn/apply', (req, res) => {
   })();
 
   res.json({ created, skipped, requested: incoming.length });
+});
+
+// POST /api/rules/learn/revert — preview/apply uncategorization for learned-rule matches
+router.post('/learn/revert', (req, res) => {
+  const db = getDb();
+  const apply = asBool(req.body?.apply, false);
+  const disableLearnedRules = asBool(req.body?.disable_learned_rules, false);
+  const sampleLimit = Math.min(200, Math.max(5, Number(req.body?.sample_limit) || 50));
+  const createdFrom = String(req.body?.created_from || '').trim() || null;
+  const createdTo = String(req.body?.created_to || '').trim() || null;
+  const onlyUnreviewed = req.body?.only_unreviewed !== undefined
+    ? asBool(req.body.only_unreviewed, true)
+    : true;
+
+  const scan = scanTransactionsMatchedByLearnedCategoryRules(db, {
+    sample_limit: sampleLimit,
+    created_from: createdFrom,
+    created_to: createdTo,
+    only_unreviewed: onlyUnreviewed,
+  });
+  if (!apply) {
+    return res.json({
+      mode: 'preview',
+      ...scan,
+      filters: {
+        created_from: createdFrom,
+        created_to: createdTo,
+        only_unreviewed: onlyUnreviewed,
+      },
+    });
+  }
+
+  let uncategorized = 0;
+  const updateOne = db.prepare(`UPDATE transactions SET category_id = NULL WHERE id = ?`);
+  const disableLearned = db.prepare(`UPDATE rules SET is_enabled = 0 WHERE LOWER(COALESCE(source, 'manual')) = 'learned'`);
+  let disabledRules = 0;
+
+  db.transaction(() => {
+    for (const txId of scan.transaction_ids) {
+      const info = updateOne.run(txId);
+      uncategorized += info.changes || 0;
+    }
+    if (disableLearnedRules) {
+      const info = disableLearned.run();
+      disabledRules = info.changes || 0;
+    }
+  })();
+
+  res.json({
+    mode: 'applied',
+    scanned: scan.scanned,
+    matched: scan.match_count,
+    uncategorized,
+    disabled_learned_rules: disabledRules,
+    filters: {
+      created_from: createdFrom,
+      created_to: createdTo,
+      only_unreviewed: onlyUnreviewed,
+    },
+  });
 });
 
 module.exports = router;

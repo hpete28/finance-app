@@ -418,6 +418,8 @@ export default function Transactions() {
   const [selected, setSelected]     = useState(new Set());
   const [splitTx, setSplitTx]       = useState(null);
   const [editTx, setEditTx]         = useState(null);
+  const [inlineCategoryTxId, setInlineCategoryTxId] = useState(null);
+  const [inlineCategorySavingId, setInlineCategorySavingId] = useState(null);
   const [bulkCategory, setBulkCategory] = useState('');
   const [bulkTags, setBulkTags] = useState('');
   const [bulkMerchant, setBulkMerchant] = useState('');
@@ -439,6 +441,7 @@ export default function Transactions() {
   const [aiSuggestionMeta, setAiSuggestionMeta] = useState(null);
   const [aiSuggestionScope, setAiSuggestionScope] = useState('');
   const undoTimer = useRef();
+  const lastSelectedIndexRef = useRef(null);
 
   const hasFilters = search || filterCategory || filterAccount || startDate || endDate || showUncategorized || filterType || amountSearch;
   const txById = useMemo(
@@ -571,9 +574,29 @@ export default function Transactions() {
   const toggleSelect = (id) => setSelected(prev => {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
-  const toggleAll = () => setSelected(
-    selected.size === transactions.length ? new Set() : new Set(transactions.map(t => t.id))
-  );
+  const handleRowSelect = (id, rowIndex, event) => {
+    const hasShift = !!event?.shiftKey;
+    if (!hasShift || lastSelectedIndexRef.current === null) {
+      toggleSelect(id);
+      lastSelectedIndexRef.current = rowIndex;
+      return;
+    }
+    const start = Math.min(lastSelectedIndexRef.current, rowIndex);
+    const end = Math.max(lastSelectedIndexRef.current, rowIndex);
+    const idsInRange = transactions.slice(start, end + 1).map((t) => t.id);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      idsInRange.forEach((txId) => next.add(txId));
+      return next;
+    });
+    lastSelectedIndexRef.current = rowIndex;
+  };
+  const toggleAll = () => {
+    setSelected(
+      selected.size === transactions.length ? new Set() : new Set(transactions.map(t => t.id))
+    );
+    lastSelectedIndexRef.current = null;
+  };
 
   const handleIncomeOverride = async (tx, value) => {
     await transactionsApi.update(tx.id, { is_income_override: value });
@@ -603,7 +626,8 @@ export default function Transactions() {
     const parsed = bulkTags.split(',').map(t => t.trim()).filter(Boolean);
     if (!parsed.length) return;
     await transactionsApi.bulk({ ids: [...selected], tags: parsed, tags_mode: mode });
-    showToast(`🏷️ Updated tags on ${selected.size} transactions`);
+    const modeLabel = mode === 'append' ? 'Appended' : mode === 'replace' ? 'Replaced' : 'Removed';
+    showToast(`🏷️ ${modeLabel} tags on ${selected.size} transactions`);
     setBulkTags('');
     setSelected(new Set());
     load();
@@ -631,6 +655,38 @@ export default function Transactions() {
     showToast(value ? `🔁 Marked ${count} transactions as transfer` : `Removed transfer flag from ${count} transactions`);
     setSelected(new Set());
     load();
+  };
+
+  const handleInlineCategoryChange = async (tx, rawCategoryId) => {
+    const categoryId = rawCategoryId === '__uncategorized__' ? null : Number(rawCategoryId);
+    if ((tx.category_id ?? null) === categoryId) {
+      setInlineCategoryTxId(null);
+      return;
+    }
+
+    setInlineCategorySavingId(tx.id);
+    try {
+      await transactionsApi.update(tx.id, { category_id: categoryId });
+      const category = categoryId === null
+        ? null
+        : categories.find((c) => Number(c.id) === Number(categoryId));
+      setTransactions((prev) => prev.map((row) => (
+        row.id === tx.id
+          ? {
+              ...row,
+              category_id: categoryId,
+              category_name: category?.name || null,
+              category_color: category?.color || null,
+            }
+          : row
+      )));
+      showToast(categoryId === null ? 'Category removed' : `Category set to ${category?.name || 'selected category'}`);
+    } catch (err) {
+      showToast(readApiError(err, 'Failed to update category'), 'error');
+    } finally {
+      setInlineCategorySavingId(null);
+      setInlineCategoryTxId(null);
+    }
   };
 
   const requestAiSuggestions = async (scope = 'selected') => {
@@ -1048,60 +1104,65 @@ export default function Transactions() {
 
       {/* ── Bulk Action Bar ── */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl animate-slide-up flex-wrap"
-          style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)' }}>
-          <span className="text-sm font-semibold text-indigo-300">{selected.size} selected</span>
-          <div className="h-4 w-px" style={{ background: 'var(--border)' }} />
-          <select className="select text-xs w-48" value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}>
-            <option value="">Assign category…</option>
-            <option value="__uncategorized__">Uncategorized (remove category)</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <button
-            className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleBulkUpdate}
-            disabled={!bulkCategory}
-          >
-            Apply category
-          </button>
-          <input className="input text-xs w-48" value={bulkTags} onChange={e => setBulkTags(e.target.value)} placeholder="🏷️ tags: travel, tax" />
-          <button className="btn-secondary text-xs" onClick={() => handleBulkTags('append')}>Append tags</button>
-          <button className="btn-secondary text-xs" onClick={() => handleBulkTags('replace')}>Replace tags</button>
-          <input className="input text-xs w-44" value={bulkMerchant} onChange={e => setBulkMerchant(e.target.value)} placeholder="🏪 merchant/vendor" />
-          <button className="btn-secondary text-xs" onClick={handleBulkMerchant}>Apply merchant</button>
-          <div className="h-4 w-px" style={{ background: 'var(--border)' }} />
-          <button
-            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5"
-            style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}
-            onClick={() => handleBulkIncome(true)}
-            title="Mark all selected transactions as income">
-            💰 Mark as income
-          </button>
-          <button
-            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
-            style={{ background: 'var(--bg-card-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-            onClick={() => handleBulkIncome(false)}>
-            Remove income tag
-          </button>
-          <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(true)}>🚫 Exclude from totals</button>
-          <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(false)}>Include in totals</button>
-          <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(true)}>🔁 Mark transfer</button>
-          <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(false)}>Unmark transfer</button>
-          <button
-            className="btn-secondary text-xs flex items-center gap-1.5"
-            onClick={() => requestAiSuggestions('selected')}
-            disabled={aiStatusLoading || aiLoadingSuggestions || !aiEnabled}
-            title={!aiEnabled ? aiUnavailableReason : undefined}
-          >
-            <Sparkles size={12} /> AI suggest selected
-          </button>
-          <button
-            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5"
-            style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}
-            onClick={() => setConfirmDelete({ type: 'bulk', count: selected.size })}>
-            <Trash2 size={12} /> Delete selected
-          </button>
-          <button className="btn-ghost text-xs ml-auto" onClick={() => setSelected(new Set())}>✕ Clear</button>
+        <div className="sticky top-3 z-40 px-4 py-3 rounded-xl animate-slide-up space-y-2 backdrop-blur-md shadow-[0_10px_30px_rgba(2,6,23,0.45)]"
+          style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.16), rgba(6,182,212,0.08))', border: '1px solid rgba(99,102,241,0.35)' }}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-indigo-200">{selected.size} selected</span>
+            <button className="btn-ghost text-xs" onClick={() => setSelected(new Set())}>Clear</button>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select className="select text-xs w-48" value={bulkCategory} onChange={e => setBulkCategory(e.target.value)}>
+              <option value="">Assign category…</option>
+              <option value="__uncategorized__">Uncategorized (remove category)</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <button
+              className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleBulkUpdate}
+              disabled={!bulkCategory}
+            >
+              Apply category
+            </button>
+            <input className="input text-xs w-56" value={bulkTags} onChange={e => setBulkTags(e.target.value)} placeholder="tags: travel, tax" />
+            <button className="btn-secondary text-xs" onClick={() => handleBulkTags('append')}>Append tags</button>
+            <button className="btn-secondary text-xs" onClick={() => handleBulkTags('replace')}>Replace tags</button>
+            <button className="btn-secondary text-xs" onClick={() => handleBulkTags('remove')}>Remove tags</button>
+            <input className="input text-xs w-44" value={bulkMerchant} onChange={e => setBulkMerchant(e.target.value)} placeholder="merchant/vendor" />
+            <button className="btn-secondary text-xs" onClick={handleBulkMerchant}>Apply merchant</button>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5"
+              style={{ background: 'rgba(16,185,129,0.16)', color: '#34d399', border: '1px solid rgba(16,185,129,0.4)' }}
+              onClick={() => handleBulkIncome(true)}
+              title="Mark all selected transactions as income">
+              💰 Mark as income
+            </button>
+            <button
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+              style={{ background: 'rgba(71,85,105,0.35)', color: '#cbd5e1', border: '1px solid rgba(100,116,139,0.45)' }}
+              onClick={() => handleBulkIncome(false)}>
+              Remove income tag
+            </button>
+            <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(true)}>🚫 Exclude from totals</button>
+            <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(false)}>Include in totals</button>
+            <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(true)}>🔁 Mark transfer</button>
+            <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(false)}>Unmark transfer</button>
+            <button
+              className="btn-secondary text-xs flex items-center gap-1.5"
+              onClick={() => requestAiSuggestions('selected')}
+              disabled={aiStatusLoading || aiLoadingSuggestions || !aiEnabled}
+              title={!aiEnabled ? aiUnavailableReason : undefined}
+            >
+              <Sparkles size={12} /> AI suggest selected
+            </button>
+            <button
+              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5"
+              style={{ background: 'rgba(239,68,68,0.14)', color: '#fda4af', border: '1px solid rgba(239,68,68,0.35)' }}
+              onClick={() => setConfirmDelete({ type: 'bulk', count: selected.size })}>
+              <Trash2 size={12} /> Delete selected
+            </button>
+          </div>
         </div>
       )}
 
@@ -1137,9 +1198,9 @@ export default function Transactions() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map(tx => (
-                  <tr key={tx.id} className="table-row group" onClick={() => toggleSelect(tx.id)}>
-                    <td className="px-4 py-3" onClick={e => { e.stopPropagation(); toggleSelect(tx.id); }}>
+                {transactions.map((tx, rowIndex) => (
+                  <tr key={tx.id} className="table-row group" onClick={(e) => handleRowSelect(tx.id, rowIndex, e)}>
+                    <td className="px-4 py-3" onClick={e => { e.stopPropagation(); handleRowSelect(tx.id, rowIndex, e); }}>
                       {selected.has(tx.id)
                         ? <CheckSquare size={15} className="text-indigo-400" />
                         : <Square size={15} className="text-slate-700 group-hover:text-slate-500" />}
@@ -1154,25 +1215,51 @@ export default function Transactions() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{tx.account_name}</td>
-                    <td className="px-4 py-3">
-                      {tx.category_name
-                        ? <Badge color={tx.category_color}>{tx.category_name}</Badge>
-                        : <span className="text-xs text-slate-600 italic">Uncategorized</span>}
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      {inlineCategoryTxId === tx.id ? (
+                        <select
+                          autoFocus
+                          className="select text-xs w-full max-w-[190px]"
+                          value={tx.category_id ? String(tx.category_id) : '__uncategorized__'}
+                          disabled={inlineCategorySavingId === tx.id}
+                          onChange={(e) => handleInlineCategoryChange(tx, e.target.value)}
+                          onBlur={() => setInlineCategoryTxId(null)}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <option value="__uncategorized__">Uncategorized</option>
+                          {categories.map((c) => (
+                            <option key={c.id} value={String(c.id)}>{c.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <button
+                          className="text-left hover:opacity-90 transition-opacity"
+                          title="Click to change category"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInlineCategoryTxId(tx.id);
+                          }}
+                        >
+                          {tx.category_name
+                            ? <Badge color={tx.category_color}>{tx.category_name}</Badge>
+                            : <span className="text-xs text-slate-600 italic underline decoration-dotted">Uncategorized</span>}
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-sm font-medium">
                       <div className="flex items-center justify-end gap-1.5">
                         {tx.exclude_from_totals ? (
-                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-slate-500/15 text-slate-300 border border-slate-500/25 font-sans font-normal">
+                          <span className="inline-flex items-center h-5 px-2 rounded-full text-[11px] leading-none bg-slate-500/15 text-slate-300 border border-slate-500/25 font-sans font-medium whitespace-nowrap">
                             🚫 excluded
                           </span>
                         ) : null}
                         {tx.is_income_override ? (
-                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 font-sans font-normal">
-                            ✦ income
+                          <span className="inline-flex items-center gap-1 h-5 px-2 rounded-full text-[11px] leading-none bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-sans font-medium whitespace-nowrap">
+                            <Sparkles size={10} /> income
                           </span>
                         ) : null}
                         {tx.is_transfer ? (
-                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/25 font-sans font-normal">
+                          <span className="inline-flex items-center h-5 px-2 rounded-full text-[11px] leading-none bg-cyan-500/15 text-cyan-300 border border-cyan-500/25 font-sans font-medium whitespace-nowrap">
                             🔁 transfer
                           </span>
                         ) : null}

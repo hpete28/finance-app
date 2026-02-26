@@ -215,6 +215,7 @@ function CategoriesTab() {
   const [form, setForm] = useState({ name: '', color: '#6366f1', parent_id: '', is_income: false });
   const [editForm, setEditForm] = useState({});
   const [learning, setLearning] = useState(false);
+  const [revertingLearned, setRevertingLearned] = useState(false);
   const [learnResult, setLearnResult] = useState(null);
   const [selectedSuggestions, setSelectedSuggestions] = useState(new Set());
   const [applyingSuggestions, setApplyingSuggestions] = useState(false);
@@ -286,6 +287,57 @@ function CategoriesTab() {
     }
   };
 
+  const handleRevertLearned = async () => {
+    setRevertingLearned(true);
+    try {
+      const createdFromInput = window.prompt('Optional start created_at (YYYY-MM-DD HH:MM:SS). Leave blank for no lower bound.', '');
+      if (createdFromInput === null) return;
+      const createdToInput = window.prompt('Optional end created_at (YYYY-MM-DD HH:MM:SS). Leave blank for no upper bound.', '');
+      if (createdToInput === null) return;
+      const created_from = String(createdFromInput || '').trim() || undefined;
+      const created_to = String(createdToInput || '').trim() || undefined;
+
+      const previewRes = await rulesApi.revertLearned({
+        apply: false,
+        sample_limit: 20,
+        created_from,
+        created_to,
+        only_unreviewed: true,
+      });
+      const preview = previewRes.data || {};
+      const count = Number(preview.match_count || 0);
+      if (!count) {
+        showToast('No learned-rule matches found to uncategorize');
+        return;
+      }
+
+      const topWindows = Array.isArray(preview.created_at_histogram)
+        ? preview.created_at_histogram.slice(0, 5).map((h) => `${h.minute}: ${h.count}`).join('\n')
+        : '';
+      const confirmText = `Found ${count} unreviewed transactions currently matching learned category rules.${created_from || created_to ? '\n(Filter applied)' : ''}\n\nTop created_at windows:\n${topWindows || 'n/a'}\n\nUncategorize these now?\n\nTip: choose OK to proceed, Cancel to keep as-is.`;
+      if (!window.confirm(confirmText)) return;
+
+      const disableLearned = window.confirm('Also disable all learned rules to prevent re-categorizing them again?');
+      const applyRes = await rulesApi.revertLearned({
+        apply: true,
+        disable_learned_rules: disableLearned,
+        created_from,
+        created_to,
+        only_unreviewed: true,
+      });
+      const data = applyRes.data || {};
+      showToast(
+        disableLearned
+          ? `Uncategorized ${data.uncategorized || 0} transactions and disabled ${data.disabled_learned_rules || 0} learned rules`
+          : `Uncategorized ${data.uncategorized || 0} transactions matched by learned rules`
+      );
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to revert learned categorization', 'error');
+    } finally {
+      setRevertingLearned(false);
+    }
+  };
+
   const toggleSuggestion = (index) => {
     setSelectedSuggestions((prev) => {
       const next = new Set(prev);
@@ -321,6 +373,9 @@ function CategoriesTab() {
               {learning ? <Spinner size={12} /> : <Sparkles size={12} />}
               {learning ? 'Learning…' : 'Auto-learn suggestions'}
             </button>
+            <button className="btn-secondary text-xs" onClick={handleRevertLearned} disabled={revertingLearned}>
+              {revertingLearned ? 'Reverting…' : 'Revert learned categories'}
+            </button>
             <button className="btn-primary text-xs flex items-center gap-1.5" onClick={() => setShowAdd(true)}>
               <Plus size={12} /> Add Category
             </button>
@@ -341,7 +396,20 @@ function CategoriesTab() {
                 <div className="min-w-0">
                   <p className="text-xs text-slate-200">{s.name || 'Learned rule'} <span className="text-emerald-400">({Math.round((s.confidence || 0) * 100)}%)</span></p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{(s.rationale || []).join(' · ')}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Will apply:
+                    {' '}
+                    {s.category_name ? `Category ${s.category_name}` : 'No category'}
+                    {s.actions?.tags?.values?.length ? ` · ${s.actions.tags.mode} tags: ${s.actions.tags.values.join(', ')}` : ''}
+                    {s.actions?.set_merchant_name ? ` · Merchant ${s.actions.set_merchant_name}` : ''}
+                  </p>
                   {s.preview && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Matches {s.preview.match_count} tx ({(s.preview.match_ratio * 100).toFixed(1)}%)</p>}
+                  {s.stats?.precision !== undefined && (
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      Precision: {(Number(s.stats.precision) * 100).toFixed(1)}%
+                      {Number(s.stats.conflicting_matches || 0) > 0 ? ` · conflicts: ${s.stats.conflicting_matches}` : ''}
+                    </p>
+                  )}
                   <button
                     className="btn-ghost text-[11px] mt-1 px-2 py-1"
                     type="button"

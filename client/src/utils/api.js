@@ -43,6 +43,7 @@ export const rulesApi = {
   },
   learn: (data = {}) => api.post('/rules/learn', data),
   applyLearned: (suggestions, max_create) => api.post('/rules/learn/apply', { suggestions, max_create }),
+  revertLearned: (data = {}) => api.post('/rules/learn/revert', data),
 };
 
 
