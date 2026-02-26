@@ -1,8 +1,10 @@
 // server/index.js
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
 
 const { getDb } = require('./database');
@@ -36,6 +38,7 @@ app.use('/api/networth',     require('./routes/networth'));
 app.use('/api/income-sources', require('./routes/income_sources'));
 app.use('/api/pdf-import',     require('./routes/pdf_import'));
 app.use('/api/import-history', require('./routes/import_history'));
+app.use('/api/ai',             require('./routes/ai'));
 
 // ─── Upload endpoint ────────────────────────────────────────────────────────────
 app.post('/api/upload/transactions', upload.array('files'), async (req, res) => {

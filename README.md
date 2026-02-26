@@ -73,6 +73,14 @@ It focuses on practical day-to-day workflows:
 - URL-synced filters/tabs for better Back/Forward behavior on key pages.
 - Shared UI system (cards, modal, badges, toasts, empty states, spinners).
 
+### AI Suggestions (Optional)
+- Provider-aware AI suggestions with configurable providers.
+- Gemini (API key) can be primary with Ollama fallback.
+- AI health endpoint for availability/model checks.
+- Transactions page AI suggestions for category/tag/merchant normalization.
+- Suggestions are review-only and manually applied (never auto-mutates data).
+- Graceful fallback when primary provider is down or AI is disabled.
+
 ---
 
 ## 🚀 Quick Start
@@ -95,6 +103,36 @@ npm run dev
 
 - API: `http://localhost:3001`
 - Client: `http://localhost:5173`
+
+### 2.5) Optional AI provider setup
+
+Create `server/.env` (or copy from `server/.env.example`). The server auto-loads this file on startup:
+
+```bash
+AI_FEATURES_ENABLED=true
+AI_PRIMARY_PROVIDER=gemini
+AI_FALLBACK_PROVIDER=ollama
+AI_SHARE_AMOUNT=false
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_TIMEOUT_MS=30000
+OLLAMA_MAX_BATCH=80
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=llama3.1:8b
+OLLAMA_TIMEOUT_MS=45000
+OLLAMA_KEEP_ALIVE=15m
+OLLAMA_MIN_CATEGORY_CONFIDENCE=0.72
+```
+
+Then verify:
+
+```bash
+curl http://localhost:3001/api/ai/status
+```
+
+If `available` is `false`, confirm your primary/fallback provider settings and model availability.
+
+Note: the UI AI toggle is stored in browser localStorage and now defaults to enabled for first-time users.
 
 ### 3) Import data
 
@@ -199,6 +237,9 @@ Core tables:
 - `POST /api/upload/rules`
 - `POST /api/setup/seed-rules`
 - `GET /api/health`
+- `GET /api/ai/status`
+- `POST /api/ai/suggestions/transactions`
+- `POST /api/ai/rules/suggest` (scaffold)
 - `POST /api/pdf-import/*` (PDF import utilities)
 
 ---
@@ -258,6 +299,7 @@ npm run start
 
 ## 🔒 Privacy
 
-- Ledger is local-first: no cloud dependency by default.
+- Ledger is local-first by default, with optional cloud AI providers when configured.
 - No telemetry/auth built in.
 - Data remains in your local SQLite database unless you back it up/export it.
+- You can enforce `AI_SHARE_AMOUNT=false` so amount fields are not sent to cloud providers.

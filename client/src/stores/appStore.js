@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { currentMonth } from '../utils/format';
 
 const savedTheme = localStorage.getItem('ledger_theme') || 'dark';
+const savedAiFlag = localStorage.getItem('ledger_ai_enabled');
+const savedAiEnabled = savedAiFlag === null ? true : savedAiFlag === 'true';
 
 const useAppStore = create((set, get) => ({
   selectedMonth: currentMonth(),
@@ -11,6 +13,7 @@ const useAppStore = create((set, get) => ({
   accounts: [],
   toast: null,
   theme: savedTheme,
+  aiEnabled: savedAiEnabled,
 
   setMonth:      (month) => set({ selectedMonth: month }),
   setAccount:    (accountId) => set({ selectedAccount: accountId }),
@@ -22,6 +25,11 @@ const useAppStore = create((set, get) => ({
     localStorage.setItem('ledger_theme', next);
     document.documentElement.setAttribute('data-theme', next);
     set({ theme: next });
+  },
+  setAiEnabled: (enabled) => {
+    const next = !!enabled;
+    localStorage.setItem('ledger_ai_enabled', String(next));
+    set({ aiEnabled: next });
   },
 
   showToast: (message, type = 'success') => {

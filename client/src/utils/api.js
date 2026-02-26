@@ -119,6 +119,13 @@ export const importHistoryApi = {
   list: (limit = 25) => api.get('/import-history', { params: { limit } }),
 };
 
+// Local AI (Ollama)
+export const aiApi = {
+  status: () => api.get('/ai/status'),
+  suggestTransactions: (data) => api.post('/ai/suggestions/transactions', data),
+  suggestRules: (data) => api.post('/ai/rules/suggest', data),
+};
+
 // Health
 export const healthApi = { check: () => api.get('/health') };
 

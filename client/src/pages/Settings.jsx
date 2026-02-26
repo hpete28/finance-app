@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Trash2, Pencil, Check, X, Zap, RefreshCw, Eye, AlertTriangle, Sparkles, CheckSquare, Square,
 } from 'lucide-react';
-import { categoriesApi, rulesApi, tagRulesApi } from '../utils/api';
+import { categoriesApi, rulesApi, tagRulesApi, aiApi } from '../utils/api';
 import { Card, Modal, SectionHeader, Badge, EmptyState, Spinner } from '../components/ui';
 import useAppStore from '../stores/appStore';
 
@@ -617,6 +617,79 @@ function IncomeSourcesTab() {
   );
 }
 
+function AiFeaturesPanel() {
+  const { aiEnabled, setAiEnabled } = useAppStore();
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const refreshStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await aiApi.status();
+      setStatus(res.data || null);
+    } catch (err) {
+      setStatus({
+        available: false,
+        error: err?.response?.data?.error || err?.message || 'Status check failed',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { refreshStatus(); }, []);
+
+  const availabilityText = (() => {
+    if (!aiEnabled) return 'Disabled in this browser';
+    if (loading) return 'Checking AI providers...';
+    if (status?.available) return `Available (${status.model || 'model'})`;
+    return status?.error || 'Unavailable';
+  })();
+
+  const providerMode = status?.primary_provider
+    ? `${status.primary_provider}${status.fallback_provider ? ` -> ${status.fallback_provider}` : ''}`
+    : 'ollama';
+  const geminiConfigured = !!status?.providers?.gemini?.configured;
+  const ollamaConfigured = !!status?.providers?.ollama?.configured;
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>AI Providers</h2>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            Suggestions are optional and review-only. UI toggle only controls this browser.
+          </p>
+          <p className="text-xs mt-1.5" style={{ color: status?.available ? '#34d399' : 'var(--text-muted)' }}>
+            Status: {availabilityText}
+          </p>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+            Mode: {providerMode} · Gemini key: {geminiConfigured ? 'configured' : 'missing'} · Ollama: {ollamaConfigured ? 'configured' : 'missing'}
+          </p>
+          {status?.privacy_mode && (
+            <p className="text-[11px] mt-1 font-mono" style={{ color: 'var(--text-muted)' }}>
+              privacy amount_shared={String(!!status.privacy_mode.share_amount)}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+            <input
+              type="checkbox"
+              checked={!!aiEnabled}
+              onChange={(e) => setAiEnabled(e.target.checked)}
+            />
+            Enable AI features
+          </label>
+          <button className="btn-secondary text-xs" onClick={refreshStatus} disabled={loading}>
+            {loading ? <Spinner size={12} /> : 'Refresh'}
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('income');
   const tabs = [{ id: 'income', label: 'Income Sources' }, { id: 'categories', label: 'Categories' }, { id: 'rules', label: 'Rules Engine' }];
@@ -624,6 +697,7 @@ export default function Settings() {
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
       <div><h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Settings</h1><p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Income sources, categories, and advanced transaction rules</p></div>
+      <AiFeaturesPanel />
       <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>{tabs.map((t) => <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === t.id ? 'text-white shadow-sm' : 'hover:opacity-80'}`} style={{ background: activeTab === t.id ? 'var(--accent)' : 'transparent', color: activeTab === t.id ? 'white' : 'var(--text-muted)' }}>{t.label}</button>)}</div>
       <Card className="p-6">{activeTab === 'income' && <IncomeSourcesTab />}{activeTab === 'categories' && <CategoriesTab />}{activeTab === 'rules' && <RulesTab />}</Card>
     </div>

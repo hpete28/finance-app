@@ -1,11 +1,11 @@
 // src/pages/Transactions.jsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Search, SplitSquareHorizontal, CheckSquare, Square,
-  ChevronLeft, ChevronRight, Edit2, X, Calendar, Filter, Trash2, Undo2, Download
+  ChevronLeft, ChevronRight, Edit2, X, Calendar, Filter, Trash2, Undo2, Download, Sparkles
 } from 'lucide-react';
-import { transactionsApi, categoriesApi } from '../utils/api';
+import { transactionsApi, categoriesApi, aiApi } from '../utils/api';
 import { formatCurrency, formatDate, amountClass } from '../utils/format';
 import { Card, Badge, Modal, SectionHeader, EmptyState, Spinner } from '../components/ui';
 import useAppStore from '../stores/appStore';
@@ -20,6 +20,12 @@ const PRESETS = [
   { label: 'Last year',     preset: 'last_year' },
   { label: 'All time',      preset: 'all' },
 ];
+
+const AI_FALLBACK_MAX_BATCH = 80;
+
+function readApiError(err, fallback) {
+  return err?.response?.data?.error || err?.response?.data?.code || err?.message || fallback;
+}
 
 function getPresetDates(preset, days) {
   const now = new Date();
@@ -360,7 +366,9 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Transactions() {
-  const { showToast, selectedMonth } = useAppStore();
+  const showToast = useAppStore(s => s.showToast);
+  const selectedMonth = useAppStore(s => s.selectedMonth);
+  const aiEnabled = useAppStore(s => s.aiEnabled);
   const accounts = useAppStore(s => s.accounts);
   const [searchParams, setSearchParams] = useSearchParams();
   const monthSyncInitialized = useRef(false);
@@ -420,9 +428,68 @@ export default function Transactions() {
   const [selectedTransferPairIds, setSelectedTransferPairIds] = useState(new Set());
   const [loadingTransferCandidates, setLoadingTransferCandidates] = useState(false);
   const [applyingTransferPairs, setApplyingTransferPairs] = useState(false);
+  const [aiStatus, setAiStatus] = useState(null);
+  const [aiStatusLoading, setAiStatusLoading] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiLoadingSuggestions, setAiLoadingSuggestions] = useState(false);
+  const [aiApplyingSuggestions, setAiApplyingSuggestions] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [selectedAiIds, setSelectedAiIds] = useState(new Set());
+  const [aiError, setAiError] = useState('');
+  const [aiSuggestionMeta, setAiSuggestionMeta] = useState(null);
+  const [aiSuggestionScope, setAiSuggestionScope] = useState('');
   const undoTimer = useRef();
 
   const hasFilters = search || filterCategory || filterAccount || startDate || endDate || showUncategorized || filterType || amountSearch;
+  const txById = useMemo(
+    () => new Map(transactions.map((tx) => [String(tx.id), tx])),
+    [transactions]
+  );
+  const categoriesById = useMemo(() => {
+    const map = {};
+    categories.forEach((c) => { map[String(c.id)] = c.name; });
+    return map;
+  }, [categories]);
+  const aiAvailable = !!(aiEnabled && aiStatus?.available);
+  const aiUnavailableReason = !aiEnabled
+    ? 'Enable AI features in Settings first'
+    : (aiStatus?.error || 'No AI providers are available');
+
+  const refreshAiStatus = useCallback(async () => {
+    if (!aiEnabled) {
+      setAiStatus(null);
+      return null;
+    }
+    setAiStatusLoading(true);
+    try {
+      const res = await aiApi.status();
+      const next = res.data || null;
+      setAiStatus(next);
+      return next;
+    } catch (err) {
+      const fallback = {
+        available: false,
+        error: readApiError(err, 'Failed to check AI status'),
+      };
+      setAiStatus(fallback);
+      return fallback;
+    } finally {
+      setAiStatusLoading(false);
+    }
+  }, [aiEnabled]);
+
+  useEffect(() => {
+    if (!aiEnabled) {
+      setAiStatus(null);
+      return;
+    }
+    refreshAiStatus();
+  }, [aiEnabled, refreshAiStatus]);
+
+  const getVisibleUncategorizedIds = useCallback(
+    () => transactions.filter((tx) => !tx.category_id).map((tx) => String(tx.id)),
+    [transactions]
+  );
 
   const buildTransactionParams = useCallback(({ includePagination = true } = {}) => {
     const params = { sort, order };
@@ -564,6 +631,172 @@ export default function Transactions() {
     showToast(value ? `🔁 Marked ${count} transactions as transfer` : `Removed transfer flag from ${count} transactions`);
     setSelected(new Set());
     load();
+  };
+
+  const requestAiSuggestions = async (scope = 'selected') => {
+    const ids = scope === 'selected'
+      ? [...selected].map((id) => String(id))
+      : getVisibleUncategorizedIds();
+
+    if (!ids.length) {
+      showToast(scope === 'selected' ? 'Select transactions first' : 'No uncategorized transactions are visible');
+      return;
+    }
+
+    if (!aiEnabled) {
+      showToast('Enable AI features in Settings first', 'warning');
+      return;
+    }
+
+    setShowAiModal(true);
+    setAiSuggestionScope(scope === 'selected' ? 'Selected transactions' : 'Visible uncategorized transactions');
+    setAiLoadingSuggestions(true);
+    setAiError('');
+    setAiSuggestions([]);
+    setSelectedAiIds(new Set());
+    setAiSuggestionMeta(null);
+
+    try {
+      let status = aiStatus;
+      if (!status?.available) {
+        status = await refreshAiStatus();
+      }
+      if (!status?.available) {
+        setAiError(status?.error || 'No AI providers are available');
+        return;
+      }
+
+      const maxBatch = Math.max(1, Number(status?.max_batch) || AI_FALLBACK_MAX_BATCH);
+      const requestIds = ids.slice(0, maxBatch);
+      if (ids.length > requestIds.length) {
+        showToast(`AI request limited to ${requestIds.length} transactions`, 'warning');
+      }
+
+      const res = await aiApi.suggestTransactions({ transaction_ids: requestIds });
+      const payload = res.data || {};
+      const rawSuggestions = Array.isArray(payload.suggestions) ? payload.suggestions : [];
+      const normalized = rawSuggestions.map((suggestion) => ({
+        ...suggestion,
+        transaction_id: String(suggestion.transaction_id || ''),
+      })).filter((suggestion) => txById.has(suggestion.transaction_id));
+
+      const selectedIds = new Set(
+        normalized
+          .filter((suggestion) => suggestion.appliable)
+          .map((suggestion) => suggestion.transaction_id)
+      );
+
+      setAiSuggestions(normalized);
+      setSelectedAiIds(selectedIds);
+      setAiSuggestionMeta({
+        requested_count: payload.requested_count || requestIds.length,
+        analyzed_count: payload.analyzed_count || 0,
+        skipped: payload.skipped || { missing: 0, categorized: 0 },
+        provider_used: payload.provider_used || payload.provider || '',
+        fallback_used: !!payload.fallback_used,
+        model: payload.model || status?.model || '',
+        privacy: payload.privacy || null,
+        attempts: Array.isArray(payload.attempts) ? payload.attempts : [],
+      });
+
+      if (!normalized.length) {
+        setAiError('No AI suggestions were returned for this selection.');
+      }
+    } catch (err) {
+      setAiError(readApiError(err, 'Failed to generate suggestions'));
+    } finally {
+      setAiLoadingSuggestions(false);
+    }
+  };
+
+  const toggleAiSuggestion = (transactionId) => {
+    const key = String(transactionId);
+    setSelectedAiIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleAllAiSuggestions = () => {
+    const appliableIds = aiSuggestions
+      .filter((suggestion) => suggestion.appliable)
+      .map((suggestion) => String(suggestion.transaction_id));
+    setSelectedAiIds((prev) => (
+      prev.size === appliableIds.length ? new Set() : new Set(appliableIds)
+    ));
+  };
+
+  const applySelectedAiSuggestions = async () => {
+    const picked = aiSuggestions.filter((suggestion) => selectedAiIds.has(String(suggestion.transaction_id)));
+    if (!picked.length) return;
+
+    const updates = [];
+    for (const suggestion of picked) {
+      const tx = txById.get(String(suggestion.transaction_id));
+      if (!tx) continue;
+
+      const patch = { reviewed: true };
+      let changed = false;
+
+      if (suggestion.suggested_category_id && tx.category_id !== suggestion.suggested_category_id) {
+        patch.category_id = suggestion.suggested_category_id;
+        changed = true;
+      }
+
+      if (suggestion.suggested_merchant_name) {
+        const currentMerchant = String(tx.merchant_name || '').trim();
+        if (currentMerchant !== suggestion.suggested_merchant_name) {
+          patch.merchant_name = suggestion.suggested_merchant_name;
+          changed = true;
+        }
+      }
+
+      if (Array.isArray(suggestion.suggested_tags) && suggestion.suggested_tags.length) {
+        const merged = [...new Set([...(tx.tags || []), ...suggestion.suggested_tags])];
+        const sameTags =
+          merged.length === (tx.tags || []).length &&
+          merged.every((tag, idx) => tag === (tx.tags || [])[idx]);
+        if (!sameTags) {
+          patch.tags = merged;
+          changed = true;
+        }
+      }
+
+      if (changed) updates.push({ id: tx.id, patch });
+    }
+
+    if (!updates.length) {
+      showToast('No suggested changes to apply');
+      return;
+    }
+
+    setAiApplyingSuggestions(true);
+    try {
+      const results = await Promise.allSettled(
+        updates.map((item) => transactionsApi.update(item.id, item.patch))
+      );
+      const applied = results.filter((r) => r.status === 'fulfilled').length;
+      const failed = results.length - applied;
+
+      if (applied > 0) {
+        showToast(
+          failed > 0
+            ? `Applied ${applied} suggestions (${failed} failed)`
+            : `Applied ${applied} AI suggestions`,
+          failed > 0 ? 'warning' : 'success'
+        );
+        setShowAiModal(false);
+        setAiSuggestions([]);
+        setSelectedAiIds(new Set());
+        load();
+      } else {
+        showToast('Failed to apply AI suggestions', 'error');
+      }
+    } finally {
+      setAiApplyingSuggestions(false);
+    }
   };
 
   const loadTransferCandidates = async () => {
@@ -710,6 +943,8 @@ export default function Transactions() {
 
   const rowTotal = transactions.reduce((s, t) => s + t.amount, 0);
   const selectedTransferCount = selectedTransferPairIds.size;
+  const aiAppliableCount = aiSuggestions.filter((suggestion) => suggestion.appliable).length;
+  const aiSelectedCount = selectedAiIds.size;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -744,9 +979,22 @@ export default function Transactions() {
               ? <><Spinner size={12} /> Exporting CSV…</>
               : <><Download size={12} /> Export CSV</>}
           </button>
+          <button
+            className="btn-secondary text-xs"
+            onClick={() => requestAiSuggestions('visible_uncategorized')}
+            disabled={aiStatusLoading || aiLoadingSuggestions || !aiEnabled}
+            title={!aiEnabled ? aiUnavailableReason : undefined}
+          >
+            {aiLoadingSuggestions
+              ? <><Spinner size={12} /> AI suggestions…</>
+              : <><Sparkles size={12} /> AI suggest uncategorized</>}
+          </button>
           <button className="btn-secondary text-xs" onClick={loadTransferCandidates} disabled={loadingTransferCandidates}>
             {loadingTransferCandidates ? <><Spinner size={12} /> Finding transfers…</> : 'Review transfer candidates'}
           </button>
+          {aiEnabled && aiStatus && !aiAvailable && !aiStatusLoading && (
+            <span className="text-xs text-amber-400">AI unavailable: {aiUnavailableReason}</span>
+          )}
           {hasFilters && (
             <button className="btn-ghost text-xs text-slate-500 flex items-center gap-1" onClick={clearFilters}>
               <X size={12} /> Clear all
@@ -839,6 +1087,14 @@ export default function Transactions() {
           <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(false)}>Include in totals</button>
           <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(true)}>🔁 Mark transfer</button>
           <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(false)}>Unmark transfer</button>
+          <button
+            className="btn-secondary text-xs flex items-center gap-1.5"
+            onClick={() => requestAiSuggestions('selected')}
+            disabled={aiStatusLoading || aiLoadingSuggestions || !aiEnabled}
+            title={!aiEnabled ? aiUnavailableReason : undefined}
+          >
+            <Sparkles size={12} /> AI suggest selected
+          </button>
           <button
             className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5"
             style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}
@@ -972,6 +1228,150 @@ export default function Transactions() {
           </div>
         )}
       </Card>
+
+      <Modal open={showAiModal} onClose={() => setShowAiModal(false)} title="AI Suggestions" size="xl">
+        <div className="space-y-4">
+          <div className="p-3 rounded-lg text-xs" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+            Suggestions are review-only and never auto-applied. Review and apply selected updates manually.
+          </div>
+
+          {aiSuggestionMeta && (
+            <div className="text-xs flex flex-wrap gap-3" style={{ color: 'var(--text-muted)' }}>
+              <span>{aiSuggestionScope}</span>
+              {aiSuggestionMeta.provider_used && (
+                <span>Generated by: {aiSuggestionMeta.provider_used}{aiSuggestionMeta.fallback_used ? ' (fallback)' : ''}</span>
+              )}
+              <span>Requested: {aiSuggestionMeta.requested_count}</span>
+              <span>Analyzed: {aiSuggestionMeta.analyzed_count}</span>
+              <span>Skipped categorized: {aiSuggestionMeta.skipped?.categorized || 0}</span>
+              <span>Skipped missing: {aiSuggestionMeta.skipped?.missing || 0}</span>
+              {aiSuggestionMeta.model && <span>Model: {aiSuggestionMeta.model}</span>}
+              {aiSuggestionMeta.privacy && (
+                <span>Amount shared: {aiSuggestionMeta.privacy.amount_shared ? 'yes' : 'no'}</span>
+              )}
+            </div>
+          )}
+
+          {aiLoadingSuggestions ? (
+            <div className="flex items-center justify-center py-10">
+              <Spinner size={24} />
+            </div>
+          ) : aiError ? (
+            <div className="p-4 rounded-lg" style={{ border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)' }}>
+              <p className="text-sm text-rose-300">{aiError}</p>
+              <button className="btn-secondary text-xs mt-3" onClick={refreshAiStatus} disabled={aiStatusLoading}>
+                {aiStatusLoading ? <Spinner size={12} /> : 'Retry status check'}
+              </button>
+            </div>
+          ) : aiSuggestions.length === 0 ? (
+            <EmptyState icon={Sparkles} title="No suggestions" description="Try selecting different uncategorized transactions." />
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-slate-400">
+                  {aiSelectedCount} selected for apply · {aiAppliableCount} appliable
+                </span>
+                <div className="flex items-center gap-2">
+                  <button className="btn-ghost text-xs" onClick={toggleAllAiSuggestions}>
+                    {aiSelectedCount === aiAppliableCount ? 'Clear all' : 'Select all'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+                <table className="w-full text-xs">
+                  <thead style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      <th className="w-10 px-3 py-2">
+                        <button onClick={toggleAllAiSuggestions} className="text-slate-500 hover:text-slate-300">
+                          {aiSelectedCount === aiAppliableCount && aiAppliableCount > 0
+                            ? <CheckSquare size={14} />
+                            : <Square size={14} />}
+                        </button>
+                      </th>
+                      <th className="px-3 py-2 text-left section-title">Transaction</th>
+                      <th className="px-3 py-2 text-left section-title">Suggested Category</th>
+                      <th className="px-3 py-2 text-left section-title">Suggested Tags</th>
+                      <th className="px-3 py-2 text-left section-title">Merchant</th>
+                      <th className="px-3 py-2 text-left section-title">Confidence</th>
+                      <th className="px-3 py-2 text-left section-title">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aiSuggestions.map((suggestion) => {
+                      const tx = txById.get(String(suggestion.transaction_id));
+                      if (!tx) return null;
+                      const checked = selectedAiIds.has(String(suggestion.transaction_id));
+                      const suggestedCategory = suggestion.suggested_category_name
+                        || (suggestion.suggested_category_id ? categoriesById[String(suggestion.suggested_category_id)] : null);
+
+                      return (
+                        <tr key={suggestion.transaction_id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td className="px-3 py-2 align-top">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={!suggestion.appliable}
+                              onChange={() => toggleAiSuggestion(suggestion.transaction_id)}
+                            />
+                          </td>
+                          <td className="px-3 py-2 align-top">
+                            <p className="text-slate-200 truncate max-w-72" title={tx.description}>{tx.description}</p>
+                            <p className="mt-0.5 text-slate-500">
+                              {formatDate(tx.date)} · {tx.account_name} · {formatCurrency(tx.amount, tx.currency)}
+                            </p>
+                            <p className="mt-0.5 text-slate-600">
+                              Current: {tx.category_name || 'Uncategorized'}
+                            </p>
+                          </td>
+                          <td className="px-3 py-2 align-top">
+                            {suggestedCategory ? (
+                              <Badge>{suggestedCategory}</Badge>
+                            ) : (
+                              <span className="text-slate-600 italic">No category suggestion</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-top">
+                            {Array.isArray(suggestion.suggested_tags) && suggestion.suggested_tags.length ? (
+                              <div className="flex flex-wrap gap-1">
+                                {suggestion.suggested_tags.map((tag) => (
+                                  <Badge key={`${suggestion.transaction_id}-${tag}`} className="text-[11px]">{tag}</Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-600 italic">No tag suggestion</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-top">
+                            {suggestion.suggested_merchant_name || <span className="text-slate-600 italic">No merchant suggestion</span>}
+                          </td>
+                          <td className="px-3 py-2 align-top text-slate-300">
+                            {(Number(suggestion.confidence || 0) * 100).toFixed(0)}%
+                          </td>
+                          <td className="px-3 py-2 align-top text-slate-400 max-w-64">
+                            {suggestion.reason || <span className="text-slate-600 italic">No reason provided</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <button className="btn-secondary" onClick={() => setShowAiModal(false)}>Cancel</button>
+                <button
+                  className="btn-primary"
+                  disabled={!aiSelectedCount || aiApplyingSuggestions}
+                  onClick={applySelectedAiSuggestions}
+                >
+                  {aiApplyingSuggestions ? 'Applying…' : `Apply selected (${aiSelectedCount})`}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
 
       <Modal open={showTransferModal} onClose={() => setShowTransferModal(false)} title="Review Transfer Candidates" size="md">
         <div className="space-y-4">
