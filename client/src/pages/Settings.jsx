@@ -218,6 +218,9 @@ function CategoriesTab() {
   const [learnResult, setLearnResult] = useState(null);
   const [selectedSuggestions, setSelectedSuggestions] = useState(new Set());
   const [applyingSuggestions, setApplyingSuggestions] = useState(false);
+  const [previewingSuggestionIdx, setPreviewingSuggestionIdx] = useState(null);
+  const [suggestionPreview, setSuggestionPreview] = useState(null);
+  const [showSuggestionPreview, setShowSuggestionPreview] = useState(false);
 
   const load = () => categoriesApi.list().then((r) => setCats(r.data));
   useEffect(() => { load(); }, []);
@@ -291,6 +294,22 @@ function CategoriesTab() {
     });
   };
 
+  const handlePreviewSuggestion = async (suggestion, idx) => {
+    setPreviewingSuggestionIdx(idx);
+    try {
+      const res = await rulesApi.preview(suggestion, 50);
+      setSuggestionPreview({
+        name: suggestion.name || 'Suggested rule',
+        ...res.data,
+      });
+      setShowSuggestionPreview(true);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to preview suggestion', 'error');
+    } finally {
+      setPreviewingSuggestionIdx(null);
+    }
+  };
+
   return (
     <div>
       <SectionHeader
@@ -323,6 +342,14 @@ function CategoriesTab() {
                   <p className="text-xs text-slate-200">{s.name || 'Learned rule'} <span className="text-emerald-400">({Math.round((s.confidence || 0) * 100)}%)</span></p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{(s.rationale || []).join(' · ')}</p>
                   {s.preview && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Matches {s.preview.match_count} tx ({(s.preview.match_ratio * 100).toFixed(1)}%)</p>}
+                  <button
+                    className="btn-ghost text-[11px] mt-1 px-2 py-1"
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewSuggestion(s, idx); }}
+                    disabled={previewingSuggestionIdx === idx}
+                  >
+                    {previewingSuggestionIdx === idx ? 'Loading…' : 'View matches'}
+                  </button>
                 </div>
               </label>
             ))}
@@ -364,6 +391,45 @@ function CategoriesTab() {
           <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={form.is_income} onChange={(e) => setForm((f) => ({ ...f, is_income: e.target.checked }))} />Income category</label>
           <div className="flex gap-2 justify-end pt-2"><button className="btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button><button className="btn-primary" onClick={handleAdd}>Create</button></div>
         </div>
+      </Modal>
+
+      <Modal
+        open={showSuggestionPreview}
+        onClose={() => { setShowSuggestionPreview(false); setSuggestionPreview(null); }}
+        title={suggestionPreview?.name || 'Suggestion Preview'}
+        size="lg"
+      >
+        {!suggestionPreview ? (
+          <div className="py-8 flex justify-center"><Spinner size={20} /></div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Matches {suggestionPreview.match_count} / {suggestionPreview.total_count} transactions ({((suggestionPreview.match_ratio || 0) * 100).toFixed(1)}%)
+            </p>
+            {(suggestionPreview.warnings || []).map((w, i) => (
+              <p key={i} className="text-xs" style={{ color: '#fbbf24' }}>{w}</p>
+            ))}
+            <div className="max-h-80 overflow-y-auto rounded-lg" style={{ border: '1px solid var(--border)' }}>
+              {(suggestionPreview.sample || []).length === 0 ? (
+                <p className="text-xs px-3 py-3" style={{ color: 'var(--text-muted)' }}>No sample transactions returned.</p>
+              ) : (
+                (suggestionPreview.sample || []).map((tx) => (
+                  <div key={tx.id} className="px-3 py-2 text-xs border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono" style={{ color: 'var(--text-muted)' }}>{tx.date}</span>
+                      <span className="font-mono" style={{ color: 'var(--text-secondary)' }}>{Number(tx.amount).toFixed(2)}</span>
+                    </div>
+                    <p className="mt-1 truncate" style={{ color: 'var(--text-primary)' }} title={tx.description}>{tx.description}</p>
+                    <p className="mt-0.5" style={{ color: 'var(--text-muted)' }}>{tx.account_name || `Account ${tx.account_id}`}</p>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex justify-end">
+              <button className="btn-secondary" onClick={() => { setShowSuggestionPreview(false); setSuggestionPreview(null); }}>Close</button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

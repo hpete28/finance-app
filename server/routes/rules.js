@@ -302,6 +302,9 @@ function normalizeLearnKey(row) {
 }
 
 function buildLearnSuggestions(db, { min_count = 3, max_suggestions = 60 } = {}) {
+  const categoryNames = new Map(
+    db.prepare(`SELECT id, name FROM categories`).all().map((c) => [Number(c.id), c.name])
+  );
   const rows = db.prepare(`
     SELECT
       t.id, t.account_id, t.date, t.description, t.amount, t.category_id, t.tags, t.merchant_name
@@ -407,11 +410,14 @@ function buildLearnSuggestions(db, { min_count = 3, max_suggestions = 60 } = {})
       (group.kind === 'merchant' ? 0.05 : 0)
     ).toFixed(2));
 
+    const categoryId = Number(dominantCategory.key);
+    const categoryName = categoryNames.get(categoryId) || `Category ${categoryId}`;
     const suggestion = {
-      name: `Learned ${group.kind === 'merchant' ? 'merchant' : 'description'} rule`,
+      name: `${categoryName} · ${group.kind === 'merchant' ? 'merchant' : 'description'} rule`,
       keyword: chooseKeywordFallback(conditions, ''),
       match_type: 'contains_case_insensitive',
       category_id: actions.set_category_id,
+      category_name: categoryName,
       conditions,
       actions,
       behavior: {
