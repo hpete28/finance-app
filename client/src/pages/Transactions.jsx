@@ -657,6 +657,14 @@ export default function Transactions() {
     load();
   };
 
+  const handleBulkReviewed = async (value) => {
+    const count = selected.size;
+    await transactionsApi.bulk({ ids: [...selected], reviewed: value });
+    showToast(value ? `✅ Marked ${count} transactions as reviewed` : `Marked ${count} transactions as unreviewed`);
+    setSelected(new Set());
+    load();
+  };
+
   const handleInlineCategoryChange = async (tx, rawCategoryId) => {
     const categoryId = rawCategoryId === '__uncategorized__' ? null : Number(rawCategoryId);
     if ((tx.category_id ?? null) === categoryId) {
@@ -666,7 +674,7 @@ export default function Transactions() {
 
     setInlineCategorySavingId(tx.id);
     try {
-      await transactionsApi.update(tx.id, { category_id: categoryId });
+      await transactionsApi.update(tx.id, { category_id: categoryId, reviewed: true });
       const category = categoryId === null
         ? null
         : categories.find((c) => Number(c.id) === Number(categoryId));
@@ -677,6 +685,7 @@ export default function Transactions() {
               category_id: categoryId,
               category_name: category?.name || null,
               category_color: category?.color || null,
+              reviewed: true,
             }
           : row
       )));
@@ -1148,6 +1157,8 @@ export default function Transactions() {
             <button className="btn-secondary text-xs" onClick={() => handleBulkExclude(false)}>Include in totals</button>
             <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(true)}>🔁 Mark transfer</button>
             <button className="btn-secondary text-xs" onClick={() => handleBulkTransfer(false)}>Unmark transfer</button>
+            <button className="btn-secondary text-xs" onClick={() => handleBulkReviewed(true)}>✅ Mark reviewed</button>
+            <button className="btn-secondary text-xs" onClick={() => handleBulkReviewed(false)}>Mark unreviewed</button>
             <button
               className="btn-secondary text-xs flex items-center gap-1.5"
               onClick={() => requestAiSuggestions('selected')}

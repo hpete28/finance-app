@@ -308,9 +308,22 @@ function matchesTextCondition(rawValue, condition) {
   const needle = condition.needle || '';
   if (!needle) return false;
 
-  if (condition.operator === 'equals') return haystack === needle;
-  if (condition.operator === 'starts_with') return haystack.startsWith(needle);
-  return haystack.includes(needle);
+  const compact = (v) => String(v || '').replace(/\s+/g, '');
+  const haystackCompact = compact(haystack);
+  const needleCompact = compact(needle);
+  const shouldUseCompactFallback = (
+    !condition.case_sensitive
+    && String(needle).includes(' ')
+    && needleCompact.length >= 7
+  );
+
+  if (condition.operator === 'equals') {
+    return haystack === needle || (shouldUseCompactFallback && haystackCompact === needleCompact);
+  }
+  if (condition.operator === 'starts_with') {
+    return haystack.startsWith(needle) || (shouldUseCompactFallback && haystackCompact.startsWith(needleCompact));
+  }
+  return haystack.includes(needle) || (shouldUseCompactFallback && haystackCompact.includes(needleCompact));
 }
 
 function matchesAmountCondition(txAmount, amountCond) {

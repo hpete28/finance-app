@@ -116,6 +116,8 @@ function normalizeDescriptionPhrase(raw = '') {
   const normalized = normalizeForMatching(raw)
     .split(' ')
     .filter((t) => t.length >= 3);
+  while (normalized.length && /^\d+$/.test(normalized[0])) normalized.shift();
+  while (normalized.length && ['WWW', 'ONLINE', 'POS'].includes(normalized[0])) normalized.shift();
   if (normalized.length < 2) return '';
   const phrase = normalized.slice(0, 5).join(' ').trim();
   if (phrase.length < 12) return '';
@@ -289,6 +291,24 @@ function dedupeManualRules(db) {
     duplicate_groups: duplicateIds.length,
     disabled_duplicates: info.changes || 0,
     duplicate_rule_ids: duplicateIds,
+  };
+}
+
+function purgeLearnedRules(db, {
+  archive = true,
+  reason = 'rebuild_replace',
+} = {}) {
+  let archiveSummary = { archive_batch_id: null, archived_count: 0, disabled_count: 0 };
+  if (archive) {
+    archiveSummary = archiveAndDisableLearnedRules(db, reason);
+  }
+  const deletedInfo = db.prepare(`
+    DELETE FROM rules
+    WHERE LOWER(COALESCE(source, 'manual')) = 'learned'
+  `).run();
+  return {
+    ...archiveSummary,
+    deleted_count: deletedInfo.changes || 0,
   };
 }
 
@@ -1104,6 +1124,8 @@ function buildRebuildSuggestions(db, {
   max_match_ratio = 0.08,
   exclude_category_ids = [],
   include_reviewed_trusted = true,
+  ignore_existing_learned_signatures = false,
+  allow_reviewed_bootstrap = true,
 } = {}) {
   const incomeIds = getIncomeCategoryIds(db);
   const excludedSet = new Set((exclude_category_ids || []).map((v) => Number(v)).filter((v) => Number.isFinite(v)));
@@ -1162,6 +1184,20 @@ function buildRebuildSuggestions(db, {
 
   const byMerchant = new Map();
   const byPhrase = new Map();
+  const merchantBaseCounts = new Map();
+  const phraseBaseCounts = new Map();
+
+  for (const row of baseRows) {
+    const merchantKey = normalizeForMatching(row.merchant_name || '');
+    if (merchantKey && merchantKey.length >= 10) {
+      merchantBaseCounts.set(merchantKey, (merchantBaseCounts.get(merchantKey) || 0) + 1);
+    }
+    const phrase = normalizeDescriptionPhrase(row.description || '');
+    if (phrase) {
+      phraseBaseCounts.set(phrase, (phraseBaseCounts.get(phrase) || 0) + 1);
+    }
+  }
+
   for (const row of trustedRows) {
     const merchantKey = normalizeForMatching(row.merchant_name || '');
     if (merchantKey && merchantKey.length >= 10) {
@@ -1178,14 +1214,17 @@ function buildRebuildSuggestions(db, {
     }
   }
 
+  const existingRows = ignore_existing_learned_signatures
+    ? getRules().filter((r) => String(r.source || 'manual').toLowerCase() !== 'learned')
+    : getRules();
   const existingSignatures = new Set(
-    compileRules(getRules(), { includeLegacyTagRules: false }).map(buildRuleSignature)
+    compileRules(existingRows, { includeLegacyTagRules: false }).map(buildRuleSignature)
   );
   const candidateByDescription = new Map();
   const suggestions = [];
 
   function pushCandidate(kind, key, rows) {
-    if (rows.length < min_support) return;
+    if (!rows.length) return;
     const byCategory = new Map();
     rows.forEach((r) => byCategory.set(Number(r.category_id), (byCategory.get(Number(r.category_id)) || 0) + 1));
     const dominant = commonFromMap(byCategory);
@@ -1194,13 +1233,27 @@ function buildRebuildSuggestions(db, {
     const support = Number(dominant.count || 0);
     const purity = support / rows.length;
     const conflictRate = 1 - purity;
-    if (support < min_support || purity < min_purity || conflictRate > max_conflict_rate) return;
+    const dominantRows = rows.filter((r) => Number(r.category_id) === categoryId);
+    const reviewedSupport = dominantRows.filter((r) => Number(r.reviewed || 0) === 1).length;
+    const baseGroupCount = kind === 'merchant'
+      ? Number(merchantBaseCounts.get(key) || 0)
+      : Number(phraseBaseCounts.get(key) || 0);
+    const bootstrapCandidate = (
+      !!allow_reviewed_bootstrap
+      && kind === 'description'
+      && support < min_support
+      && reviewedSupport >= 1
+      && key.length >= 14
+      && baseGroupCount >= min_support
+      && purity >= 0.99
+      && conflictRate <= 0.01
+    );
+    if (!bootstrapCandidate && (support < min_support || purity < min_purity || conflictRate > max_conflict_rate)) return;
 
     const sign = dominantAmountSign(rows.filter((r) => Number(r.category_id) === categoryId));
     if (!sign) return;
     if (incomeIds.has(categoryId) && sign !== 'income') return;
 
-    const dominantRows = rows.filter((r) => Number(r.category_id) === categoryId);
     const conditions = {};
     if (kind === 'merchant') {
       conditions.merchant = { operator: 'contains', value: key, case_sensitive: false };
@@ -1216,6 +1269,7 @@ function buildRebuildSuggestions(db, {
     if (amountBand) {
       conditions.amount = amountBand;
     }
+    if (bootstrapCandidate && (!conditions.account_ids || !conditions.account_ids.length)) return;
 
     const actions = { set_category_id: categoryId };
     if (kind === 'merchant') actions.set_merchant_name = key;
@@ -1259,6 +1313,7 @@ function buildRebuildSuggestions(db, {
       if (e.matched_rule_ids.length) matchCount += 1;
     }
     const matchRatio = baseRows.length ? (matchCount / baseRows.length) : 0;
+    if (bootstrapCandidate && matchCount < min_support) return;
     if (kind !== 'merchant' && matchRatio > max_match_ratio) return;
 
     const confidence = Number(Math.min(
@@ -1266,6 +1321,7 @@ function buildRebuildSuggestions(db, {
       0.55 + Math.min(0.25, support / 200) + Math.max(0, (purity - min_purity) * 2)
       + (conditions.account_ids ? 0.05 : 0) + (conditions.amount ? 0.05 : 0)
     ).toFixed(2));
+    const finalConfidence = bootstrapCandidate ? Math.min(confidence, 0.74) : confidence;
 
     const candidate = {
       name: normalized.name || null,
@@ -1279,12 +1335,14 @@ function buildRebuildSuggestions(db, {
         is_enabled: true,
         stop_processing: false,
         source: 'learned',
-        confidence,
+        confidence: finalConfidence,
       },
-      confidence,
+      confidence: finalConfidence,
       signature,
       stats: {
         support_count: support,
+        reviewed_support_count: reviewedSupport,
+        bootstrap_candidate: bootstrapCandidate,
         group_count: rows.length,
         purity: Number(purity.toFixed(3)),
         conflict_rate: Number(conflictRate.toFixed(3)),
@@ -1320,19 +1378,71 @@ function buildRebuildSuggestions(db, {
     return (b.stats?.support_count || 0) - (a.stats?.support_count || 0);
   });
 
+  const limit = Math.max(1, Number(max_suggestions) || 120);
+  if (!allow_reviewed_bootstrap) {
+    return {
+      trusted_rows: trustedRows.length,
+      trusted_rows_manual: trustedRowsManual,
+      trusted_rows_reviewed: trustedRowsReviewed,
+      candidate_groups: byMerchant.size + byPhrase.size,
+      suggestions: suggestions.slice(0, limit),
+    };
+  }
+
+  const bootstrap = suggestions
+    .filter((s) => !!s.stats?.bootstrap_candidate)
+    .sort((a, b) => {
+      if ((b.stats?.reviewed_support_count || 0) !== (a.stats?.reviewed_support_count || 0)) {
+        return (b.stats?.reviewed_support_count || 0) - (a.stats?.reviewed_support_count || 0);
+      }
+      if ((b.stats?.estimated_match_count || 0) !== (a.stats?.estimated_match_count || 0)) {
+        return (b.stats?.estimated_match_count || 0) - (a.stats?.estimated_match_count || 0);
+      }
+      return (b.confidence || 0) - (a.confidence || 0);
+    });
+  const bootstrapCap = Math.min(40, Math.max(10, Math.floor(limit * 0.35)));
+  const selected = [];
+  const seenSig = new Set();
+  for (const s of bootstrap) {
+    if (selected.length >= bootstrapCap) break;
+    if (seenSig.has(s.signature)) continue;
+    selected.push(s);
+    seenSig.add(s.signature);
+  }
+  for (const s of suggestions) {
+    if (selected.length >= limit) break;
+    if (seenSig.has(s.signature)) continue;
+    selected.push(s);
+    seenSig.add(s.signature);
+  }
+
   return {
     trusted_rows: trustedRows.length,
     trusted_rows_manual: trustedRowsManual,
     trusted_rows_reviewed: trustedRowsReviewed,
     candidate_groups: byMerchant.size + byPhrase.size,
-    suggestions: suggestions.slice(0, Math.max(1, Number(max_suggestions) || 120)),
+    suggestions: selected,
   };
 }
 
-function applyLearnedSuggestionSet(db, suggestions = []) {
+function applyLearnedSuggestionSet(db, suggestions = [], options = {}) {
   const incoming = Array.isArray(suggestions) ? suggestions : [];
-  if (!incoming.length) return { created: 0, skipped: 0 };
-  const existingSignatures = new Set(compileRules(getRules(), { includeLegacyTagRules: false }).map(buildRuleSignature));
+  const replaceLearned = !!options.replace_learned;
+  let replaceSummary = { archive_batch_id: null, archived_count: 0, disabled_count: 0, deleted_count: 0 };
+  if (replaceLearned) {
+    replaceSummary = purgeLearnedRules(db, {
+      archive: options.archive_before_replace !== false,
+      reason: String(options.replace_reason || 'rebuild_replace'),
+    });
+  }
+  if (!incoming.length) return { created: 0, skipped: 0, replaced: replaceSummary };
+
+  const existingBase = replaceLearned
+    ? getRules().filter((r) => String(r.source || 'manual').toLowerCase() !== 'learned')
+    : getRules();
+  const existingSignatures = new Set(
+    compileRules(existingBase, { includeLegacyTagRules: false }).map(buildRuleSignature)
+  );
   const insert = db.prepare(`
     INSERT INTO rules (
       name, keyword, match_type, category_id, priority,
@@ -1385,7 +1495,7 @@ function applyLearnedSuggestionSet(db, suggestions = []) {
       created += 1;
     }
   })();
-  return { created, skipped };
+  return { created, skipped, replaced: replaceSummary };
 }
 
 function scanTransactionsMatchedByLearnedCategoryRules(db, {
@@ -1986,9 +2096,18 @@ router.post('/learn/rebuild', (req, res) => {
     const incomeGuardBackfill = backfillIncomeSignGuards(db);
     const apply = asBool(req.body?.apply, false);
     const resetLearned = req.body?.reset_learned !== undefined ? asBool(req.body.reset_learned, false) : false;
+    const replaceLearned = apply
+      ? (req.body?.replace_learned !== undefined ? asBool(req.body.replace_learned, true) : true)
+      : false;
     const includeReviewedTrusted = req.body?.include_reviewed_trusted !== undefined
       ? asBool(req.body.include_reviewed_trusted, true)
       : true;
+    const allowReviewedBootstrap = req.body?.allow_reviewed_bootstrap !== undefined
+      ? asBool(req.body.allow_reviewed_bootstrap, true)
+      : true;
+    const ignoreExistingLearnedSignatures = req.body?.ignore_existing_learned_signatures !== undefined
+      ? asBool(req.body.ignore_existing_learned_signatures, false)
+      : replaceLearned;
     const maxSuggestions = Math.min(300, Math.max(10, Number(req.body?.max_suggestions) || 120));
     const minSupport = Math.max(2, Number(req.body?.min_support) || 5);
     const minPurity = Math.min(0.999, Math.max(0.9, Number(req.body?.min_purity) || 0.97));
@@ -2014,15 +2133,22 @@ router.post('/learn/rebuild', (req, res) => {
       max_match_ratio: maxMatchRatio,
       exclude_category_ids: excludedIds,
       include_reviewed_trusted: includeReviewedTrusted,
+      ignore_existing_learned_signatures: ignoreExistingLearnedSignatures,
+      allow_reviewed_bootstrap: allowReviewedBootstrap,
     });
     let applySummary = { created: 0, skipped: 0 };
     if (apply) {
-      applySummary = applyLearnedSuggestionSet(db, rebuild.suggestions);
+      applySummary = applyLearnedSuggestionSet(db, rebuild.suggestions, {
+        replace_learned: replaceLearned,
+        archive_before_replace: !resetLearned,
+        replace_reason: 'rebuild_replace',
+      });
     }
 
     const config = {
       apply,
       reset_learned: resetLearned,
+      replace_learned: replaceLearned,
       max_suggestions: maxSuggestions,
       min_support: minSupport,
       min_purity: minPurity,
@@ -2030,6 +2156,8 @@ router.post('/learn/rebuild', (req, res) => {
       max_match_ratio: maxMatchRatio,
       exclude_category_ids: excludedIds,
       include_reviewed_trusted: includeReviewedTrusted,
+      ignore_existing_learned_signatures: ignoreExistingLearnedSignatures,
+      allow_reviewed_bootstrap: allowReviewedBootstrap,
     };
     const runId = insertRebuildRun(db, {
       config,
