@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../database');
 const { applyRulesToTransactionInput, getCompiledRules } = require('./categorizer');
 const { recordImportRun } = require('./importHistory');
+const { applyAccountStrategyToEvaluated } = require('./accountStrategies');
 
 const ACCOUNT_MAP = {
   'BMO_CAD_CC_MASTER_TRANSACTIONS.csv': 'BMO CAD Credit Card',
@@ -78,8 +79,8 @@ function importCSV(filename, buffer, accountNameOverride) {
   const rows = parseCSV(buffer);
   const insert = db.prepare(`
     INSERT INTO transactions
-      (id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals, category_source, category_locked, tags_locked)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const compiledRules = getCompiledRules({ includeLegacyTagRules: true });
 
@@ -110,6 +111,12 @@ function importCSV(filename, buffer, accountNameOverride) {
         overwrite_flags: true,
         includeLegacyTagRules: true,
       });
+      const finalized = applyAccountStrategyToEvaluated({
+        db,
+        accountId: account.id,
+        accountName,
+        evaluated,
+      });
       const txId = uuidv4();
       insert.run(
         txId,
@@ -117,11 +124,14 @@ function importCSV(filename, buffer, accountNameOverride) {
         row.date,
         row.description,
         row.amount,
-        evaluated.category_id ?? null,
-        JSON.stringify(evaluated.tags || []),
-        evaluated.merchant_name || null,
-        evaluated.is_income_override ? 1 : 0,
-        evaluated.exclude_from_totals ? 1 : 0
+        finalized.category_id ?? null,
+        JSON.stringify(finalized.tags || []),
+        finalized.merchant_name || null,
+        finalized.is_income_override ? 1 : 0,
+        finalized.exclude_from_totals ? 1 : 0,
+        finalized.category_source || 'import_default',
+        finalized.category_locked ? 1 : 0,
+        finalized.tags_locked ? 1 : 0
       );
       imported++;
       if (!fromDate || row.date < fromDate) fromDate = row.date;

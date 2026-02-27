@@ -1136,6 +1136,8 @@ function buildRebuildSuggestions(db, {
     WHERE category_id IS NOT NULL
       AND COALESCE(is_transfer, 0) = 0
       AND COALESCE(exclude_from_totals, 0) = 0
+      AND COALESCE(category_locked, 0) = 0
+      AND LOWER(COALESCE(category_source, '')) != 'account_strategy_bmo_us_v1'
   `).all().filter((r) => !excludedSet.has(Number(r.category_id)));
 
   const manualRows = listRawRulesByScope('manual').filter((r) => r.is_enabled);
@@ -1516,7 +1518,7 @@ function scanTransactionsMatchedByLearnedCategoryRules(db, {
     };
   }
 
-  const where = ['t.category_id IS NOT NULL'];
+  const where = ['t.category_id IS NOT NULL', 'COALESCE(t.category_locked, 0) = 0'];
   const params = [];
   if (created_from) {
     where.push('t.created_at >= ?');
@@ -2374,6 +2376,12 @@ router.post('/apply', (req, res) => {
     sample_limit: req.body?.sample_limit !== undefined ? Number(req.body.sample_limit) : 40,
     allow_negative_income_category: req.body?.allow_negative_income_category !== undefined
       ? asBool(req.body.allow_negative_income_category)
+      : false,
+    respect_locks: req.body?.respect_locks !== undefined
+      ? asBool(req.body.respect_locks, true)
+      : true,
+    ignore_locks: req.body?.ignore_locks !== undefined
+      ? asBool(req.body.ignore_locks, false)
       : false,
   };
 

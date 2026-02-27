@@ -13,6 +13,16 @@ import {
 import useAppStore from '../stores/appStore';
 
 const COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#3b82f6','#ec4899','#14b8a6','#84cc16','#f97316'];
+const TRAVEL_TAG_FILTER_OPTIONS = [
+  '',
+  'travel:airfare',
+  'travel:hotel',
+  'travel:dining',
+  'travel:transport',
+  'travel:groceries',
+  'travel:other',
+  'review:non_travel_candidate',
+];
 
 const PRESETS = [
   { label: 'This month', preset: 'this_month' },
@@ -101,7 +111,7 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 // ─── Inline Transaction Panel (shown below a chart when a bar is clicked) ──────
-function TransactionPanel({ month, categoryId, categoryName, startDate, endDate, onClose }) {
+function TransactionPanel({ month, categoryId, categoryName, startDate, endDate, tag, onClose }) {
   const { showToast } = useAppStore();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -118,12 +128,13 @@ function TransactionPanel({ month, categoryId, categoryName, startDate, endDate,
     if (month)      params.set('month', month);
     if (startDate)  params.set('start_date', startDate);
     if (endDate)    params.set('end_date', endDate);
+    if (tag)        params.set('tag', tag);
     if (categoryId !== undefined) params.set('category_id', categoryId === null ? 'null' : String(categoryId));
 
     fetch(`/api/analytics/month-transactions?${params}`)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); });
-  }, [month, categoryId, startDate, endDate, sort, order]);
+  }, [month, categoryId, startDate, endDate, tag, sort, order]);
 
   useEffect(() => {
     categoriesApi.list().then(r => setCategories(r.data));
@@ -153,6 +164,7 @@ function TransactionPanel({ month, categoryId, categoryName, startDate, endDate,
     if (month)      params.set('month', month);
     if (startDate)  params.set('start_date', startDate);
     if (endDate)    params.set('end_date', endDate);
+    if (tag)        params.set('tag', tag);
     if (categoryId !== undefined) params.set('category_id', categoryId === null ? 'null' : String(categoryId));
     fetch(`/api/analytics/month-transactions?${params}`)
       .then(r => r.json())
@@ -270,7 +282,7 @@ function TransactionPanel({ month, categoryId, categoryName, startDate, endDate,
 }
 
 // ─── Category Drill-Down ───────────────────────────────────────────────────────
-function CategoryDrillDown() {
+function CategoryDrillDown({ tag }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState([]);
@@ -294,10 +306,11 @@ function CategoryDrillDown() {
     params.set('category_id', selectedCat === 'uncategorized' ? 'null' : selectedCat);
     if (startDate) params.set('start_date', startDate);
     if (endDate)   params.set('end_date',   endDate);
+    if (tag)       params.set('tag', tag);
     fetch(`/api/analytics/category-breakdown?${params}`)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); });
-  }, [selectedCat, startDate, endDate]);
+  }, [selectedCat, startDate, endDate, tag]);
 
   const setYear = (y) => { setStartDate(`${y}-01-01`); setEndDate(`${y}-12-31`); };
 
@@ -332,6 +345,7 @@ function CategoryDrillDown() {
     if (selectedCat === 'uncategorized') params.set('uncategorized', 'true');
     if (startDate) params.set('start_date', startDate);
     if (endDate)   params.set('end_date', endDate);
+    if (tag)       params.set('tag', tag);
     navigate(`/transactions?${params}`);
   };
 
@@ -443,6 +457,7 @@ function CategoryDrillDown() {
               month={clickedBar.month}
               categoryId={selectedCat === 'uncategorized' ? null : parseInt(selectedCat)}
               categoryName={`${selectedCatName} — ${clickedBar.label}`}
+              tag={tag}
               onClose={() => setClickedBar(null)}
             />
           )}
@@ -632,7 +647,7 @@ function YearSummary() {
 }
 
 // ─── Monthly Breakdown ─────────────────────────────────────────────────────────
-function MonthlyBreakdown({ month }) {
+function MonthlyBreakdown({ month, tag }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData]     = useState([]);
@@ -644,8 +659,9 @@ function MonthlyBreakdown({ month }) {
     const params = startDate || endDate
       ? { start_date: startDate || undefined, end_date: endDate || undefined }
       : { month };
+    if (tag) params.tag = tag;
     analyticsApi.spendingByCategory(params).then(r => setData(r.data));
-  }, [month, startDate, endDate]);
+  }, [month, startDate, endDate, tag]);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -659,7 +675,7 @@ function MonthlyBreakdown({ month }) {
   const rangeQuery = startDate || endDate
     ? `${startDate ? `&start_date=${startDate}` : ''}${endDate ? `&end_date=${endDate}` : ''}`
     : `&month=${month}`;
-  const goCat = (catId) => navigate(`/transactions?type=expense${rangeQuery}${catId ? `&category_id=${catId}` : '&uncategorized=true'}`);
+  const goCat = (catId) => navigate(`/transactions?type=expense${rangeQuery}${tag ? `&tag=${encodeURIComponent(tag)}` : ''}${catId ? `&category_id=${catId}` : '&uncategorized=true'}`);
   const showingLabel = startDate || endDate
     ? `${startDate || '…'} → ${endDate || '…'}`
     : formatMonth(month);
@@ -734,14 +750,14 @@ function MonthlyBreakdown({ month }) {
 }
 
 // ─── Cash Flow ─────────────────────────────────────────────────────────────────
-function CashFlow() {
+function CashFlow({ tag }) {
   const [data, setData] = useState([]);
   const [startDate, setStartDate] = useState(() => { const d = new Date(); d.setMonth(d.getMonth()-3); return d.toISOString().split('T')[0]; });
   const [endDate, setEndDate]     = useState(() => new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
-    analyticsApi.cashflow({ start_date: startDate, end_date: endDate }).then(r => setData(r.data));
-  }, [startDate, endDate]);
+    analyticsApi.cashflow({ start_date: startDate, end_date: endDate, tag: tag || undefined }).then(r => setData(r.data));
+  }, [startDate, endDate, tag]);
 
   return (
     <div>
@@ -927,7 +943,7 @@ function buildInitialTopMerchantsState(searchParams, selectedMonth) {
   };
 }
 
-function TopMerchants() {
+function TopMerchants({ tag }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { selectedMonth } = useAppStore();
@@ -980,6 +996,7 @@ function TopMerchants() {
           params.start_date = appliedStart;
           params.end_date = appliedEnd;
         }
+        if (tag) params.tag = tag;
         const response = await analyticsApi.topMerchants(params);
         if (!cancelled) setData(response.data || []);
       } finally {
@@ -989,7 +1006,7 @@ function TopMerchants() {
 
     load();
     return () => { cancelled = true; };
-  }, [preset, month, appliedStart, appliedEnd, hasAppliedRange]);
+  }, [preset, month, appliedStart, appliedEnd, hasAppliedRange, tag]);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -1045,6 +1062,7 @@ function TopMerchants() {
       params.set('start_date', appliedStart);
       params.set('end_date', appliedEnd);
     }
+    if (tag) params.set('tag', tag);
     navigate(`/transactions?${params.toString()}`);
   };
 
@@ -1303,12 +1321,14 @@ export default function Analytics() {
   const { selectedMonth } = useAppStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'category');
+  const [tagFilter, setTagFilter] = useState(searchParams.get('tag') || '');
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     p.set('tab', activeTab);
+    if (tagFilter) p.set('tag', tagFilter); else p.delete('tag');
     setSearchParams(p, { replace: true });
-  }, [activeTab, setSearchParams]);
+  }, [activeTab, tagFilter, setSearchParams]);
 
   const tabs = [
     { id: 'income',    label: '💰 Income' },
@@ -1334,6 +1354,15 @@ export default function Analytics() {
           </button>
         ))}
       </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-slate-500">Tag filter</span>
+        <select className="select w-56 text-xs" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+          <option value="">All tags</option>
+          {TRAVEL_TAG_FILTER_OPTIONS.filter(Boolean).map((tag) => (
+            <option key={tag} value={tag}>{tag}</option>
+          ))}
+        </select>
+      </div>
 
       {activeTab === 'income' && (
         <Card className="p-5">
@@ -1345,7 +1374,7 @@ export default function Analytics() {
         <Card className="p-5">
           <SectionHeader title="Category Drill-Down"
             subtitle="Pick a category → see monthly trend → click a bar → inspect its transactions inline" />
-          <CategoryDrillDown />
+          <CategoryDrillDown tag={tagFilter} />
         </Card>
       )}
       {activeTab === 'year'     && <YearSummary />}
@@ -1360,11 +1389,11 @@ export default function Analytics() {
               </p>
             </div>
           </div>
-          <MonthlyBreakdown month={selectedMonth} />
+          <MonthlyBreakdown month={selectedMonth} tag={tagFilter} />
         </Card>
       )}
-      {activeTab === 'cashflow'  && <Card className="p-5"><SectionHeader title="Cash Flow" /><CashFlow /></Card>}
-      {activeTab === 'merchants' && <Card className="p-5"><SectionHeader title="Top Merchants" subtitle="Click any merchant to see its transactions" /><TopMerchants /></Card>}
+      {activeTab === 'cashflow'  && <Card className="p-5"><SectionHeader title="Cash Flow" /><CashFlow tag={tagFilter} /></Card>}
+      {activeTab === 'merchants' && <Card className="p-5"><SectionHeader title="Top Merchants" subtitle="Click any merchant to see its transactions" /><TopMerchants tag={tagFilter} /></Card>}
     </div>
   );
 }

@@ -1,9 +1,12 @@
 // server/routes/transactions.js
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const { getDb } = require('../database');
 const { categorize } = require('../services/categorizer');
 const { detectTransferCandidates } = require('../services/transferDetection');
+const { applyAccountStrategyToRow, STRATEGY_SOURCE, BMO_US_ACCOUNT_ID } = require('../services/accountStrategies');
 const { v4: uuidv4 } = require('uuid');
 
 const TRANSACTION_SELECT_SQL = `
@@ -38,6 +41,9 @@ const EXPORT_COLUMNS = [
 ];
 
 function parseTags(rawTags) {
+  if (Array.isArray(rawTags)) {
+    return [...new Set(rawTags.map((tag) => String(tag || '').trim()).filter(Boolean))];
+  }
   try {
     const parsed = JSON.parse(rawTags || '[]');
     if (!Array.isArray(parsed)) return [];
@@ -52,6 +58,16 @@ function csvEscape(value) {
   const str = String(value);
   if (/[",\r\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
   return str;
+}
+
+function stableTagString(tags) {
+  return JSON.stringify(parseTags(Array.isArray(tags) ? JSON.stringify(tags) : tags));
+}
+
+function ensureBackupDir(runId) {
+  const dir = path.join(__dirname, '..', 'backups', `bmo-us-strategy-${runId}`);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 function buildCsvFilename(query = {}) {
@@ -340,6 +356,195 @@ router.post('/apply-transfer-candidates', (req, res) => {
   res.json({ updated: info.changes, ids });
 });
 
+// POST /api/transactions/strategies/bmo-us-travel/backfill
+router.post('/strategies/bmo-us-travel/backfill', (req, res) => {
+  const db = getDb();
+  const dryRun = req.body?.dry_run !== undefined ? !!req.body.dry_run : true;
+  const fromDate = String(req.body?.from_date || '').trim() || null;
+  const toDate = String(req.body?.to_date || '').trim() || null;
+  const limit = Math.max(1, Math.min(5000, Number(req.body?.limit) || 5000));
+
+  const where = ['account_id = ?'];
+  const params = [BMO_US_ACCOUNT_ID];
+  if (fromDate) { where.push('date >= ?'); params.push(fromDate); }
+  if (toDate) { where.push('date <= ?'); params.push(toDate); }
+
+  const rows = db.prepare(`
+    SELECT id, account_id, date, description, amount, category_id, tags, merchant_name,
+           is_transfer, exclude_from_totals, is_income_override,
+           category_source, category_locked, tags_locked
+    FROM transactions
+    WHERE ${where.join(' AND ')}
+    ORDER BY date ASC, id ASC
+    LIMIT ?
+  `).all(...params, limit);
+
+  const candidates = [];
+  for (const row of rows) {
+    if (String(row.category_source || '').toLowerCase() === 'manual_override') continue;
+
+    const next = applyAccountStrategyToRow({
+      db,
+      row: {
+        ...row,
+        tags: parseTags(row.tags),
+      },
+    });
+
+    const changed = (
+      Number(row.category_id ?? null) !== Number(next.category_id ?? null)
+      || stableTagString(row.tags) !== stableTagString(next.tags)
+      || Number(row.is_transfer || 0) !== Number(next.is_transfer || 0)
+      || Number(row.exclude_from_totals || 0) !== Number(next.exclude_from_totals || 0)
+      || String(row.category_source || 'import_default') !== String(next.category_source || 'import_default')
+      || Number(row.category_locked || 0) !== Number(next.category_locked || 0)
+      || Number(row.tags_locked || 0) !== Number(next.tags_locked || 0)
+    );
+    if (!changed) continue;
+    candidates.push({ before: row, after: next });
+  }
+
+  const summary = {
+    dry_run: dryRun,
+    scanned: rows.length,
+    changed: candidates.length,
+    updated: 0,
+    transfer_updates: candidates.filter((c) => Number(c.after.is_transfer || 0) === 1).length,
+    travel_updates: candidates.filter((c) => Number(c.after.is_transfer || 0) === 0 && Number(c.after.exclude_from_totals || 0) === 0).length,
+    sample: candidates.slice(0, 40).map((c) => ({
+      id: c.before.id,
+      date: c.before.date,
+      description: c.before.description,
+      amount: c.before.amount,
+      before: {
+        category_id: c.before.category_id ?? null,
+        tags: parseTags(c.before.tags),
+        is_transfer: c.before.is_transfer ? 1 : 0,
+        exclude_from_totals: c.before.exclude_from_totals ? 1 : 0,
+        category_source: c.before.category_source || 'import_default',
+        category_locked: c.before.category_locked ? 1 : 0,
+        tags_locked: c.before.tags_locked ? 1 : 0,
+      },
+      after: {
+        category_id: c.after.category_id ?? null,
+        tags: parseTags(c.after.tags),
+        is_transfer: c.after.is_transfer ? 1 : 0,
+        exclude_from_totals: c.after.exclude_from_totals ? 1 : 0,
+        category_source: c.after.category_source || 'import_default',
+        category_locked: c.after.category_locked ? 1 : 0,
+        tags_locked: c.after.tags_locked ? 1 : 0,
+      },
+    })),
+  };
+
+  if (dryRun || !candidates.length) {
+    return res.json(summary);
+  }
+
+  const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${uuidv4().slice(0, 8)}`;
+  const backupDir = ensureBackupDir(runId);
+  const updateOne = db.prepare(`
+    UPDATE transactions
+    SET category_id = ?, tags = ?, is_transfer = ?, exclude_from_totals = ?, category_source = ?, category_locked = ?, tags_locked = ?
+    WHERE id = ?
+  `);
+
+  db.transaction(() => {
+    for (const candidate of candidates) {
+      const { before, after } = candidate;
+      updateOne.run(
+        after.category_id ?? null,
+        JSON.stringify(parseTags(after.tags)),
+        after.is_transfer ? 1 : 0,
+        after.exclude_from_totals ? 1 : 0,
+        after.category_source || STRATEGY_SOURCE,
+        after.category_locked ? 1 : 0,
+        after.tags_locked ? 1 : 0,
+        before.id
+      );
+    }
+  })();
+
+  const beforeRows = candidates.map((c) => ({
+    id: c.before.id,
+    category_id: c.before.category_id ?? null,
+    tags: parseTags(c.before.tags),
+    is_transfer: c.before.is_transfer ? 1 : 0,
+    exclude_from_totals: c.before.exclude_from_totals ? 1 : 0,
+    merchant_name: c.before.merchant_name || null,
+    category_source: c.before.category_source || 'import_default',
+    category_locked: c.before.category_locked ? 1 : 0,
+    tags_locked: c.before.tags_locked ? 1 : 0,
+  }));
+  const afterRows = candidates.map((c) => ({
+    id: c.after.id,
+    category_id: c.after.category_id ?? null,
+    tags: parseTags(c.after.tags),
+    is_transfer: c.after.is_transfer ? 1 : 0,
+    exclude_from_totals: c.after.exclude_from_totals ? 1 : 0,
+    merchant_name: c.after.merchant_name || null,
+    category_source: c.after.category_source || STRATEGY_SOURCE,
+    category_locked: c.after.category_locked ? 1 : 0,
+    tags_locked: c.after.tags_locked ? 1 : 0,
+  }));
+
+  fs.writeFileSync(path.join(backupDir, 'summary.json'), JSON.stringify({ ...summary, dry_run: false, run_id: runId }, null, 2));
+  fs.writeFileSync(path.join(backupDir, 'before_rows.json'), JSON.stringify(beforeRows, null, 2));
+  fs.writeFileSync(path.join(backupDir, 'after_rows.json'), JSON.stringify(afterRows, null, 2));
+
+  res.json({
+    ...summary,
+    dry_run: false,
+    updated: candidates.length,
+    run_id: runId,
+    backup_path: backupDir,
+  });
+});
+
+// POST /api/transactions/strategies/bmo-us-travel/rollback
+router.post('/strategies/bmo-us-travel/rollback', (req, res) => {
+  const db = getDb();
+  const runId = String(req.body?.run_id || '').trim();
+  if (!runId) return res.status(400).json({ error: 'run_id is required' });
+
+  const backupDir = path.join(__dirname, '..', 'backups', `bmo-us-strategy-${runId}`);
+  const beforePath = path.join(backupDir, 'before_rows.json');
+  if (!fs.existsSync(beforePath)) {
+    return res.status(404).json({ error: 'Rollback backup not found for run_id' });
+  }
+
+  let rows = [];
+  try {
+    rows = JSON.parse(fs.readFileSync(beforePath, 'utf8'));
+  } catch (err) {
+    return res.status(500).json({ error: `Failed to parse rollback backup: ${err.message}` });
+  }
+
+  const updateOne = db.prepare(`
+    UPDATE transactions
+    SET category_id = ?, tags = ?, is_transfer = ?, exclude_from_totals = ?, merchant_name = ?, category_source = ?, category_locked = ?, tags_locked = ?
+    WHERE id = ?
+  `);
+
+  db.transaction(() => {
+    for (const row of rows) {
+      updateOne.run(
+        row.category_id ?? null,
+        JSON.stringify(parseTags(row.tags)),
+        row.is_transfer ? 1 : 0,
+        row.exclude_from_totals ? 1 : 0,
+        row.merchant_name || null,
+        row.category_source || 'import_default',
+        row.category_locked ? 1 : 0,
+        row.tags_locked ? 1 : 0,
+        row.id
+      );
+    }
+  })();
+
+  res.json({ ok: true, restored: rows.length, run_id: runId, backup_path: backupDir });
+});
+
 // GET /api/transactions/:id
 router.get('/:id', (req, res) => {
   const db = getDb();
@@ -371,6 +576,8 @@ router.patch('/:id', (req, res) => {
   const fields = [];
   const vals = [];
   const forceExclude = is_transfer === true || is_transfer === 1;
+  const manualCategoryEdit = category_id !== undefined;
+  const manualTagEdit = tags !== undefined;
 
   if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(category_id || null); }
   if (notes !== undefined) { fields.push('notes = ?'); vals.push(notes); }
@@ -383,6 +590,16 @@ router.patch('/:id', (req, res) => {
     vals.push(forceExclude ? 1 : (exclude_from_totals ? 1 : 0));
   }
   if (merchant_name !== undefined) { fields.push('merchant_name = ?'); vals.push(merchant_name || null); }
+  if (manualCategoryEdit || manualTagEdit) {
+    fields.push('category_source = ?');
+    vals.push('manual_override');
+  }
+  if (manualCategoryEdit) {
+    fields.push('category_locked = 1');
+  }
+  if (manualTagEdit) {
+    fields.push('tags_locked = 1');
+  }
 
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
 
@@ -401,12 +618,14 @@ router.post('/bulk', (req, res) => {
   const vals = [];
   let updatedViaAppend = 0;
   const forceExclude = is_transfer === true || is_transfer === 1;
+  const manualCategoryEdit = category_id !== undefined;
+  const manualTagEdit = tags !== undefined;
 
   if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(category_id || null); }
   if (tags !== undefined) {
     if (tags_mode === 'append' || tags_mode === 'remove') {
       const rows = db.prepare(`SELECT id, tags FROM transactions WHERE id IN (${placeholders})`).all(...ids);
-      const updateOne = db.prepare(`UPDATE transactions SET tags = ? WHERE id = ?`);
+      const updateOne = db.prepare(`UPDATE transactions SET tags = ?, tags_locked = 1, category_source = 'manual_override' WHERE id = ?`);
       const nextTags = parseTags(JSON.stringify(tags));
       const nextTagSet = new Set(nextTags.map((tag) => tag.toLowerCase()));
       rows.forEach(r => {
@@ -414,6 +633,10 @@ router.post('/bulk', (req, res) => {
         if (tags_mode === 'append') {
           const merged = [...new Set([...existing, ...nextTags])];
           updateOne.run(JSON.stringify(merged), r.id);
+          return;
+        }
+        if (!nextTagSet.size) {
+          updateOne.run('[]', r.id);
           return;
         }
         const filtered = existing.filter((tag) => !nextTagSet.has(String(tag || '').toLowerCase()));
@@ -432,6 +655,12 @@ router.post('/bulk', (req, res) => {
     vals.push(forceExclude ? 1 : (exclude_from_totals ? 1 : 0));
   }
   if (merchant_name !== undefined) { fields.push('merchant_name = ?'); vals.push(merchant_name || null); }
+  if (manualCategoryEdit || manualTagEdit) {
+    fields.push('category_source = ?');
+    vals.push('manual_override');
+  }
+  if (manualCategoryEdit) fields.push('category_locked = 1');
+  if (manualTagEdit && tags_mode !== 'append' && tags_mode !== 'remove') fields.push('tags_locked = 1');
 
   let updated = updatedViaAppend;
   if (fields.length) {
@@ -530,8 +759,8 @@ router.post('/restore', (req, res) => {
     INSERT OR REPLACE INTO transactions (
       id, account_id, date, description, amount, category_id, tags, notes,
       is_transfer, is_recurring, reviewed, created_at, is_income_override,
-      exclude_from_totals, merchant_name
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      exclude_from_totals, merchant_name, category_source, category_locked, tags_locked
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const deleteSplits = db.prepare(`DELETE FROM transaction_splits WHERE transaction_id = ?`);
   const insertSplit = db.prepare(`
@@ -557,6 +786,9 @@ router.post('/restore', (req, res) => {
         tx.is_income_override ? 1 : 0,
         tx.exclude_from_totals ? 1 : 0,
         tx.merchant_name || null,
+        tx.category_source || 'import_default',
+        tx.category_locked ? 1 : 0,
+        tx.tags_locked ? 1 : 0,
       );
 
       deleteSplits.run(tx.id);

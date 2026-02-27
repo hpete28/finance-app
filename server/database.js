@@ -221,14 +221,20 @@ function initSchema() {
 
   // Safe migrations — run every startup, ignored if column already exists
   const migrations = [
-  `ALTER TABLE transactions ADD COLUMN is_income_override INTEGER DEFAULT 0`,
+    `ALTER TABLE transactions ADD COLUMN is_income_override INTEGER DEFAULT 0`,
     `ALTER TABLE transactions ADD COLUMN exclude_from_totals INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE transactions ADD COLUMN merchant_name TEXT`,
+    `ALTER TABLE transactions ADD COLUMN category_source TEXT NOT NULL DEFAULT 'import_default'`,
+    `ALTER TABLE transactions ADD COLUMN category_locked INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE transactions ADD COLUMN tags_locked INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE categories ADD COLUMN is_income INTEGER NOT NULL DEFAULT 0`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch (e) { /* column already exists — fine */ }
   }
+  try {
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_source_lock ON transactions(account_id, category_source, category_locked, tags_locked)`);
+  } catch (e) { /* migration race/older schema during bootstrap — fine */ }
 
   ensureRulesSchemaV2();
 

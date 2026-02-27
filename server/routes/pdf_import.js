@@ -11,6 +11,7 @@ const { getDb } = require('../database');
 const { applyRulesToTransactionInput, getCompiledRules } = require('../services/categorizer');
 const { guessAccountFromFilename } = require('../services/csvParser');
 const { recordImportRun } = require('../services/importHistory');
+const { applyAccountStrategyToEvaluated } = require('../services/accountStrategies');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -128,8 +129,8 @@ router.post('/import', upload.array('files'), async (req, res) => {
 
       const insert = db.prepare(`
         INSERT INTO transactions
-          (id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals, category_source, category_locked, tags_locked)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const compiledRules = getCompiledRules({ includeLegacyTagRules: true });
 
@@ -155,17 +156,26 @@ router.post('/import', upload.array('files'), async (req, res) => {
             overwrite_merchant: true,
             overwrite_flags: true,
           });
+          const finalized = applyAccountStrategyToEvaluated({
+            db,
+            accountId: account.id,
+            accountName,
+            evaluated,
+          });
           insert.run(
             uuidv4(),
             account.id,
             row.Date,
             row.Description,
             row.Amount,
-            evaluated.category_id ?? null,
-            JSON.stringify(evaluated.tags || []),
-            evaluated.merchant_name || null,
-            evaluated.is_income_override ? 1 : 0,
-            evaluated.exclude_from_totals ? 1 : 0
+            finalized.category_id ?? null,
+            JSON.stringify(finalized.tags || []),
+            finalized.merchant_name || null,
+            finalized.is_income_override ? 1 : 0,
+            finalized.exclude_from_totals ? 1 : 0,
+            finalized.category_source || 'import_default',
+            finalized.category_locked ? 1 : 0,
+            finalized.tags_locked ? 1 : 0
           );
           imported++;
           if (!fromDate || row.Date < fromDate) fromDate = row.Date;

@@ -410,6 +410,9 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
     merchant_name: String(transaction.merchant_name || '').trim() || null,
     is_income_override: transaction.is_income_override ? 1 : 0,
     exclude_from_totals: transaction.exclude_from_totals ? 1 : 0,
+    category_source: String(transaction.category_source || 'import_default'),
+    category_locked: transaction.category_locked ? 1 : 0,
+    tags_locked: transaction.tags_locked ? 1 : 0,
   };
 
   const opts = {
@@ -418,6 +421,8 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
     overwrite_merchant: !!options.overwrite_merchant,
     overwrite_flags: !!options.overwrite_flags,
     allow_negative_income_category: !!options.allow_negative_income_category,
+    respect_locks: options.respect_locks !== false,
+    ignore_locks: !!options.ignore_locks,
   };
   const incomeCategoryIds = getIncomeCategoryIds(options);
   const existingCategoryId = tx.category_id === undefined ? null : tx.category_id;
@@ -439,13 +444,17 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
     winning_category_rule: null,
   };
 
+  const enforceLocks = opts.respect_locks && !opts.ignore_locks;
+
   const lock = {
-    category: !opts.overwrite_category && tx.category_id !== null && tx.category_id !== undefined,
+    category: (enforceLocks && tx.category_locked === 1)
+      || (!opts.overwrite_category && tx.category_id !== null && tx.category_id !== undefined),
+    tags: (enforceLocks && tx.tags_locked === 1),
     merchant: !opts.overwrite_merchant && !!tx.merchant_name,
     income: !opts.overwrite_flags && tx.is_income_override === 1,
     exclude: !opts.overwrite_flags && tx.exclude_from_totals === 1,
   };
-  const allowTagActions = opts.overwrite_tags || tx.tags.length === 0;
+  const allowTagActions = !lock.tags && (opts.overwrite_tags || tx.tags.length === 0);
 
   for (const rule of compiledRules) {
     if (!rule.is_enabled) continue;
@@ -483,6 +492,7 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
           category_id: nextCategoryId,
           category_name: rule.category_name || null,
         };
+        result.category_source = rule.source === 'learned' ? 'rule_learned' : 'rule_manual';
         lock.category = true;
       }
     }
@@ -517,6 +527,7 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
 
   const changed = {
     category: tx.category_id !== result.category_id,
+    category_source: String(tx.category_source || 'import_default') !== String(result.category_source || 'import_default'),
     tags: JSON.stringify(tx.tags) !== JSON.stringify(result.tags),
     merchant: (tx.merchant_name || null) !== (result.merchant_name || null),
     income: Number(tx.is_income_override || 0) !== Number(result.is_income_override || 0),
@@ -526,7 +537,7 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
   return {
     ...result,
     changed,
-    changed_any: changed.category || changed.tags || changed.merchant || changed.income || changed.exclude,
+    changed_any: changed.category || changed.category_source || changed.tags || changed.merchant || changed.income || changed.exclude,
     blocked_income_assignments: result.blocked_rules.filter((b) => b.reason === 'income_requires_positive_amount').length,
   };
 }
@@ -540,6 +551,8 @@ function applyRulesToTransactionInput(transaction, options = {}) {
     overwrite_tags: options.overwrite_tags !== false,
     overwrite_merchant: options.overwrite_merchant !== false,
     overwrite_flags: options.overwrite_flags !== false,
+    respect_locks: options.respect_locks !== false,
+    ignore_locks: !!options.ignore_locks,
   });
 }
 
@@ -561,6 +574,8 @@ function applyRulesToAllTransactions(options = {}) {
     dry_run: !!options.dry_run,
     sample_limit: Math.min(200, Math.max(10, Number(options.sample_limit) || 40)),
     allow_negative_income_category: !!options.allow_negative_income_category,
+    respect_locks: options.respect_locks !== false,
+    ignore_locks: !!options.ignore_locks,
   };
 
   const compiledRules = getCompiledRules({
@@ -585,7 +600,7 @@ function applyRulesToAllTransactions(options = {}) {
   }
 
   const sql = `
-    SELECT id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals
+    SELECT id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals, category_source, category_locked, tags_locked
     FROM transactions
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
   `;
@@ -593,7 +608,7 @@ function applyRulesToAllTransactions(options = {}) {
 
   const update = db.prepare(`
     UPDATE transactions
-    SET category_id = ?, tags = ?, merchant_name = ?, is_income_override = ?, exclude_from_totals = ?
+    SET category_id = ?, tags = ?, merchant_name = ?, is_income_override = ?, exclude_from_totals = ?, category_source = ?
     WHERE id = ?
   `);
   const categoryChanges = new Map();
@@ -635,6 +650,7 @@ function applyRulesToAllTransactions(options = {}) {
           evaluated.merchant_name || null,
           evaluated.is_income_override ? 1 : 0,
           evaluated.exclude_from_totals ? 1 : 0,
+          evaluated.category_source || row.category_source || 'import_default',
           row.id
         );
       }
@@ -670,6 +686,7 @@ function applyRulesToAllTransactions(options = {}) {
             tags: parseJsonSafe(row.tags, []),
             is_income_override: row.is_income_override ? 1 : 0,
             exclude_from_totals: row.exclude_from_totals ? 1 : 0,
+            category_source: row.category_source || 'import_default',
           },
           after: {
             category_id: evaluated.category_id ?? null,
@@ -677,6 +694,7 @@ function applyRulesToAllTransactions(options = {}) {
             tags: evaluated.tags || [],
             is_income_override: evaluated.is_income_override ? 1 : 0,
             exclude_from_totals: evaluated.exclude_from_totals ? 1 : 0,
+            category_source: evaluated.category_source || row.category_source || 'import_default',
           },
           winning_category_rule: evaluated.winning_category_rule || null,
           blocked_rules: evaluated.blocked_rules || [],

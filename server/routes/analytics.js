@@ -41,7 +41,7 @@ function getIncomeCTE(db) {
 // GET /api/analytics/spending-by-category
 router.get('/spending-by-category', (req, res) => {
   const db = getDb();
-  const { month, account_id, start_date, end_date } = req.query;
+  const { month, account_id, start_date, end_date, tag } = req.query;
 
   let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0', 't.amount < 0', '(cat.is_income IS NULL OR cat.is_income = 0)'];
   let params = [];
@@ -49,6 +49,7 @@ router.get('/spending-by-category', (req, res) => {
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('t.date <= ?'); params.push(end_date); }
   if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
+  if (tag) { where.push(`LOWER(COALESCE(t.tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
 
   const rows = db.prepare(`
     SELECT COALESCE(c.name,'Uncategorized') as category,
@@ -91,7 +92,7 @@ router.get('/monthly-trend', (req, res) => {
 // GET /api/analytics/category-breakdown
 router.get('/category-breakdown', (req, res) => {
   const db = getDb();
-  const { category_id, start_date, end_date, account_id } = req.query;
+  const { category_id, start_date, end_date, account_id, tag } = req.query;
 
   let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0', 't.amount < 0'];
   let params = [];
@@ -104,6 +105,7 @@ router.get('/category-breakdown', (req, res) => {
   if (start_date)  { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)    { where.push('t.date <= ?'); params.push(end_date); }
   if (account_id)  { where.push('t.account_id = ?'); params.push(account_id); }
+  if (tag)         { where.push(`LOWER(COALESCE(t.tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
 
   const monthly = db.prepare(`
     SELECT strftime('%Y-%m', t.date) as month, COUNT(*) as tx_count,
@@ -128,13 +130,14 @@ router.get('/category-breakdown', (req, res) => {
 // GET /api/analytics/month-transactions
 router.get('/month-transactions', (req, res) => {
   const db = getDb();
-  const { month, category_id, start_date, end_date, sort = 'date', order = 'desc' } = req.query;
+  const { month, category_id, start_date, end_date, sort = 'date', order = 'desc', tag } = req.query;
 
   let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0'];
   let params = [];
   if (month)      { where.push("strftime('%Y-%m', t.date) = ?"); params.push(month); }
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('t.date <= ?'); params.push(end_date); }
+  if (tag)        { where.push(`LOWER(COALESCE(t.tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
 
   if (category_id === 'null' || category_id === '') {
     where.push('t.category_id IS NULL');
@@ -190,13 +193,14 @@ router.get('/merchant-search', (req, res) => {
 // GET /api/analytics/top-merchants
 router.get('/top-merchants', (req, res) => {
   const db = getDb();
-  const { month, start_date, end_date, limit = 15, account_id } = req.query;
+  const { month, start_date, end_date, limit = 15, account_id, tag } = req.query;
   let where = ['exclude_from_totals = 0', 'is_transfer = 0', 'amount < 0'];
   let params = [];
   if (month)      { where.push("strftime('%Y-%m', date) = ?"); params.push(month); }
   if (start_date) { where.push('date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('date <= ?'); params.push(end_date); }
   if (account_id) { where.push('account_id = ?'); params.push(account_id); }
+  if (tag)        { where.push(`LOWER(COALESCE(tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
   res.json(db.prepare(`
     SELECT COALESCE(NULLIF(TRIM(merchant_name), ''), description) as description,
            SUM(ABS(amount)) as total, COUNT(*) as count
@@ -208,7 +212,7 @@ router.get('/top-merchants', (req, res) => {
 // GET /api/analytics/cashflow
 router.get('/cashflow', (req, res) => {
   const db = getDb();
-  const { start_date, end_date, account_id } = req.query;
+  const { start_date, end_date, account_id, tag } = req.query;
   const { incomeFlag } = getIncomeCTE(db);
 
   let where = ['t.exclude_from_totals = 0', 't.is_transfer = 0'];
@@ -216,6 +220,7 @@ router.get('/cashflow', (req, res) => {
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('t.date <= ?'); params.push(end_date); }
   if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
+  if (tag)        { where.push(`LOWER(COALESCE(t.tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
   const wc = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
   const daily = db.prepare(`

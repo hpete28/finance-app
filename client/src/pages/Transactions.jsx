@@ -624,7 +624,7 @@ export default function Transactions() {
 
   const handleBulkTags = async (mode = 'append') => {
     const parsed = bulkTags.split(',').map(t => t.trim()).filter(Boolean);
-    if (!parsed.length) return;
+    if (!parsed.length && mode !== 'remove') return;
     await transactionsApi.bulk({ ids: [...selected], tags: parsed, tags_mode: mode });
     const modeLabel = mode === 'append' ? 'Appended' : mode === 'replace' ? 'Replaced' : 'Removed';
     showToast(`🏷️ ${modeLabel} tags on ${selected.size} transactions`);
