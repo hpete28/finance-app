@@ -38,6 +38,51 @@ function getIncomeCTE(db) {
   };
 }
 
+const RENTAL_TAG_CANONICAL = {
+  CRESTHAVEN: 'Property Rental-Cresthaven',
+  WOODRUFF: 'Property Rental-Woodruff',
+};
+
+const RENTAL_TAG_ALIASES = {
+  [RENTAL_TAG_CANONICAL.CRESTHAVEN]: new Set([
+    'Property Rental-Cresthaven',
+    'Property Rental - Cresthaven',
+    'income:rental_property:cresthaven',
+  ]),
+  [RENTAL_TAG_CANONICAL.WOODRUFF]: new Set([
+    'Property Rental-Woodruff',
+    'Property Rental-Woodroffe',
+    'Property Rental - Woodroffe',
+    'Property Rental - Woodruff',
+    'income:rental_property:woodroffe',
+    'income:rental_property:woodruff',
+  ]),
+};
+
+function canonicalizeRentalTag(tag) {
+  const value = String(tag || '').trim();
+  if (!value) return '';
+  if (RENTAL_TAG_ALIASES[RENTAL_TAG_CANONICAL.CRESTHAVEN].has(value)) return RENTAL_TAG_CANONICAL.CRESTHAVEN;
+  if (RENTAL_TAG_ALIASES[RENTAL_TAG_CANONICAL.WOODRUFF].has(value)) return RENTAL_TAG_CANONICAL.WOODRUFF;
+  return value;
+}
+
+function expandTagAliases(tag) {
+  const canonical = canonicalizeRentalTag(tag);
+  const aliases = RENTAL_TAG_ALIASES[canonical];
+  if (aliases) return [...aliases];
+  return [String(tag || '').trim()].filter(Boolean);
+}
+
+function appendTagFilter(where, params, tag, columnExpr = 't.tags') {
+  if (!tag) return;
+  const aliases = expandTagAliases(tag);
+  if (!aliases.length) return;
+  const clauses = aliases.map(() => `LOWER(COALESCE(${columnExpr}, '[]')) LIKE ?`);
+  where.push(`(${clauses.join(' OR ')})`);
+  params.push(...aliases.map((t) => `%\"${String(t).toLowerCase()}\"%`));
+}
+
 // GET /api/analytics/spending-by-category
 router.get('/spending-by-category', (req, res) => {
   const db = getDb();
@@ -49,7 +94,7 @@ router.get('/spending-by-category', (req, res) => {
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('t.date <= ?'); params.push(end_date); }
   if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
-  if (tag) { where.push(`LOWER(COALESCE(t.tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
+  appendTagFilter(where, params, tag, 't.tags');
 
   const rows = db.prepare(`
     SELECT COALESCE(c.name,'Uncategorized') as category,
@@ -105,7 +150,7 @@ router.get('/category-breakdown', (req, res) => {
   if (start_date)  { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)    { where.push('t.date <= ?'); params.push(end_date); }
   if (account_id)  { where.push('t.account_id = ?'); params.push(account_id); }
-  if (tag)         { where.push(`LOWER(COALESCE(t.tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
+  appendTagFilter(where, params, tag, 't.tags');
 
   const monthly = db.prepare(`
     SELECT strftime('%Y-%m', t.date) as month, COUNT(*) as tx_count,
@@ -137,7 +182,7 @@ router.get('/month-transactions', (req, res) => {
   if (month)      { where.push("strftime('%Y-%m', t.date) = ?"); params.push(month); }
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('t.date <= ?'); params.push(end_date); }
-  if (tag)        { where.push(`LOWER(COALESCE(t.tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
+  appendTagFilter(where, params, tag, 't.tags');
 
   if (category_id === 'null' || category_id === '') {
     where.push('t.category_id IS NULL');
@@ -200,7 +245,7 @@ router.get('/top-merchants', (req, res) => {
   if (start_date) { where.push('date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('date <= ?'); params.push(end_date); }
   if (account_id) { where.push('account_id = ?'); params.push(account_id); }
-  if (tag)        { where.push(`LOWER(COALESCE(tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
+  appendTagFilter(where, params, tag, 'tags');
   res.json(db.prepare(`
     SELECT COALESCE(NULLIF(TRIM(merchant_name), ''), description) as description,
            SUM(ABS(amount)) as total, COUNT(*) as count
@@ -220,7 +265,7 @@ router.get('/cashflow', (req, res) => {
   if (start_date) { where.push('t.date >= ?'); params.push(start_date); }
   if (end_date)   { where.push('t.date <= ?'); params.push(end_date); }
   if (account_id) { where.push('t.account_id = ?'); params.push(account_id); }
-  if (tag)        { where.push(`LOWER(COALESCE(t.tags, '[]')) LIKE ?`); params.push(`%\"${String(tag).toLowerCase()}\"%`); }
+  appendTagFilter(where, params, tag, 't.tags');
   const wc = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
   const daily = db.prepare(`

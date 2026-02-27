@@ -53,6 +53,55 @@ function parseTags(rawTags) {
   }
 }
 
+const RENTAL_TAG_CANONICAL = {
+  CRESTHAVEN: 'Property Rental-Cresthaven',
+  WOODRUFF: 'Property Rental-Woodruff',
+};
+
+const RENTAL_TAG_ALIASES = {
+  [RENTAL_TAG_CANONICAL.CRESTHAVEN]: new Set([
+    'Property Rental-Cresthaven',
+    'Property Rental - Cresthaven',
+    'income:rental_property:cresthaven',
+  ]),
+  [RENTAL_TAG_CANONICAL.WOODRUFF]: new Set([
+    'Property Rental-Woodruff',
+    'Property Rental-Woodroffe',
+    'Property Rental - Woodroffe',
+    'Property Rental - Woodruff',
+    'income:rental_property:woodroffe',
+    'income:rental_property:woodruff',
+  ]),
+};
+
+function canonicalizeRentalTag(tag) {
+  const value = String(tag || '').trim();
+  if (!value) return '';
+  if (RENTAL_TAG_ALIASES[RENTAL_TAG_CANONICAL.CRESTHAVEN].has(value)) return RENTAL_TAG_CANONICAL.CRESTHAVEN;
+  if (RENTAL_TAG_ALIASES[RENTAL_TAG_CANONICAL.WOODRUFF].has(value)) return RENTAL_TAG_CANONICAL.WOODRUFF;
+  return value;
+}
+
+function canonicalizeTags(tags = []) {
+  return [...new Set(parseTags(tags).map(canonicalizeRentalTag).filter((t) => t && t !== 'income:rental_property'))];
+}
+
+function expandTagAliases(tag) {
+  const canonical = canonicalizeRentalTag(tag);
+  const aliases = RENTAL_TAG_ALIASES[canonical];
+  if (aliases) return [...aliases];
+  return [String(tag || '').trim()].filter(Boolean);
+}
+
+function appendTagFilter(where, params, tag, columnExpr = 't.tags') {
+  if (!tag) return;
+  const aliases = expandTagAliases(tag);
+  if (!aliases.length) return;
+  const clauses = aliases.map(() => `LOWER(COALESCE(${columnExpr}, '[]')) LIKE ?`);
+  where.push(`(${clauses.join(' OR ')})`);
+  params.push(...aliases.map((t) => `%\"${String(t).toLowerCase()}\"%`));
+}
+
 function csvEscape(value) {
   if (value === null || value === undefined) return '';
   const str = String(value);
@@ -114,7 +163,7 @@ function buildTransactionsQueryState(db, query = {}) {
     const searchTerm = `%${search.toUpperCase()}%`;
     params.push(searchTerm, searchTerm);
   }
-  if (tag) { where.push('t.tags LIKE ?'); params.push(`%${tag}%`); }
+  appendTagFilter(where, params, tag, 't.tags');
   if (is_recurring === 'true') { where.push('t.is_recurring = 1'); }
   if (exclude_from_totals === 'true') { where.push('t.exclude_from_totals = 1'); }
   if (exclude_from_totals === 'false') { where.push('t.exclude_from_totals = 0'); }
@@ -192,7 +241,7 @@ router.get('/', (req, res) => {
   `).all(...params, limitNum, offset);
 
   // Parse tags JSON
-  const transactions = rows.map(r => ({ ...r, tags: parseTags(r.tags) }));
+  const transactions = rows.map(r => ({ ...r, tags: canonicalizeTags(r.tags) }));
 
   res.json({
     transactions,
@@ -235,7 +284,7 @@ router.get('/export.csv', (req, res) => {
         category_id: row.category_id,
         category_name: row.category_name,
         category_color: row.category_color,
-        tags: parseTags(row.tags).join(', '),
+        tags: canonicalizeTags(row.tags).join(', '),
         notes: row.notes,
         merchant_name: row.merchant_name,
         is_transfer: row.is_transfer,
@@ -564,7 +613,7 @@ router.get('/tags', (req, res) => {
   const needle = String(q || '').trim().toLowerCase();
   const counts = new Map();
   for (const row of rows) {
-    const tags = parseTags(row.tags);
+    const tags = canonicalizeTags(row.tags);
     for (const tag of tags) {
       const value = String(tag || '').trim();
       if (!value) continue;
@@ -606,7 +655,7 @@ router.get('/:id', (req, res) => {
     WHERE ts.transaction_id = ?
   `).all(req.params.id);
 
-  res.json({ ...tx, tags: JSON.parse(tx.tags || '[]'), splits });
+  res.json({ ...tx, tags: canonicalizeTags(tx.tags), splits });
 });
 
 // PATCH /api/transactions/:id — update single transaction
@@ -621,7 +670,7 @@ router.patch('/:id', (req, res) => {
 
   if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(category_id || null); }
   if (notes !== undefined) { fields.push('notes = ?'); vals.push(notes); }
-  if (tags !== undefined) { fields.push('tags = ?'); vals.push(JSON.stringify(tags)); }
+  if (tags !== undefined) { fields.push('tags = ?'); vals.push(JSON.stringify(canonicalizeTags(tags))); }
   if (is_transfer !== undefined) { fields.push('is_transfer = ?'); vals.push(is_transfer ? 1 : 0); }
   if (reviewed !== undefined) { fields.push('reviewed = ?'); vals.push(reviewed ? 1 : 0); }
   if (is_income_override !== undefined) { fields.push('is_income_override = ?'); vals.push(is_income_override ? 1 : 0); }
@@ -666,7 +715,7 @@ router.post('/bulk', (req, res) => {
     if (tags_mode === 'append' || tags_mode === 'remove') {
       const rows = db.prepare(`SELECT id, tags FROM transactions WHERE id IN (${placeholders})`).all(...ids);
       const updateOne = db.prepare(`UPDATE transactions SET tags = ?, tags_locked = 1, category_source = 'manual_override' WHERE id = ?`);
-      const nextTags = parseTags(JSON.stringify(tags));
+      const nextTags = canonicalizeTags(tags);
       const nextTagSet = new Set(nextTags.map((tag) => tag.toLowerCase()));
       rows.forEach(r => {
         const existing = parseTags(r.tags);
@@ -684,7 +733,7 @@ router.post('/bulk', (req, res) => {
       });
       updatedViaAppend = rows.length;
     } else {
-      fields.push('tags = ?'); vals.push(JSON.stringify(tags));
+      fields.push('tags = ?'); vals.push(JSON.stringify(canonicalizeTags(tags)));
     }
   }
   if (reviewed !== undefined) { fields.push('reviewed = ?'); vals.push(reviewed ? 1 : 0); }
@@ -768,7 +817,7 @@ router.delete('/bulk', (req, res) => {
 
   const deleted = rows.map(tx => ({
     ...tx,
-    tags: JSON.parse(tx.tags || '[]'),
+    tags: canonicalizeTags(tx.tags),
     splits: splitMap.get(tx.id) || []
   }));
 
@@ -784,7 +833,7 @@ router.delete('/:id', (req, res) => {
   const splits = db.prepare(`SELECT * FROM transaction_splits WHERE transaction_id = ?`).all(req.params.id);
   db.prepare(`DELETE FROM transactions WHERE id = ?`).run(req.params.id);
 
-  res.json({ deleted: { ...tx, tags: JSON.parse(tx.tags || '[]'), splits } });
+  res.json({ deleted: { ...tx, tags: canonicalizeTags(tx.tags), splits } });
 });
 
 // POST /api/transactions/restore — restore previously deleted transactions
@@ -817,7 +866,7 @@ router.post('/restore', (req, res) => {
         tx.description,
         tx.amount,
         tx.category_id || null,
-        JSON.stringify(tx.tags || []),
+        JSON.stringify(canonicalizeTags(tx.tags || [])),
         tx.notes || null,
         tx.is_transfer ? 1 : 0,
         tx.is_recurring ? 1 : 0,

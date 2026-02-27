@@ -13,16 +13,6 @@ import {
 import useAppStore from '../stores/appStore';
 
 const COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#8b5cf6','#3b82f6','#ec4899','#14b8a6','#84cc16','#f97316'];
-const TRAVEL_TAG_FILTER_OPTIONS = [
-  '',
-  'travel:airfare',
-  'travel:hotel',
-  'travel:dining',
-  'travel:transport',
-  'travel:groceries',
-  'travel:other',
-  'review:non_travel_candidate',
-];
 
 const PRESETS = [
   { label: 'This month', preset: 'this_month' },
@@ -1322,6 +1312,7 @@ export default function Analytics() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'category');
   const [tagFilter, setTagFilter] = useState(searchParams.get('tag') || '');
+  const [tagOptions, setTagOptions] = useState([]);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -1329,6 +1320,17 @@ export default function Analytics() {
     if (tagFilter) p.set('tag', tagFilter); else p.delete('tag');
     setSearchParams(p, { replace: true });
   }, [activeTab, tagFilter, setSearchParams]);
+
+  useEffect(() => {
+    transactionsApi.tags({ limit: 300 })
+      .then((r) => {
+        const tags = Array.isArray(r?.data?.tags)
+          ? r.data.tags.map((t) => String(t.tag || '').trim()).filter(Boolean)
+          : [];
+        setTagOptions(tags);
+      })
+      .catch(() => setTagOptions([]));
+  }, []);
 
   const tabs = [
     { id: 'income',    label: '💰 Income' },
@@ -1358,7 +1360,7 @@ export default function Analytics() {
         <span className="text-xs text-slate-500">Tag filter</span>
         <select className="select w-56 text-xs" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
           <option value="">All tags</option>
-          {TRAVEL_TAG_FILTER_OPTIONS.filter(Boolean).map((tag) => (
+          {tagOptions.map((tag) => (
             <option key={tag} value={tag}>{tag}</option>
           ))}
         </select>
