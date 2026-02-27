@@ -158,11 +158,17 @@ function buildTransactionsQueryState(db, query = {}) {
   }
 
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-  const allowedSort = ['date', 'amount', 'description'];
-  const sortCol = allowedSort.includes(sort) ? sort : 'date';
+  const sortMap = {
+    date: 't.date',
+    amount: 't.amount',
+    description: 'UPPER(t.description)',
+    category: "UPPER(COALESCE(c.name, ''))",
+    account: 'UPPER(a.name)',
+  };
+  const sortExpr = sortMap[sort] || sortMap.date;
   const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
 
-  return { whereClause, params, sortCol, sortOrder };
+  return { whereClause, params, sortExpr, sortOrder };
 }
 
 // GET /api/transactions — list with filtering, pagination, sorting
@@ -172,7 +178,7 @@ router.get('/', (req, res) => {
   const pageNum = Math.max(parseInt(page, 10) || 1, 1);
   const limitNum = Math.max(parseInt(limit, 10) || 50, 1);
   const offset = (pageNum - 1) * limitNum;
-  const { whereClause, params, sortCol, sortOrder } = buildTransactionsQueryState(db, req.query);
+  const { whereClause, params, sortExpr, sortOrder } = buildTransactionsQueryState(db, req.query);
 
   const countRow = db.prepare(`
     SELECT COUNT(*) as total FROM transactions t ${whereClause}
@@ -181,7 +187,7 @@ router.get('/', (req, res) => {
   const rows = db.prepare(`
     ${TRANSACTION_SELECT_SQL}
     ${whereClause}
-    ORDER BY t.${sortCol} ${sortOrder}
+    ORDER BY ${sortExpr} ${sortOrder}, t.id DESC
     LIMIT ? OFFSET ?
   `).all(...params, limitNum, offset);
 
@@ -202,11 +208,11 @@ router.get('/export.csv', (req, res) => {
   const db = getDb();
 
   try {
-    const { whereClause, params, sortCol, sortOrder } = buildTransactionsQueryState(db, req.query);
+    const { whereClause, params, sortExpr, sortOrder } = buildTransactionsQueryState(db, req.query);
     const stmt = db.prepare(`
       ${TRANSACTION_SELECT_SQL}
       ${whereClause}
-      ORDER BY t.${sortCol} ${sortOrder}
+      ORDER BY ${sortExpr} ${sortOrder}, t.id DESC
     `);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');

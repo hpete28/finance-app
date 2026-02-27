@@ -1196,8 +1196,12 @@ export default function Transactions() {
                   <th className="px-4 py-3 text-left section-title cursor-pointer hover:text-slate-300" onClick={() => handleSort('description')}>
                     Description <SortArrow col="description" />
                   </th>
-                  <th className="px-4 py-3 text-left section-title w-36">Account</th>
-                  <th className="px-4 py-3 text-left section-title w-40">Category</th>
+                  <th className="px-4 py-3 text-left section-title w-36 cursor-pointer hover:text-slate-300" onClick={() => handleSort('account')}>
+                    Account <SortArrow col="account" />
+                  </th>
+                  <th className="px-4 py-3 text-left section-title w-40 cursor-pointer hover:text-slate-300" onClick={() => handleSort('category')}>
+                    Category <SortArrow col="category" />
+                  </th>
                   <th className="px-4 py-3 text-right section-title w-28 cursor-pointer hover:text-slate-300" onClick={() => handleSort('amount')}>
                     Amount <SortArrow col="amount" />
                   </th>
