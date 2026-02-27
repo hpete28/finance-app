@@ -623,11 +623,16 @@ export default function Transactions() {
 
 
   const handleBulkTags = async (mode = 'append') => {
+    if (!selected.size) {
+      showToast('Select at least one transaction first', 'warning');
+      return;
+    }
     const parsed = bulkTags.split(',').map(t => t.trim()).filter(Boolean);
     if (!parsed.length && mode !== 'remove') return;
-    await transactionsApi.bulk({ ids: [...selected], tags: parsed, tags_mode: mode });
+    const { data } = await transactionsApi.bulk({ ids: [...selected], tags: parsed, tags_mode: mode });
     const modeLabel = mode === 'append' ? 'Appended' : mode === 'replace' ? 'Replaced' : 'Removed';
-    showToast(`🏷️ ${modeLabel} tags on ${selected.size} transactions`);
+    const changed = Number(data?.updated || 0);
+    showToast(`🏷️ ${modeLabel} tags on ${changed} transaction${changed === 1 ? '' : 's'}`);
     setBulkTags('');
     setSelected(new Set());
     load();
@@ -737,7 +742,10 @@ export default function Transactions() {
         showToast(`AI request limited to ${requestIds.length} transactions`, 'warning');
       }
 
-      const res = await aiApi.suggestTransactions({ transaction_ids: requestIds });
+      const res = await aiApi.suggestTransactions({
+        transaction_ids: requestIds,
+        include_categorized: scope === 'selected',
+      });
       const payload = res.data || {};
       const rawSuggestions = Array.isArray(payload.suggestions) ? payload.suggestions : [];
       const normalized = rawSuggestions.map((suggestion) => ({
@@ -765,7 +773,12 @@ export default function Transactions() {
       });
 
       if (!normalized.length) {
-        setAiError('No AI suggestions were returned for this selection.');
+        const skippedCategorized = Number(payload?.skipped?.categorized || 0);
+        if (skippedCategorized > 0 && scope !== 'selected') {
+          setAiError('No suggestions returned. All requested transactions were categorized and skipped.');
+        } else {
+          setAiError('No AI suggestions were returned for this selection.');
+        }
       }
     } catch (err) {
       setAiError(readApiError(err, 'Failed to generate suggestions'));
@@ -810,24 +823,7 @@ export default function Transactions() {
         changed = true;
       }
 
-      if (suggestion.suggested_merchant_name) {
-        const currentMerchant = String(tx.merchant_name || '').trim();
-        if (currentMerchant !== suggestion.suggested_merchant_name) {
-          patch.merchant_name = suggestion.suggested_merchant_name;
-          changed = true;
-        }
-      }
-
-      if (Array.isArray(suggestion.suggested_tags) && suggestion.suggested_tags.length) {
-        const merged = [...new Set([...(tx.tags || []), ...suggestion.suggested_tags])];
-        const sameTags =
-          merged.length === (tx.tags || []).length &&
-          merged.every((tag, idx) => tag === (tx.tags || [])[idx]);
-        if (!sameTags) {
-          patch.tags = merged;
-          changed = true;
-        }
-      }
+      // Intentionally do not apply AI tag suggestions.
 
       if (changed) updates.push({ id: tx.id, patch });
     }
@@ -1221,7 +1217,11 @@ export default function Transactions() {
                       <div className="flex items-center gap-2">
                         {tx.reviewed && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />}
                         <span className="truncate">{tx.description}</span>
-                        {tx.merchant_name && <Badge className="text-xs">🏪 {tx.merchant_name}</Badge>}
+                        {tx.merchant_name && (
+                          <span className="inline-flex items-center h-5 px-2 rounded-full text-[11px] leading-none bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 whitespace-nowrap">
+                            Merchant: {tx.merchant_name}
+                          </span>
+                        )}
                         {tx.tags?.length > 0 && tx.tags.slice(0, 2).map(tag => <Badge key={tag} className="text-xs">{tag}</Badge>)}
                       </div>
                     </td>
@@ -1376,8 +1376,8 @@ export default function Transactions() {
                 </div>
               </div>
 
-              <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                <table className="w-full text-xs">
+              <div className="rounded-lg overflow-x-auto" style={{ border: '1px solid var(--border)' }}>
+                <table className="w-full min-w-[1400px] text-xs">
                   <thead style={{ background: 'rgba(255,255,255,0.03)' }}>
                     <tr style={{ borderBottom: '1px solid var(--border)' }}>
                       <th className="w-10 px-3 py-2">
@@ -1390,7 +1390,7 @@ export default function Transactions() {
                       <th className="px-3 py-2 text-left section-title">Transaction</th>
                       <th className="px-3 py-2 text-left section-title">Suggested Category</th>
                       <th className="px-3 py-2 text-left section-title">Suggested Tags</th>
-                      <th className="px-3 py-2 text-left section-title">Merchant</th>
+                      <th className="px-3 py-2 text-left section-title">Merchant Insight</th>
                       <th className="px-3 py-2 text-left section-title">Confidence</th>
                       <th className="px-3 py-2 text-left section-title">Reason</th>
                     </tr>
@@ -1440,13 +1440,13 @@ export default function Transactions() {
                               <span className="text-slate-600 italic">No tag suggestion</span>
                             )}
                           </td>
-                          <td className="px-3 py-2 align-top">
-                            {suggestion.suggested_merchant_name || <span className="text-slate-600 italic">No merchant suggestion</span>}
+                          <td className="px-3 py-2 align-top text-slate-400 max-w-72 whitespace-normal break-words">
+                            {suggestion.merchant_insight || <span className="text-slate-600 italic">No insight provided</span>}
                           </td>
                           <td className="px-3 py-2 align-top text-slate-300">
                             {(Number(suggestion.confidence || 0) * 100).toFixed(0)}%
                           </td>
-                          <td className="px-3 py-2 align-top text-slate-400 max-w-64">
+                          <td className="px-3 py-2 align-top text-slate-400 max-w-72 whitespace-normal break-words">
                             {suggestion.reason || <span className="text-slate-600 italic">No reason provided</span>}
                           </td>
                         </tr>

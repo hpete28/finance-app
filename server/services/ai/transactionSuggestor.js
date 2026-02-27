@@ -27,6 +27,13 @@ function sanitizeReason(value) {
   return String(value || '')
     .trim()
     .replace(/\s+/g, ' ')
+    .slice(0, 380);
+}
+
+function sanitizeInsight(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
     .slice(0, 220);
 }
 
@@ -34,6 +41,34 @@ function isStrongHistoryHint(hint) {
   return !!hint
     && Number(hint.support_count || 0) >= 2
     && Number(hint.support_ratio || 0) >= 0.75;
+}
+
+function extractIdentificationClues(tx, merchantSuggestion) {
+  if (!tx) return [];
+
+  const clues = [];
+  const rawDescription = String(tx.description || '').trim();
+  const rawMerchant = String(merchantSuggestion || tx.merchant_name || '').trim();
+  const descriptionUpper = rawDescription.toUpperCase();
+
+  if (rawMerchant) clues.push(`merchant "${rawMerchant}"`);
+
+  if (descriptionUpper.includes('PAYPAL*')) clues.push('channel PayPal');
+  else if (descriptionUpper.includes('SQ *') || descriptionUpper.includes('SQUARE')) clues.push('channel Square');
+  else if (descriptionUpper.includes('AMZN') || descriptionUpper.includes('AMAZON')) clues.push('channel Amazon');
+
+  const locationMatch = rawDescription.match(/\b([A-Z][A-Z]+)\s+([A-Z]{2,3})\b$/);
+  if (locationMatch) clues.push(`location hint "${locationMatch[1]} ${locationMatch[2]}"`);
+
+  const hasCardPurchaseMarker = /\b(POS|PURCHASE|CREDIT CARD|DEBIT CARD|VISA|MASTERCARD)\b/i.test(rawDescription);
+  if (hasCardPurchaseMarker) clues.push('card purchase pattern');
+
+  if (rawDescription && rawDescription !== rawMerchant) {
+    const shortDescription = rawDescription.replace(/\s+/g, ' ').slice(0, 90);
+    clues.push(`description "${shortDescription}"`);
+  }
+
+  return clues.slice(0, 4);
 }
 
 function normalizeModelOutput(raw, { categoryByName, txById, historicalHints = new Map(), minCategoryConfidence = 0.72 }) {
@@ -72,6 +107,11 @@ function normalizeModelOutput(raw, { categoryByName, txById, historicalHints = n
     const baseReason = sanitizeReason(item?.reason || item?.why || '');
     if (baseReason) reasonParts.push(baseReason);
 
+    const merchantInsight = sanitizeInsight(
+      item?.merchant_insight || item?.merchant_context || item?.merchant_identity || ''
+    );
+    if (merchantInsight) reasonParts.push(`AI merchant insight: ${merchantInsight}`);
+
     if (strongHistory) {
       const llmMissingOrWeak = !categoryEntry || confidence < minCategoryConfidence;
       const llmConflictsWithHistory = categoryEntry && Number(categoryEntry.id) !== Number(hint.category_id);
@@ -90,10 +130,14 @@ function normalizeModelOutput(raw, { categoryByName, txById, historicalHints = n
       }
     }
 
+    const tx = txById.get(transactionId);
+    const clues = extractIdentificationClues(tx, merchant);
+    if (clues.length) {
+      reasonParts.push(`Identified from ${clues.join(', ')}`);
+    }
+
     if (categorySource === 'llm' && categoryEntry && confidence < minCategoryConfidence) {
-      categoryEntry = null;
-      categorySource = null;
-      reasonParts.push('Category withheld due to low confidence');
+      reasonParts.push(`Low confidence (${Math.round(confidence * 100)}%)`);
     }
 
     const reason = sanitizeReason(reasonParts.join(' · '));
@@ -105,9 +149,10 @@ function normalizeModelOutput(raw, { categoryByName, txById, historicalHints = n
       category_source: categorySource,
       suggested_tags: tags,
       suggested_merchant_name: merchant,
+      merchant_insight: merchantInsight || null,
       confidence,
       reason,
-      appliable: !!(categoryEntry || tags.length || merchant),
+      appliable: !!categoryEntry,
     });
   }
 
