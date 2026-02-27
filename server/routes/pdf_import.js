@@ -12,6 +12,10 @@ const { applyRulesToTransactionInput, getCompiledRules } = require('../services/
 const { guessAccountFromFilename } = require('../services/csvParser');
 const { recordImportRun } = require('../services/importHistory');
 const { applyAccountStrategyToEvaluated } = require('../services/accountStrategies');
+const {
+  TD_CHECKING_ACCOUNT_ID,
+  backfillTdCheckingRentalIncome,
+} = require('../services/accountStrategies/tdCheckingRentalIncomeStrategy');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -182,6 +186,15 @@ router.post('/import', upload.array('files'), async (req, res) => {
           if (!toDate || row.Date > toDate) toDate = row.Date;
         }
       })();
+
+      if (Number(account.id) === TD_CHECKING_ACCOUNT_ID && fromDate && toDate) {
+        backfillTdCheckingRentalIncome(db, {
+          accountId: account.id,
+          startDate: fromDate,
+          endDate: toDate,
+          dryRun: false,
+        });
+      }
 
       const bal = db.prepare(`SELECT COALESCE(SUM(amount),0) as b FROM transactions WHERE account_id = ?`).get(account.id);
       db.prepare(`UPDATE accounts SET balance = ? WHERE id = ?`).run(bal.b, account.id);

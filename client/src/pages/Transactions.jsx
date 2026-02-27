@@ -22,6 +22,10 @@ const PRESETS = [
 ];
 
 const AI_FALLBACK_MAX_BATCH = 80;
+const PREWRITTEN_TAGS = [
+  'Property Rental-Cresthaven',
+  'Property Rental-Woodruff',
+];
 
 function readApiError(err, fallback) {
   return err?.response?.data?.error || err?.response?.data?.code || err?.message || fallback;
@@ -422,6 +426,7 @@ export default function Transactions() {
   const [inlineCategorySavingId, setInlineCategorySavingId] = useState(null);
   const [bulkCategory, setBulkCategory] = useState('');
   const [bulkTags, setBulkTags] = useState('');
+  const [bulkTagPick, setBulkTagPick] = useState('');
   const [bulkMerchant, setBulkMerchant] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [undoDelete, setUndoDelete] = useState(null);
@@ -634,6 +639,22 @@ export default function Transactions() {
     const changed = Number(data?.updated || 0);
     showToast(`🏷️ ${modeLabel} tags on ${changed} transaction${changed === 1 ? '' : 's'}`);
     setBulkTags('');
+    setSelected(new Set());
+    load();
+  };
+
+  const applyPickedTag = async () => {
+    const picked = String(bulkTagPick || '').trim();
+    if (!picked) return;
+    if (!selected.size) {
+      showToast('Select at least one transaction first', 'warning');
+      return;
+    }
+    const { data } = await transactionsApi.bulk({ ids: [...selected], tags: [picked], tags_mode: 'replace' });
+    const changed = Number(data?.updated || 0);
+    showToast(`🏷️ Applied ${picked} to ${changed} transaction${changed === 1 ? '' : 's'}`);
+    setBulkTags(picked);
+    setBulkTagPick('');
     setSelected(new Set());
     load();
   };
@@ -1129,6 +1150,19 @@ export default function Transactions() {
               Apply category
             </button>
             <input className="input text-xs w-56" value={bulkTags} onChange={e => setBulkTags(e.target.value)} placeholder="tags: travel, tax" />
+            <select
+              className="select text-xs w-56"
+              value={bulkTagPick}
+              onChange={(e) => setBulkTagPick(e.target.value)}
+            >
+              <option value="">Pick saved tag…</option>
+              {PREWRITTEN_TAGS.map((tag) => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+            <button className="btn-secondary text-xs" onClick={applyPickedTag} disabled={!bulkTagPick}>
+              Apply picked tag
+            </button>
             <button className="btn-secondary text-xs" onClick={() => handleBulkTags('append')}>Append tags</button>
             <button className="btn-secondary text-xs" onClick={() => handleBulkTags('replace')}>Replace tags</button>
             <button className="btn-secondary text-xs" onClick={() => handleBulkTags('remove')}>Remove tags</button>

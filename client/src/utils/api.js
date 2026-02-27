@@ -9,6 +9,7 @@ const api = axios.create({
 // Transactions
 export const transactionsApi = {
   list: (params) => api.get('/transactions', { params }),
+  tags: (params) => api.get('/transactions/tags', { params }),
   get: (id) => api.get(`/transactions/${id}`),
   update: (id, data) => api.patch(`/transactions/${id}`, data),
   delete: (id) => api.delete(`/transactions/${id}`),

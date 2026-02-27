@@ -551,6 +551,40 @@ router.post('/strategies/bmo-us-travel/rollback', (req, res) => {
   res.json({ ok: true, restored: rows.length, run_id: runId, backup_path: backupDir });
 });
 
+// GET /api/transactions/tags — distinct tag list for picker/autocomplete
+router.get('/tags', (req, res) => {
+  const db = getDb();
+  const { q = '', limit = 200 } = req.query;
+  const rows = db.prepare(`
+    SELECT tags
+    FROM transactions
+    WHERE COALESCE(tags, '[]') NOT IN ('[]', '')
+  `).all();
+
+  const needle = String(q || '').trim().toLowerCase();
+  const counts = new Map();
+  for (const row of rows) {
+    const tags = parseTags(row.tags);
+    for (const tag of tags) {
+      const value = String(tag || '').trim();
+      if (!value) continue;
+      if (needle && !value.toLowerCase().includes(needle)) continue;
+      counts.set(value, (counts.get(value) || 0) + 1);
+    }
+  }
+
+  const max = Math.min(500, Math.max(10, parseInt(limit, 10) || 200));
+  const tags = [...counts.entries()]
+    .sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return a[0].localeCompare(b[0]);
+    })
+    .slice(0, max)
+    .map(([tag, count]) => ({ tag, count }));
+
+  res.json({ tags, total: tags.length });
+});
+
 // GET /api/transactions/:id
 router.get('/:id', (req, res) => {
   const db = getDb();

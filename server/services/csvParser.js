@@ -5,6 +5,10 @@ const { getDb } = require('../database');
 const { applyRulesToTransactionInput, getCompiledRules } = require('./categorizer');
 const { recordImportRun } = require('./importHistory');
 const { applyAccountStrategyToEvaluated } = require('./accountStrategies');
+const {
+  TD_CHECKING_ACCOUNT_ID,
+  backfillTdCheckingRentalIncome,
+} = require('./accountStrategies/tdCheckingRentalIncomeStrategy');
 
 const ACCOUNT_MAP = {
   'BMO_CAD_CC_MASTER_TRANSACTIONS.csv': 'BMO CAD Credit Card',
@@ -140,6 +144,16 @@ function importCSV(filename, buffer, accountNameOverride) {
   });
 
   bulk();
+
+  if (Number(account.id) === TD_CHECKING_ACCOUNT_ID && fromDate && toDate) {
+    // Post-import pass ensures split rental deposits are evaluated with full month context.
+    backfillTdCheckingRentalIncome(db, {
+      accountId: account.id,
+      startDate: fromDate,
+      endDate: toDate,
+      dryRun: false,
+    });
+  }
 
   // Update account balance (sum of all transactions for this account)
   const balance = db.prepare(`
