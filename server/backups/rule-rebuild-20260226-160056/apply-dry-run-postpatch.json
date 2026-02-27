@@ -1,0 +1,1421 @@
+{
+  "scanned": 8627,
+  "updated": 60,
+  "matched_transactions": 6800,
+  "category_updates": 60,
+  "tag_updates": 0,
+  "merchant_updates": 0,
+  "income_updates": 0,
+  "exclude_updates": 0,
+  "dry_run": true,
+  "blocked_income_assignments": 0,
+  "category_change_buckets": [
+    {
+      "from_category_id": 23,
+      "to_category_id": null,
+      "from_is_income": true,
+      "to_is_income": false,
+      "count": 60
+    }
+  ],
+  "sample_changes": [
+    {
+      "id": "69705bbd-ba4b-4f0d-b287-398c78f0dced",
+      "date": "2019-03-16",
+      "description": "OLDNAVYCANADA 3503 OTTAWA ON",
+      "amount": -16.9,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "e1185932-dc32-4ca5-8dcb-ae13bc0ad180",
+      "date": "2019-05-19",
+      "description": "ESCAPEGAMESCANADA NORTHYORK ON",
+      "amount": -56,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "713f6611-8b23-4e17-8a97-03cad02b896d",
+      "date": "2019-05-27",
+      "description": "NAVCANADA SURREY BC",
+      "amount": -3.31,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "486eeac3-f9bf-4bde-b65a-dc0270a0126b",
+      "date": "2019-05-28",
+      "description": "FLYOVERCANADA VANCOUVER BC",
+      "amount": -69.3,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "3ad70d7a-552b-4683-93e0-38c589cff168",
+      "date": "2019-06-22",
+      "description": "ALGONQUINCOLLEGE 613-727-4723 ON",
+      "amount": -383.6,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "d3275d25-59bb-4870-8350-44f74bc373d8",
+      "date": "2019-06-25",
+      "description": "HAGGARCANADACO TORONTO ON",
+      "amount": -53.11,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "cf923b45-9da3-4cc1-aed1-45cad3537529",
+      "date": "2019-06-27",
+      "description": "ALGONQUINCOLLEGE NEPEAN ON",
+      "amount": -41.69,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "7b85f2c1-9d40-4e5d-ba31-3876f70c5331",
+      "date": "2019-07-19",
+      "description": "SKECHERSUSACANADA KANATA ON",
+      "amount": -62.14,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "c007fcfe-2f9f-4f6a-8ab9-188097e80d4a",
+      "date": "2019-07-22",
+      "description": "THECHILDREN'SPLACE# NEPEAN ON",
+      "amount": -63.97,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "4dd5f7c9-3ccc-40f6-8139-a54082d7dc80",
+      "date": "2019-08-28",
+      "description": "SERVICECANADAOTTAWA OTTAWA ON",
+      "amount": -160,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "8fdd5233-3ae3-4dc4-b4a6-81adec177f66",
+      "date": "2019-10-10",
+      "description": "ALGONQUINCOLLEGE OTTAWA ON",
+      "amount": -354.2,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "9ac1cb20-d224-4c4e-86a1-ee6f907704cb",
+      "date": "2019-11-05",
+      "description": "NAVCANADA OTTAWA ON",
+      "amount": -30,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "c8a7beb6-6960-4655-8815-0af774e54da1",
+      "date": "2020-06-04",
+      "description": "PAYPAL*CANADA 4029357733 ON",
+      "amount": -33.9,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "6dca3694-0375-4875-abb6-0c6483c5c076",
+      "date": "2020-10-25",
+      "description": "OLDNAVYCANADA 5476 NEPEAN ON",
+      "amount": -14.68,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "b17d4342-7337-4592-bf74-2c4ef561d75a",
+      "date": "2020-10-25",
+      "description": "OLDNAVYCANADA 5476 NEPEAN ON",
+      "amount": -59.79,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "0de56100-6f96-4c6c-b69e-32ea62b60b6a",
+      "date": "2020-10-25",
+      "description": "GAPCANADA 9880 NEPEAN ON",
+      "amount": -15.8,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "a30842d9-2866-48cf-b232-fed1e04a88f0",
+      "date": "2020-10-27",
+      "description": "PAYPAL*FEDEXCANADA 4029357733 ON",
+      "amount": -53.82,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "cab549fa-6bb4-4e90-b495-9f884279b59d",
+      "date": "2020-10-27",
+      "description": "OLDNAVYCANADA 5476 NEPEAN ON",
+      "amount": -126.4,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "864990c8-98c8-44fc-bf1e-566ace130b88",
+      "date": "2021-05-07",
+      "description": "PAYPAL*AOSOMCANADA 4029357733 ON",
+      "amount": -326.56,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "06b5b268-8495-4e27-89f4-34ada328b717",
+      "date": "2021-05-12",
+      "description": "MICHAELSCANADA#3496 800-642-4235 ON",
+      "amount": -5.53,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "6bc659ec-4b2a-4836-9f92-6aafec369eb1",
+      "date": "2021-05-12",
+      "description": "MICHAELSCANADA#3496 800-642-4235 ON",
+      "amount": -3.94,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "a302def1-4c38-4258-888d-2465664810e6",
+      "date": "2021-06-10",
+      "description": "PAYPAL*FEDEXCANADA 4029357733 ON",
+      "amount": -35.05,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "781748c1-2f7e-4f73-8b3f-4934929e1429",
+      "date": "2021-07-24",
+      "description": "OLDNAVYCANADA/24-4 OTTAWA ON",
+      "amount": -17,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "ed159b08-7f0d-4fef-967f-ddae7efca1c2",
+      "date": "2021-08-01",
+      "description": "PAYPAL*AOSOMCANADA 4029357733 ON",
+      "amount": -326.56,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "243f43ec-c4bf-484a-817c-743996ecf201",
+      "date": "2021-10-05",
+      "description": "THECHILDREN'SPLACE# NEPEAN ON",
+      "amount": -30.81,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "d469222d-d7de-459b-947c-8ef5b682f8cd",
+      "date": "2021-11-19",
+      "description": "THECHILDREN'SPLACE# NEPEAN ON",
+      "amount": -18.34,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "8519499a-e647-4ab2-98ce-a022ae6795cb",
+      "date": "2021-12-24",
+      "description": "THECHILDRENSPLACE MISSISSAUGA ON",
+      "amount": -2.05,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "98daa690-c767-4ea9-80a0-668397cd5ef5",
+      "date": "2021-12-29",
+      "description": "PRESOTEACANADA OTTAWA ON",
+      "amount": -8.46,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "34f1d4bf-af20-4fbe-839b-3dc209e75541",
+      "date": "2022-02-21",
+      "description": "Ralph Lauren Canada LP Toronto ON",
+      "amount": -43.29,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "eb6f7266-1a46-4802-b5b7-7d826ff2920e",
+      "date": "2022-03-28",
+      "description": "OLDNAVYCANADA 5476 NEPEAN ON",
+      "amount": -49.49,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "48b707b3-a637-484f-9dd9-e786230c9ede",
+      "date": "2022-04-04",
+      "description": "THECHILDRENSPLACE MISSISSAUGA ON",
+      "amount": -73.45,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "2ad6324a-df39-4f8b-8441-7bf72d963e19",
+      "date": "2022-04-09",
+      "description": "PAYPAL*AOSOMCANADA 4167926088 ON",
+      "amount": -295.39,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "93795882-dca7-4d83-8a2d-c1d38145ea85",
+      "date": "2022-04-27",
+      "description": "PAYPAL*AOSOMCANADA 4029357733 ON",
+      "amount": -195.91,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "b0c5450b-8699-4677-93e5-a088db676e3e",
+      "date": "2022-06-06",
+      "description": "THECHILDREN'SPLACE# NEPEAN ON",
+      "amount": -35.4,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "85dbc304-840a-4fdd-80e8-85bf7c24b639",
+      "date": "2022-10-27",
+      "description": "NAVCANADA OTTAWA ON",
+      "amount": -100,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "2823194c-5948-4e46-8dab-e27384878923",
+      "date": "2023-02-07",
+      "description": "THE CHILDRENS PLACE MISSISSAUGA ON",
+      "amount": -69.97,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "1e6ccfba-7a0c-4fa0-9a4a-e36696716486",
+      "date": "2023-02-19",
+      "description": "MICHAELS OF CANADA #35 OTTAWA ON",
+      "amount": -21.7,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "cad6ded4-35ab-4ab4-9ca9-41e0bdf17042",
+      "date": "2023-02-19",
+      "description": "MICHAELS OF CANADA #35 OTTAWA ON",
+      "amount": -35.58,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "504e19fa-2085-4933-b29e-8d24ac05436e",
+      "date": "2023-02-19",
+      "description": "MICHAELS OF CANADA #35 OTTAWA ON",
+      "amount": -118.64,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "691aef06-6b46-4870-a5cf-cb60e0325d59",
+      "date": "2023-02-28",
+      "description": "THE CHILDRENS PLACE MISSISSAUGA ON",
+      "amount": -75.24,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "a2f1859e-229d-4243-8ba3-0ddaa68aa2cc",
+      "date": "2023-04-05",
+      "description": "THE CHILDRENS PLACE MISSISSAUGA ON",
+      "amount": -109.4,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "dfe797bc-1672-40e1-b9d3-ea8f1a2fc185",
+      "date": "2023-05-26",
+      "description": "Ralph Lauren Canada LP Toronto ON",
+      "amount": -73.44,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "929ed514-3870-4681-9606-0e004c1aedf4",
+      "date": "2023-10-28",
+      "description": "VINAUDIT CANADA VANCOUVER BC",
+      "amount": -16.89,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "d9b195fb-7d55-438f-be9f-66095fa9ccf5",
+      "date": "2024-06-21",
+      "description": "PAYPAL *AOSOMCANADA 4167926088 ON",
+      "amount": -384.19,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "9f9f184a-fa64-40b2-8d24-d4633a2ab6f0",
+      "date": "2024-06-29",
+      "description": "SERVICE CANADA OTTAWA OTTAWA ON",
+      "amount": -77,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "aa0a2e42-b400-4837-8732-5f83f2ee41c6",
+      "date": "2024-07-13",
+      "description": "Amano McGann Canada In OTTAWA ON",
+      "amount": -5,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "c4d7fc50-3e49-4bbc-945b-e7837529b69f",
+      "date": "2024-08-09",
+      "description": "STUBHUB CANADA LTD TORONTO ON",
+      "amount": -210.54,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "8bab3f68-3a2a-4f58-a384-9f1bb420da92",
+      "date": "2024-08-23",
+      "description": "THE CHILDRENS PLACE MISSISSAUGA ON",
+      "amount": -39.55,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "8d26bd3e-a43c-43f0-8a88-130c6a152964",
+      "date": "2024-09-09",
+      "description": "OLD NAVY CANADA / 24-4 OTTAWA ON",
+      "amount": -4.99,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "491191f8-41fe-48a3-9914-44dd1c755f84",
+      "date": "2025-04-30",
+      "description": "POOLSUPPLIESCANADA 188 BURLINGTON",
+      "amount": -205.64,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "0b319db0-8db7-467e-87a0-104b4bdb12bf",
+      "date": "2025-08-23",
+      "description": "POOLSUPPLIESCANADA 188 BURLINGTON",
+      "amount": -115.15,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "c8c7007f-ad06-4e19-acd2-e86b9abcf05b",
+      "date": "2025-09-23",
+      "description": "SERVICE CANADA OTTAWA OTTAWA ON",
+      "amount": -57,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "3c44d71d-48a0-4cf9-97d1-56ede8f681b7",
+      "date": "2025-09-23",
+      "description": "SERVICE CANADA OTTAWA OTTAWA ON",
+      "amount": -160,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "19f8d7ac-9801-4bd1-b6cd-cfae6eac97d0",
+      "date": "2025-10-01",
+      "description": "POOLSUPPLIESCANADA 188 BURLINGTON",
+      "amount": -47.37,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "31d3421b-22de-49ca-ac7d-ee9e2ab3d9be",
+      "date": "2025-10-04",
+      "description": "NAYAX CANADA INC MASTE FREDERICTON",
+      "amount": -3,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "63f3f703-6512-43f1-8474-a2f3b4eb9bbe",
+      "date": "2025-10-04",
+      "description": "NAYAX CANADA INC MASTE FREDERICTON",
+      "amount": -2.75,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "cecf157d-ea46-4b73-b182-63ce3cb6ef4b",
+      "date": "2022-09-15",
+      "description": "ALGONQUINC-PAY&DISPLAY NEPEAN",
+      "amount": -9,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "ecd429bb-983a-4e0f-b494-b597de4e769d",
+      "date": "2023-10-28",
+      "description": "Guess? Canada Corporation KANATA",
+      "amount": -27.12,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "bb2b6a44-8c83-4729-831f-c3461d175088",
+      "date": "2023-11-01",
+      "description": "12396301 CANADA INC GATINEAU",
+      "amount": -3.45,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    },
+    {
+      "id": "01982a69-8091-430a-b494-9ea9ebe638a3",
+      "date": "2023-11-01",
+      "description": "12396301 CANADA INC GATINEAU",
+      "amount": -9.19,
+      "before": {
+        "category_id": 23,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": null,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": null,
+      "blocked_rules": [],
+      "matched_rules": []
+    }
+  ],
+  "top_changed_merchants": [],
+  "categorized": 60,
+  "applied_options": {
+    "overwrite_category": true,
+    "overwrite_tags": false,
+    "overwrite_merchant": false,
+    "overwrite_flags": false,
+    "includeLegacyTagRules": true,
+    "only_uncategorized": false,
+    "exclude_category_ids": [
+      25
+    ],
+    "skip_transfers": true,
+    "skip_excluded_from_totals": true,
+    "dry_run": true,
+    "sample_limit": 120,
+    "allow_negative_income_category": false
+  }
+}

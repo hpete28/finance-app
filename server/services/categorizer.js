@@ -3,6 +3,7 @@ const { getDb } = require('../database');
 
 const MAX_REGEX_PATTERN_LENGTH = 256;
 const SOURCE_RANK = { manual: 0, learned: 1, legacy_tag: 2 };
+let incomeCategoryCache = { ids: new Set(), fetched_at: 0 };
 
 function normalizeForMatching(value) {
   return String(value || '')
@@ -52,6 +53,23 @@ function normalizeMatchType(matchType) {
 
 function sourceRank(source) {
   return SOURCE_RANK[String(source || 'manual').toLowerCase()] ?? 9;
+}
+
+function getIncomeCategoryIds(options = {}) {
+  if (options.incomeCategoryIds instanceof Set) return options.incomeCategoryIds;
+  if (Array.isArray(options.incomeCategoryIds)) {
+    return new Set(options.incomeCategoryIds.map((v) => Number(v)).filter((v) => Number.isFinite(v)));
+  }
+  const now = Date.now();
+  if (now - incomeCategoryCache.fetched_at > 30000 || !incomeCategoryCache.ids.size) {
+    const db = getDb();
+    const rows = db.prepare(`SELECT id FROM categories WHERE COALESCE(is_income, 0) = 1`).all();
+    incomeCategoryCache = {
+      ids: new Set(rows.map((r) => Number(r.id)).filter((v) => Number.isFinite(v))),
+      fetched_at: now,
+    };
+  }
+  return incomeCategoryCache.ids;
 }
 
 function normalizeTextCondition(input, fallbackKeyword = '', fallbackMatchType = '') {
@@ -386,12 +404,26 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
     overwrite_tags: !!options.overwrite_tags,
     overwrite_merchant: !!options.overwrite_merchant,
     overwrite_flags: !!options.overwrite_flags,
+    allow_negative_income_category: !!options.allow_negative_income_category,
   };
+  const incomeCategoryIds = getIncomeCategoryIds(options);
+  const existingCategoryId = tx.category_id === undefined ? null : tx.category_id;
+  const clearInvalidNegativeIncomeSeed = (
+    opts.overwrite_category
+    && existingCategoryId !== null
+    && existingCategoryId !== undefined
+    && incomeCategoryIds.has(Number(existingCategoryId))
+    && Number(tx.amount) <= 0
+    && !opts.allow_negative_income_category
+  );
 
   const result = {
     ...tx,
+    category_id: clearInvalidNegativeIncomeSeed ? null : existingCategoryId,
     matched_rule_ids: [],
     matched_rules: [],
+    blocked_rules: [],
+    winning_category_rule: null,
   };
 
   const lock = {
@@ -418,8 +450,28 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
     const actions = rule.actions || {};
 
     if (actions.set_category_id !== undefined && actions.set_category_id !== null && !lock.category) {
-      result.category_id = Number(actions.set_category_id);
-      lock.category = true;
+      const nextCategoryId = Number(actions.set_category_id);
+      const nextIsIncome = incomeCategoryIds.has(nextCategoryId);
+      const assigningNegativeIncome = nextIsIncome && Number(result.amount) <= 0 && !opts.allow_negative_income_category;
+      if (assigningNegativeIncome) {
+        result.blocked_rules.push({
+          id: rule.id,
+          reason: 'income_requires_positive_amount',
+          attempted_category_id: nextCategoryId,
+          amount: Number(result.amount) || 0,
+        });
+      } else {
+        result.category_id = nextCategoryId;
+        result.winning_category_rule = {
+          id: rule.id,
+          name: rule.name || null,
+          source: rule.source,
+          priority: rule.priority,
+          category_id: nextCategoryId,
+          category_name: rule.category_name || null,
+        };
+        lock.category = true;
+      }
     }
 
     if (allowTagActions && actions.tags) {
@@ -462,6 +514,7 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
     ...result,
     changed,
     changed_any: changed.category || changed.tags || changed.merchant || changed.income || changed.exclude,
+    blocked_income_assignments: result.blocked_rules.filter((b) => b.reason === 'income_requires_positive_amount').length,
   };
 }
 
@@ -479,6 +532,9 @@ function applyRulesToTransactionInput(transaction, options = {}) {
 
 function applyRulesToAllTransactions(options = {}) {
   const db = getDb();
+  const excludeCategoryIds = Array.isArray(options.exclude_category_ids)
+    ? [...new Set(options.exclude_category_ids.map((v) => Number(v)).filter((v) => Number.isFinite(v)))]
+    : [];
   const opts = {
     overwrite_category: !!options.overwrite_category,
     overwrite_tags: !!options.overwrite_tags,
@@ -486,28 +542,50 @@ function applyRulesToAllTransactions(options = {}) {
     overwrite_flags: !!options.overwrite_flags,
     only_uncategorized: !!options.only_uncategorized,
     includeLegacyTagRules: options.includeLegacyTagRules !== false,
+    exclude_category_ids: excludeCategoryIds,
+    skip_transfers: !!options.skip_transfers,
+    skip_excluded_from_totals: !!options.skip_excluded_from_totals,
+    dry_run: !!options.dry_run,
+    sample_limit: Math.min(200, Math.max(10, Number(options.sample_limit) || 40)),
+    allow_negative_income_category: !!options.allow_negative_income_category,
   };
 
   const compiledRules = getCompiledRules({
     includeLegacyTagRules: opts.includeLegacyTagRules,
   });
 
-  const rows = opts.only_uncategorized
-    ? db.prepare(`
-      SELECT id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals
-      FROM transactions
-      WHERE category_id IS NULL
-    `).all()
-    : db.prepare(`
-      SELECT id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals
-      FROM transactions
-    `).all();
+  const where = [];
+  const params = [];
+  if (opts.only_uncategorized) {
+    where.push('category_id IS NULL');
+  }
+  if (opts.skip_transfers) {
+    where.push('COALESCE(is_transfer, 0) = 0');
+  }
+  if (opts.skip_excluded_from_totals) {
+    where.push('COALESCE(exclude_from_totals, 0) = 0');
+  }
+  if (opts.exclude_category_ids.length > 0) {
+    const placeholders = opts.exclude_category_ids.map(() => '?').join(', ');
+    where.push(`(category_id IS NULL OR category_id NOT IN (${placeholders}))`);
+    params.push(...opts.exclude_category_ids);
+  }
+
+  const sql = `
+    SELECT id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals
+    FROM transactions
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+  `;
+  const rows = db.prepare(sql).all(...params);
 
   const update = db.prepare(`
     UPDATE transactions
     SET category_id = ?, tags = ?, merchant_name = ?, is_income_override = ?, exclude_from_totals = ?
     WHERE id = ?
   `);
+  const categoryChanges = new Map();
+  const changeSamples = [];
+  const changedMerchants = new Map();
 
   const stats = {
     scanned: rows.length,
@@ -518,7 +596,13 @@ function applyRulesToAllTransactions(options = {}) {
     merchant_updates: 0,
     income_updates: 0,
     exclude_updates: 0,
+    dry_run: opts.dry_run,
+    blocked_income_assignments: 0,
+    category_change_buckets: [],
+    sample_changes: [],
+    top_changed_merchants: [],
   };
+  const incomeCategoryIds = getIncomeCategoryIds(options);
 
   db.transaction(() => {
     for (const row of rows) {
@@ -526,27 +610,79 @@ function applyRulesToAllTransactions(options = {}) {
         ...row,
         tags: parseJsonSafe(row.tags, []),
       }, compiledRules, opts);
+      stats.blocked_income_assignments += Number(evaluated.blocked_income_assignments || 0);
 
       if (evaluated.matched_rule_ids.length) stats.matched_transactions += 1;
       if (!evaluated.changed_any) continue;
 
-      update.run(
-        evaluated.category_id ?? null,
-        JSON.stringify(evaluated.tags || []),
-        evaluated.merchant_name || null,
-        evaluated.is_income_override ? 1 : 0,
-        evaluated.exclude_from_totals ? 1 : 0,
-        row.id
-      );
+      if (!opts.dry_run) {
+        update.run(
+          evaluated.category_id ?? null,
+          JSON.stringify(evaluated.tags || []),
+          evaluated.merchant_name || null,
+          evaluated.is_income_override ? 1 : 0,
+          evaluated.exclude_from_totals ? 1 : 0,
+          row.id
+        );
+      }
 
       stats.updated += 1;
-      if (evaluated.changed.category) stats.category_updates += 1;
+      if (evaluated.changed.category) {
+        stats.category_updates += 1;
+        const from = row.category_id === undefined ? null : row.category_id;
+        const to = evaluated.category_id === undefined ? null : evaluated.category_id;
+        const key = `${from ?? 'null'}->${to ?? 'null'}`;
+        categoryChanges.set(key, {
+          from_category_id: from,
+          to_category_id: to,
+          from_is_income: from !== null && from !== undefined ? incomeCategoryIds.has(Number(from)) : false,
+          to_is_income: to !== null && to !== undefined ? incomeCategoryIds.has(Number(to)) : false,
+          count: (categoryChanges.get(key)?.count || 0) + 1,
+        });
+      }
       if (evaluated.changed.tags) stats.tag_updates += 1;
       if (evaluated.changed.merchant) stats.merchant_updates += 1;
       if (evaluated.changed.income) stats.income_updates += 1;
       if (evaluated.changed.exclude) stats.exclude_updates += 1;
+
+      if (changeSamples.length < opts.sample_limit) {
+        changeSamples.push({
+          id: row.id,
+          date: row.date,
+          description: row.description,
+          amount: row.amount,
+          before: {
+            category_id: row.category_id ?? null,
+            merchant_name: row.merchant_name || null,
+            tags: parseJsonSafe(row.tags, []),
+            is_income_override: row.is_income_override ? 1 : 0,
+            exclude_from_totals: row.exclude_from_totals ? 1 : 0,
+          },
+          after: {
+            category_id: evaluated.category_id ?? null,
+            merchant_name: evaluated.merchant_name || null,
+            tags: evaluated.tags || [],
+            is_income_override: evaluated.is_income_override ? 1 : 0,
+            exclude_from_totals: evaluated.exclude_from_totals ? 1 : 0,
+          },
+          winning_category_rule: evaluated.winning_category_rule || null,
+          blocked_rules: evaluated.blocked_rules || [],
+          matched_rules: evaluated.matched_rules || [],
+        });
+      }
+      const merchantKey = String(evaluated.merchant_name || row.merchant_name || '').trim();
+      if (merchantKey) changedMerchants.set(merchantKey, (changedMerchants.get(merchantKey) || 0) + 1);
     }
   })();
+
+  stats.category_change_buckets = [...categoryChanges.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 100);
+  stats.sample_changes = changeSamples;
+  stats.top_changed_merchants = [...changedMerchants.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 25)
+    .map(([merchant_name, count]) => ({ merchant_name, count }));
 
   return stats;
 }

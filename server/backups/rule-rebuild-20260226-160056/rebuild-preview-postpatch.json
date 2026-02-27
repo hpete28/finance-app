@@ -1,0 +1,51 @@
+{
+  "run_id": 3,
+  "mode": "preview",
+  "income_sign_guard_backfill": {
+    "scanned": 939,
+    "updated": 20,
+    "updated_rule_ids": [
+      235,
+      250,
+      676,
+      681,
+      689,
+      699,
+      700,
+      701,
+      702,
+      703,
+      704,
+      705,
+      706,
+      707,
+      716,
+      717,
+      719,
+      721,
+      726,
+      738
+    ]
+  },
+  "reset_summary": null,
+  "trusted_rows": 6800,
+  "candidate_groups": 1670,
+  "suggestions_count": 0,
+  "suggestions": [],
+  "apply_summary": {
+    "created": 0,
+    "skipped": 0
+  },
+  "config": {
+    "apply": false,
+    "reset_learned": false,
+    "max_suggestions": 180,
+    "min_support": 5,
+    "min_purity": 0.97,
+    "max_conflict_rate": 0.03,
+    "max_match_ratio": 0.08,
+    "exclude_category_ids": [
+      25
+    ]
+  }
+}

@@ -1,0 +1,363 @@
+{
+  "scanned": 8627,
+  "updated": 7,
+  "matched_transactions": 6800,
+  "category_updates": 7,
+  "tag_updates": 0,
+  "merchant_updates": 0,
+  "income_updates": 0,
+  "exclude_updates": 0,
+  "dry_run": true,
+  "blocked_income_assignments": 0,
+  "category_change_buckets": [
+    {
+      "from_category_id": 6,
+      "to_category_id": 5,
+      "from_is_income": false,
+      "to_is_income": false,
+      "count": 4
+    },
+    {
+      "from_category_id": 8,
+      "to_category_id": 5,
+      "from_is_income": false,
+      "to_is_income": false,
+      "count": 2
+    },
+    {
+      "from_category_id": 4,
+      "to_category_id": 5,
+      "from_is_income": false,
+      "to_is_income": false,
+      "count": 1
+    }
+  ],
+  "sample_changes": [
+    {
+      "id": "efd7335c-38fa-4cb7-bdab-5c08eb748857",
+      "date": "2019-10-19",
+      "description": "LABELLEETLABOEUF GATINEAU QC",
+      "amount": -57.97,
+      "before": {
+        "category_id": 6,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": 5,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": {
+        "id": 65,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "category_id": 5,
+        "category_name": "Utilities & Taxes"
+      },
+      "blocked_rules": [],
+      "matched_rules": [
+        {
+          "id": 65,
+          "name": null,
+          "category_name": "Utilities & Taxes",
+          "source": "manual",
+          "priority": 10
+        }
+      ]
+    },
+    {
+      "id": "fa19617b-fd43-4024-8833-f4f80f322531",
+      "date": "2021-09-03",
+      "description": "ABELLPESTCONTROLINC 888-9494949 ON",
+      "amount": -480.25,
+      "before": {
+        "category_id": 8,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": 5,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": {
+        "id": 65,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "category_id": 5,
+        "category_name": "Utilities & Taxes"
+      },
+      "blocked_rules": [],
+      "matched_rules": [
+        {
+          "id": 65,
+          "name": null,
+          "category_name": "Utilities & Taxes",
+          "source": "manual",
+          "priority": 10
+        },
+        {
+          "id": 123,
+          "name": null,
+          "category_name": "Home Maintenance/upgrade",
+          "source": "manual",
+          "priority": 10
+        },
+        {
+          "id": 458,
+          "name": null,
+          "category_name": "Home Maintenance/upgrade",
+          "source": "manual",
+          "priority": 5
+        }
+      ]
+    },
+    {
+      "id": "30dfe6fc-e19a-4134-80ac-6ad65173d455",
+      "date": "2022-01-04",
+      "description": "ABELLPESTCONTROLINC 888-9494949 ON",
+      "amount": -141.25,
+      "before": {
+        "category_id": 8,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": 5,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": {
+        "id": 65,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "category_id": 5,
+        "category_name": "Utilities & Taxes"
+      },
+      "blocked_rules": [],
+      "matched_rules": [
+        {
+          "id": 65,
+          "name": null,
+          "category_name": "Utilities & Taxes",
+          "source": "manual",
+          "priority": 10
+        },
+        {
+          "id": 123,
+          "name": null,
+          "category_name": "Home Maintenance/upgrade",
+          "source": "manual",
+          "priority": 10
+        },
+        {
+          "id": 458,
+          "name": null,
+          "category_name": "Home Maintenance/upgrade",
+          "source": "manual",
+          "priority": 5
+        }
+      ]
+    },
+    {
+      "id": "6ea6b319-0f8c-404b-8706-0134382e7756",
+      "date": "2022-08-20",
+      "description": "SUZYQDOUGHNUTSBELLS OTTAWA ON",
+      "amount": -36,
+      "before": {
+        "category_id": 6,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": 5,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": {
+        "id": 65,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "category_id": 5,
+        "category_name": "Utilities & Taxes"
+      },
+      "blocked_rules": [],
+      "matched_rules": [
+        {
+          "id": 65,
+          "name": null,
+          "category_name": "Utilities & Taxes",
+          "source": "manual",
+          "priority": 10
+        }
+      ]
+    },
+    {
+      "id": "1ebef02d-eff1-479f-b44e-8c8a7fc3dc81",
+      "date": "2024-05-16",
+      "description": "WEB PARC OMEGA MONTEBELLO QC",
+      "amount": -125.14,
+      "before": {
+        "category_id": 4,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": 5,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": {
+        "id": 65,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "category_id": 5,
+        "category_name": "Utilities & Taxes"
+      },
+      "blocked_rules": [],
+      "matched_rules": [
+        {
+          "id": 65,
+          "name": null,
+          "category_name": "Utilities & Taxes",
+          "source": "manual",
+          "priority": 10
+        }
+      ]
+    },
+    {
+      "id": "6b6f9d7a-64ae-43a7-a41f-0669bd67a965",
+      "date": "2024-06-12",
+      "description": "KFC/TACO BELL BAYSHORE NEPEAN ON",
+      "amount": -22.58,
+      "before": {
+        "category_id": 6,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": 5,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": {
+        "id": 65,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "category_id": 5,
+        "category_name": "Utilities & Taxes"
+      },
+      "blocked_rules": [],
+      "matched_rules": [
+        {
+          "id": 65,
+          "name": null,
+          "category_name": "Utilities & Taxes",
+          "source": "manual",
+          "priority": 10
+        },
+        {
+          "id": 91,
+          "name": null,
+          "category_name": "Dining",
+          "source": "manual",
+          "priority": 10
+        },
+        {
+          "id": 92,
+          "name": null,
+          "category_name": "Dining",
+          "source": "manual",
+          "priority": 10
+        }
+      ]
+    },
+    {
+      "id": "91d4177b-4b09-4a9e-8de1-3197f4301c59",
+      "date": "2024-07-05",
+      "description": "SUZYQ DOUGHNUTS BELLS OTTAWA ON",
+      "amount": -24.26,
+      "before": {
+        "category_id": 6,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "after": {
+        "category_id": 5,
+        "merchant_name": null,
+        "tags": [],
+        "is_income_override": 0,
+        "exclude_from_totals": 0
+      },
+      "winning_category_rule": {
+        "id": 65,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "category_id": 5,
+        "category_name": "Utilities & Taxes"
+      },
+      "blocked_rules": [],
+      "matched_rules": [
+        {
+          "id": 65,
+          "name": null,
+          "category_name": "Utilities & Taxes",
+          "source": "manual",
+          "priority": 10
+        }
+      ]
+    }
+  ],
+  "top_changed_merchants": [],
+  "categorized": 7,
+  "applied_options": {
+    "overwrite_category": true,
+    "overwrite_tags": false,
+    "overwrite_merchant": false,
+    "overwrite_flags": false,
+    "includeLegacyTagRules": true,
+    "only_uncategorized": false,
+    "exclude_category_ids": [
+      25
+    ],
+    "skip_transfers": true,
+    "skip_excluded_from_totals": true,
+    "dry_run": true,
+    "sample_limit": 80,
+    "allow_negative_income_category": false
+  }
+}

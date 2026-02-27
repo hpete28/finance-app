@@ -1,0 +1,226 @@
+{
+  "artifact_dir": "D:\\finance-app\\server\\backups\\rule-rebuild-20260226-160056",
+  "before": {
+    "metrics": {
+      "generated_at": "2026-02-26T21:02:06.569Z",
+      "transactions_total": 10555,
+      "transactions_uncategorized": 1052,
+      "transactions_transfer": 1921,
+      "transactions_excluded": 1922,
+      "rules_total": 813,
+      "rules_enabled": 813,
+      "rules_manual": 701,
+      "rules_learned": 112,
+      "rules_learned_enabled": 112,
+      "income_taxes": {
+        "id": 10,
+        "name": "Income Taxes",
+        "is_income": 0
+      },
+      "top_categories": [
+        {
+          "category": "CC Payment",
+          "n": 1857
+        },
+        {
+          "category": "(uncategorized)",
+          "n": 1052
+        },
+        {
+          "category": "Amazon",
+          "n": 987
+        },
+        {
+          "category": "Shopping & Home",
+          "n": 878
+        },
+        {
+          "category": "Groceries & Pharmacy",
+          "n": 706
+        },
+        {
+          "category": "Income",
+          "n": 685
+        },
+        {
+          "category": "Insurance & Benefits",
+          "n": 681
+        },
+        {
+          "category": "Auto & Transportation",
+          "n": 652
+        },
+        {
+          "category": "Dining",
+          "n": 524
+        },
+        {
+          "category": "Investments",
+          "n": 432
+        },
+        {
+          "category": "Costco",
+          "n": 374
+        },
+        {
+          "category": "E-Transfers",
+          "n": 287
+        },
+        {
+          "category": "Bank Fees",
+          "n": 248
+        },
+        {
+          "category": "Utilities & Taxes",
+          "n": 244
+        },
+        {
+          "category": "Travel",
+          "n": 223
+        },
+        {
+          "category": "Health & Medical",
+          "n": 182
+        },
+        {
+          "category": "Housing & Mortgage",
+          "n": 156
+        },
+        {
+          "category": "Property Tax",
+          "n": 150
+        },
+        {
+          "category": "Travel - $US",
+          "n": 121
+        },
+        {
+          "category": "Travel - Entertainment",
+          "n": 53
+        }
+      ]
+    },
+    "lint_summary": {
+      "scope": "all",
+      "total_rules_in_scope": 813,
+      "enabled_rules_in_scope": 813,
+      "duplicate_signature_groups": 18,
+      "cross_category_conflicts": 5,
+      "broad_token_violations": 24,
+      "missing_income_sign_guard": 20,
+      "predicted_blast_rules": 80,
+      "blocked_income_assignments": 91,
+      "risk_score": 0,
+      "generated_at": "2026-02-26T21:01:39.127Z"
+    }
+  },
+  "operations": {
+    "reset_archive_count": 112,
+    "rebuilt_created": 126,
+    "postpatch_income_guard_backfill_updated": 20,
+    "apply_initial_live_category_updates": 7,
+    "apply_postpatch_live_category_updates": 60,
+    "apply_initial_dry_category_updates": 7,
+    "apply_postpatch_dry_category_updates": 60
+  },
+  "after": {
+    "metrics": {
+      "generated_at": "2026-02-26T21:10:11.471Z",
+      "transactions_total": 10555,
+      "transactions_uncategorized": 1112,
+      "transactions_transfer": 1921,
+      "transactions_excluded": 1922,
+      "negative_income_count": 0,
+      "rules_total": 939,
+      "rules_enabled": 809,
+      "rules_manual_enabled": 683,
+      "rules_learned_enabled": 126,
+      "rules_archived_rows": 112,
+      "lint_reports_count": 4,
+      "rebuild_runs_count": 3
+    },
+    "lint_summary": {
+      "scope": "all",
+      "total_rules_in_scope": 939,
+      "enabled_rules_in_scope": 809,
+      "duplicate_signature_groups": 0,
+      "cross_category_conflicts": 5,
+      "broad_token_violations": 0,
+      "missing_income_sign_guard": 0,
+      "predicted_blast_rules": 80,
+      "blocked_income_assignments": 0,
+      "risk_score": 80,
+      "generated_at": "2026-02-26T21:09:45.475Z"
+    }
+  },
+  "delta": {
+    "uncategorized_change": 60,
+    "rules_total_change": 126,
+    "duplicate_signature_groups_change": -18,
+    "broad_token_violations_change": -24,
+    "missing_income_sign_guard_change": -20,
+    "blocked_income_assignments_change": -91,
+    "risk_score_change": 80,
+    "negative_income_change": 0
+  },
+  "regression_checks": {
+    "paypal_aosom": [
+      {
+        "date": "2024-06-21",
+        "description": "PAYPAL *AOSOMCANADA 4167926088 ON",
+        "amount": -384.19,
+        "category_id": null
+      },
+      {
+        "date": "2022-04-27",
+        "description": "PAYPAL*AOSOMCANADA 4029357733 ON",
+        "amount": -195.91,
+        "category_id": null
+      },
+      {
+        "date": "2022-04-09",
+        "description": "PAYPAL*AOSOMCANADA 4167926088 ON",
+        "amount": -295.39,
+        "category_id": null
+      },
+      {
+        "date": "2021-08-01",
+        "description": "PAYPAL*AOSOMCANADA 4029357733 ON",
+        "amount": -326.56,
+        "category_id": null
+      },
+      {
+        "date": "2021-05-07",
+        "description": "PAYPAL*AOSOMCANADA 4029357733 ON",
+        "amount": -326.56,
+        "category_id": null
+      }
+    ],
+    "algonquincollege": [
+      {
+        "date": "2019-10-10",
+        "description": "ALGONQUINCOLLEGE OTTAWA ON",
+        "amount": -20,
+        "category_id": 1
+      },
+      {
+        "date": "2019-10-10",
+        "description": "ALGONQUINCOLLEGE OTTAWA ON",
+        "amount": -354.2,
+        "category_id": null
+      },
+      {
+        "date": "2019-06-27",
+        "description": "ALGONQUINCOLLEGE NEPEAN ON",
+        "amount": -41.69,
+        "category_id": null
+      },
+      {
+        "date": "2019-06-22",
+        "description": "ALGONQUINCOLLEGE 613-727-4723 ON",
+        "amount": -383.6,
+        "category_id": null
+      }
+    ]
+  }
+}

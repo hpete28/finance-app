@@ -1,0 +1,4884 @@
+{
+  "run_id": 1,
+  "mode": "preview",
+  "reset_summary": null,
+  "trusted_rows": 6793,
+  "candidate_groups": 1664,
+  "suggestions_count": 126,
+  "suggestions": [
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ACCT BAL REBATE",
+      "match_type": "contains_case_insensitive",
+      "category_id": 19,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ACCT BAL REBATE",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          4
+        ],
+        "amount": {
+          "min": 29.95,
+          "max": 30.95
+        }
+      },
+      "actions": {
+        "set_category_id": 19
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.96
+      },
+      "confidence": 0.96,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ACCT BAL REBATE\"},\"merchant\":null,\"amount\":{\"exact\":null,\"min\":29.95,\"max\":30.95},\"amount_sign\":\"income\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":19,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 72,
+        "group_count": 72,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 72,
+        "estimated_match_ratio": 0.0095
+      },
+      "source_kind": "description",
+      "pattern": "ACCT BAL REBATE"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MONTHLY ACCOUNT FEE",
+      "match_type": "contains_case_insensitive",
+      "category_id": 19,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MONTHLY ACCOUNT FEE",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ],
+        "amount": {
+          "min": 29.95,
+          "max": 30.95
+        }
+      },
+      "actions": {
+        "set_category_id": 19
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.96
+      },
+      "confidence": 0.96,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MONTHLY ACCOUNT FEE\"},\"merchant\":null,\"amount\":{\"exact\":null,\"min\":29.95,\"max\":30.95},\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":19,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 72,
+        "group_count": 72,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 72,
+        "estimated_match_ratio": 0.0095
+      },
+      "source_kind": "description",
+      "pattern": "MONTHLY ACCOUNT FEE"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TANGERINE FTD",
+      "match_type": "contains_case_insensitive",
+      "category_id": 13,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TANGERINE FTD",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ],
+        "amount": {
+          "min": 500,
+          "max": 500
+        }
+      },
+      "actions": {
+        "set_category_id": 13
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.96
+      },
+      "confidence": 0.96,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TANGERINE FTD\"},\"merchant\":null,\"amount\":{\"exact\":null,\"min\":500,\"max\":500},\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":13,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 57,
+        "group_count": 57,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 57,
+        "estimated_match_ratio": 0.0075
+      },
+      "source_kind": "description",
+      "pattern": "TANGERINE FTD"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SLF INV SER INC MTF",
+      "match_type": "contains_case_insensitive",
+      "category_id": 13,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SLF INV SER INC MTF",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 13
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SLF INV SER INC MTF\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":13,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 271,
+        "group_count": 271,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 269,
+        "estimated_match_ratio": 0.0355
+      },
+      "source_kind": "description",
+      "pattern": "SLF INV SER INC MTF"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SUN LIFE MSP",
+      "match_type": "contains_case_insensitive",
+      "category_id": 17,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SUN LIFE MSP",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 17
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SUN LIFE MSP\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":17,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 180,
+        "group_count": 180,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 180,
+        "estimated_match_ratio": 0.0237
+      },
+      "source_kind": "description",
+      "pattern": "SUN LIFE MSP"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MCAP SERVICE MTG",
+      "match_type": "contains_case_insensitive",
+      "category_id": 18,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MCAP SERVICE MTG",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 18
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MCAP SERVICE MTG\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":18,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 156,
+        "group_count": 156,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 156,
+        "estimated_match_ratio": 0.0206
+      },
+      "source_kind": "description",
+      "pattern": "MCAP SERVICE MTG"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "NAV CANADA PAY",
+      "match_type": "contains_case_insensitive",
+      "category_id": 23,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "NAV CANADA PAY",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 23
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"NAV CANADA PAY\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":23,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 155,
+        "group_count": 155,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 155,
+        "estimated_match_ratio": 0.0204
+      },
+      "source_kind": "description",
+      "pattern": "NAV CANADA PAY"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SUN LIFE INS",
+      "match_type": "contains_case_insensitive",
+      "category_id": 17,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SUN LIFE INS",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 17
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SUN LIFE INS\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":17,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 144,
+        "group_count": 144,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 144,
+        "estimated_match_ratio": 0.019
+      },
+      "source_kind": "description",
+      "pattern": "SUN LIFE INS"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "APPLE COM BILL 866 712",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "APPLE COM BILL 866 712",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"APPLE COM BILL 866 712\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 94,
+        "group_count": 94,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 93,
+        "estimated_match_ratio": 0.0123
+      },
+      "source_kind": "description",
+      "pattern": "APPLE COM BILL 866 712"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "IMPARK 00110008 844 309 1028",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "IMPARK 00110008 844 309 1028",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"IMPARK 00110008 844 309 1028\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 93,
+        "group_count": 93,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "IMPARK 00110008 844 309 1028"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "FEDERAL GOVT MSP",
+      "match_type": "contains_case_insensitive",
+      "category_id": 23,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "FEDERAL GOVT MSP",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 23
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"FEDERAL GOVT MSP\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":23,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 77,
+        "group_count": 77,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 77,
+        "estimated_match_ratio": 0.0102
+      },
+      "source_kind": "description",
+      "pattern": "FEDERAL GOVT MSP"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ENBRIDGE GAS BPY",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ENBRIDGE GAS BPY",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ENBRIDGE GAS BPY\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 73,
+        "group_count": 73,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 73,
+        "estimated_match_ratio": 0.0096
+      },
+      "source_kind": "description",
+      "pattern": "ENBRIDGE GAS BPY"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "HYDRO OTTAWA MSP",
+      "match_type": "contains_case_insensitive",
+      "category_id": 5,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "HYDRO OTTAWA MSP",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 5
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"HYDRO OTTAWA MSP\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":5,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 71,
+        "group_count": 71,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 71,
+        "estimated_match_ratio": 0.0094
+      },
+      "source_kind": "description",
+      "pattern": "HYDRO OTTAWA MSP"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ALGONQUIN COLLE MSP",
+      "match_type": "contains_case_insensitive",
+      "category_id": 23,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ALGONQUIN COLLE MSP",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 23
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ALGONQUIN COLLE MSP\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":23,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 69,
+        "group_count": 69,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 69,
+        "estimated_match_ratio": 0.0091
+      },
+      "source_kind": "description",
+      "pattern": "ALGONQUIN COLLE MSP"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "CITY OTTAWA TAX",
+      "match_type": "contains_case_insensitive",
+      "category_id": 9,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "CITY OTTAWA TAX",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 9
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"CITY OTTAWA TAX\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":9,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 63,
+        "group_count": 63,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "CITY OTTAWA TAX"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PETROCAN NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PETROCAN NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.91
+      },
+      "confidence": 0.91,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PETROCAN NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 53,
+        "group_count": 53,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 53,
+        "estimated_match_ratio": 0.007
+      },
+      "source_kind": "description",
+      "pattern": "PETROCAN NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "AMZNMKTP WWW AMAZON CAON",
+      "match_type": "contains_case_insensitive",
+      "category_id": 2,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "AMZNMKTP WWW AMAZON CAON",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 2
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.9
+      },
+      "confidence": 0.9,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"AMZNMKTP WWW AMAZON CAON\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":2,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 249,
+        "group_count": 250,
+        "purity": 0.996,
+        "conflict_rate": 0.004,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "AMZNMKTP WWW AMAZON CAON"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "WAL MART 3638 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "WAL MART 3638 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.9
+      },
+      "confidence": 0.9,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"WAL MART 3638 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 47,
+        "group_count": 47,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 45,
+        "estimated_match_ratio": 0.0059
+      },
+      "source_kind": "description",
+      "pattern": "WAL MART 3638 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "AMAZON AMAZON",
+      "match_type": "contains_case_insensitive",
+      "category_id": 2,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "AMAZON AMAZON",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 2
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.88
+      },
+      "confidence": 0.88,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"AMAZON AMAZON\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":2,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 70,
+        "group_count": 71,
+        "purity": 0.986,
+        "conflict_rate": 0.014,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "AMAZON AMAZON"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ROGERS 8075 888 764 3771",
+      "match_type": "contains_case_insensitive",
+      "category_id": 5,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ROGERS 8075 888 764 3771",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 5
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.87
+      },
+      "confidence": 0.87,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ROGERS 8075 888 764 3771\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":5,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 42,
+        "group_count": 42,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 42,
+        "estimated_match_ratio": 0.0055
+      },
+      "source_kind": "description",
+      "pattern": "ROGERS 8075 888 764 3771"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "INVESTMENTS INV",
+      "match_type": "contains_case_insensitive",
+      "category_id": 13,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "INVESTMENTS INV",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 13
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.87
+      },
+      "confidence": 0.87,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"INVESTMENTS INV\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":13,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 42,
+        "group_count": 42,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 42,
+        "estimated_match_ratio": 0.0055
+      },
+      "source_kind": "description",
+      "pattern": "INVESTMENTS INV"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "METRO 256 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "METRO 256 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.86
+      },
+      "confidence": 0.86,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"METRO 256 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 157,
+        "group_count": 157,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 157,
+        "estimated_match_ratio": 0.0207
+      },
+      "source_kind": "description",
+      "pattern": "METRO 256 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ALLSTATE INS CANADA 800 255",
+      "match_type": "contains_case_insensitive",
+      "category_id": 17,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ALLSTATE INS CANADA 800 255",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 17
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.86
+      },
+      "confidence": 0.86,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ALLSTATE INS CANADA 800 255\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":17,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 74,
+        "group_count": 74,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "ALLSTATE INS CANADA 800 255"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ALLSTATE INSURANCE MARKHAM",
+      "match_type": "contains_case_insensitive",
+      "category_id": 17,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ALLSTATE INSURANCE MARKHAM",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 17
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.86
+      },
+      "confidence": 0.86,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ALLSTATE INSURANCE MARKHAM\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":17,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 65,
+        "group_count": 65,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 66,
+        "estimated_match_ratio": 0.0087
+      },
+      "source_kind": "description",
+      "pattern": "ALLSTATE INSURANCE MARKHAM"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "FRESHCO 9689 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "FRESHCO 9689 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.86
+      },
+      "confidence": 0.86,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"FRESHCO 9689 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 57,
+        "group_count": 57,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 57,
+        "estimated_match_ratio": 0.0075
+      },
+      "source_kind": "description",
+      "pattern": "FRESHCO 9689 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SHOPPERS DRUG MART NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SHOPPERS DRUG MART NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.86
+      },
+      "confidence": 0.86,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SHOPPERS DRUG MART NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 57,
+        "group_count": 57,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "SHOPPERS DRUG MART NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "AMZN MKTP WWW AMAZON CAON",
+      "match_type": "contains_case_insensitive",
+      "category_id": 2,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "AMZN MKTP WWW AMAZON CAON",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 2
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.86
+      },
+      "confidence": 0.86,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"AMZN MKTP WWW AMAZON CAON\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":2,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 39,
+        "group_count": 39,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "AMZN MKTP WWW AMAZON CAON"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ROGERS 597028075 888 764 3771",
+      "match_type": "contains_case_insensitive",
+      "category_id": 5,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ROGERS 597028075 888 764 3771",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 5
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.85
+      },
+      "confidence": 0.85,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ROGERS 597028075 888 764 3771\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":5,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 38,
+        "group_count": 38,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 38,
+        "estimated_match_ratio": 0.005
+      },
+      "source_kind": "description",
+      "pattern": "ROGERS 597028075 888 764 3771"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIMHORTONS TORONTO",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIMHORTONS TORONTO",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.85
+      },
+      "confidence": 0.85,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIMHORTONS TORONTO\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 37,
+        "group_count": 37,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 37,
+        "estimated_match_ratio": 0.0049
+      },
+      "source_kind": "description",
+      "pattern": "TIMHORTONS TORONTO"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "OTTAWA WATER WBP",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "OTTAWA WATER WBP",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.85
+      },
+      "confidence": 0.85,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"OTTAWA WATER WBP\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 37,
+        "group_count": 37,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 37,
+        "estimated_match_ratio": 0.0049
+      },
+      "source_kind": "description",
+      "pattern": "OTTAWA WATER WBP"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PSHCP RSSFP INS",
+      "match_type": "contains_case_insensitive",
+      "category_id": 17,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PSHCP RSSFP INS",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 17
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.85
+      },
+      "confidence": 0.85,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PSHCP RSSFP INS\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":17,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 37,
+        "group_count": 37,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 37,
+        "estimated_match_ratio": 0.0049
+      },
+      "source_kind": "description",
+      "pattern": "PSHCP RSSFP INS"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "BELL CANADA MONTREAL",
+      "match_type": "contains_case_insensitive",
+      "category_id": 5,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "BELL CANADA MONTREAL",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 5
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.84
+      },
+      "confidence": 0.84,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"BELL CANADA MONTREAL\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":5,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 36,
+        "group_count": 36,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "BELL CANADA MONTREAL"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ROGERS CBL 40759298203 888 764",
+      "match_type": "contains_case_insensitive",
+      "category_id": 5,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ROGERS CBL 40759298203 888 764",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 5
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.83
+      },
+      "confidence": 0.83,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ROGERS CBL 40759298203 888 764\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":5,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 34,
+        "group_count": 34,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 34,
+        "estimated_match_ratio": 0.0045
+      },
+      "source_kind": "description",
+      "pattern": "ROGERS CBL 40759298203 888 764"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PETROCAN 3300 WOODROFFE NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PETROCAN 3300 WOODROFFE NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          3
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.82
+      },
+      "confidence": 0.82,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PETROCAN 3300 WOODROFFE NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[3],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 31,
+        "group_count": 31,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "PETROCAN 3300 WOODROFFE NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MARKETPLACE CHIROPRACT NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MARKETPLACE CHIROPRACT NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.81
+      },
+      "confidence": 0.81,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MARKETPLACE CHIROPRACT NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 30,
+        "group_count": 30,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 29,
+        "estimated_match_ratio": 0.0038
+      },
+      "source_kind": "description",
+      "pattern": "MARKETPLACE CHIROPRACT NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ADONIS 101203 OTTAWA OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ADONIS 101203 OTTAWA OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.8
+      },
+      "confidence": 0.8,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ADONIS 101203 OTTAWA OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 28,
+        "group_count": 28,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 27,
+        "estimated_match_ratio": 0.0036
+      },
+      "source_kind": "description",
+      "pattern": "ADONIS 101203 OTTAWA OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "WAL MART SUPERCENTER 3638 BARRHAVEN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "WAL MART SUPERCENTER 3638 BARRHAVEN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          3
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.79
+      },
+      "confidence": 0.79,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"WAL MART SUPERCENTER 3638 BARRHAVEN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[3],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 26,
+        "group_count": 26,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 26,
+        "estimated_match_ratio": 0.0034
+      },
+      "source_kind": "description",
+      "pattern": "WAL MART SUPERCENTER 3638 BARRHAVEN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SHOPPERSDRUGMART1302 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SHOPPERSDRUGMART1302 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          3
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.79
+      },
+      "confidence": 0.79,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SHOPPERSDRUGMART1302 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[3],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 25,
+        "group_count": 25,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 25,
+        "estimated_match_ratio": 0.0033
+      },
+      "source_kind": "description",
+      "pattern": "SHOPPERSDRUGMART1302 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "CHILD TAX BEN CCB",
+      "match_type": "contains_case_insensitive",
+      "category_id": 23,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "CHILD TAX BEN CCB",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 23
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.79
+      },
+      "confidence": 0.79,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"CHILD TAX BEN CCB\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":23,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 25,
+        "group_count": 25,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 25,
+        "estimated_match_ratio": 0.0033
+      },
+      "source_kind": "description",
+      "pattern": "CHILD TAX BEN CCB"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "CAFEDELUXE OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "CAFEDELUXE OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.78
+      },
+      "confidence": 0.78,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"CAFEDELUXE OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 24,
+        "group_count": 24,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 24,
+        "estimated_match_ratio": 0.0032
+      },
+      "source_kind": "description",
+      "pattern": "CAFEDELUXE OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "VITALITYPHYSIOTHERAPY OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "VITALITYPHYSIOTHERAPY OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.78
+      },
+      "confidence": 0.78,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"VITALITYPHYSIOTHERAPY OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 24,
+        "group_count": 24,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 24,
+        "estimated_match_ratio": 0.0032
+      },
+      "source_kind": "description",
+      "pattern": "VITALITYPHYSIOTHERAPY OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "THE BAKER NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "THE BAKER NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.77
+      },
+      "confidence": 0.77,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"THE BAKER NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 32,
+        "group_count": 32,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 32,
+        "estimated_match_ratio": 0.0042
+      },
+      "source_kind": "description",
+      "pattern": "THE BAKER NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "VITALITY PHYSIOTHERAPY OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "VITALITY PHYSIOTHERAPY OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.77
+      },
+      "confidence": 0.77,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"VITALITY PHYSIOTHERAPY OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 22,
+        "group_count": 22,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 22,
+        "estimated_match_ratio": 0.0029
+      },
+      "source_kind": "description",
+      "pattern": "VITALITY PHYSIOTHERAPY OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "THEHOMEDEPOT 7079 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "THEHOMEDEPOT 7079 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.77
+      },
+      "confidence": 0.77,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"THEHOMEDEPOT 7079 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 21,
+        "group_count": 21,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 20,
+        "estimated_match_ratio": 0.0026
+      },
+      "source_kind": "description",
+      "pattern": "THEHOMEDEPOT 7079 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "COSTCO GAS W1263 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "COSTCO GAS W1263 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.77
+      },
+      "confidence": 0.77,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"COSTCO GAS W1263 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 21,
+        "group_count": 21,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 21,
+        "estimated_match_ratio": 0.0028
+      },
+      "source_kind": "description",
+      "pattern": "COSTCO GAS W1263 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "OTTAWAHEALTHGROUP OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "OTTAWAHEALTHGROUP OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.76
+      },
+      "confidence": 0.76,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"OTTAWAHEALTHGROUP OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 19,
+        "group_count": 19,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 19,
+        "estimated_match_ratio": 0.0025
+      },
+      "source_kind": "description",
+      "pattern": "OTTAWAHEALTHGROUP OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "DOLLARAMA 380 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "DOLLARAMA 380 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.75
+      },
+      "confidence": 0.75,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"DOLLARAMA 380 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 27,
+        "group_count": 27,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 27,
+        "estimated_match_ratio": 0.0036
+      },
+      "source_kind": "description",
+      "pattern": "DOLLARAMA 380 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "COUPLESCOUNSELLINGCE NORTHVANCOUVBC",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "COUPLESCOUNSELLINGCE NORTHVANCOUVBC",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ],
+        "amount": {
+          "min": 186.45,
+          "max": 186.45
+        }
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.75
+      },
+      "confidence": 0.75,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"COUPLESCOUNSELLINGCE NORTHVANCOUVBC\"},\"merchant\":null,\"amount\":{\"exact\":null,\"min\":186.45,\"max\":186.45},\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 7,
+        "estimated_match_ratio": 0.0009
+      },
+      "source_kind": "description",
+      "pattern": "COUPLESCOUNSELLINGCE NORTHVANCOUVBC"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "COSTCOGASW 1263 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "COSTCOGASW 1263 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.74
+      },
+      "confidence": 0.74,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"COSTCOGASW 1263 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 16,
+        "group_count": 16,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 16,
+        "estimated_match_ratio": 0.0021
+      },
+      "source_kind": "description",
+      "pattern": "COSTCOGASW 1263 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SHOPPERSDRUGMART NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SHOPPERSDRUGMART NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.74
+      },
+      "confidence": 0.74,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SHOPPERSDRUGMART NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 16,
+        "group_count": 16,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "SHOPPERSDRUGMART NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ALLSTATEINSURANCE MARKHAM",
+      "match_type": "contains_case_insensitive",
+      "category_id": 17,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ALLSTATEINSURANCE MARKHAM",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 17
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.74
+      },
+      "confidence": 0.74,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ALLSTATEINSURANCE MARKHAM\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":17,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 16,
+        "group_count": 16,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 16,
+        "estimated_match_ratio": 0.0021
+      },
+      "source_kind": "description",
+      "pattern": "ALLSTATEINSURANCE MARKHAM"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "APPLE COM BILL TORONTO",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "APPLE COM BILL TORONTO",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.73
+      },
+      "confidence": 0.73,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"APPLE COM BILL TORONTO\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 14,
+        "group_count": 14,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 14,
+        "estimated_match_ratio": 0.0018
+      },
+      "source_kind": "description",
+      "pattern": "APPLE COM BILL TORONTO"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "IKEA OTTAWA BURLINGTON",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "IKEA OTTAWA BURLINGTON",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.73
+      },
+      "confidence": 0.73,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"IKEA OTTAWA BURLINGTON\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 14,
+        "group_count": 14,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 14,
+        "estimated_match_ratio": 0.0018
+      },
+      "source_kind": "description",
+      "pattern": "IKEA OTTAWA BURLINGTON"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "BELLCANADA MONTREAL",
+      "match_type": "contains_case_insensitive",
+      "category_id": 5,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "BELLCANADA MONTREAL",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 5
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.73
+      },
+      "confidence": 0.73,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"BELLCANADA MONTREAL\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":5,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 13,
+        "group_count": 13,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "BELLCANADA MONTREAL"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "BRIERLEY YIG GLOUCES GLOUCESTER",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "BRIERLEY YIG GLOUCES GLOUCESTER",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.73
+      },
+      "confidence": 0.73,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"BRIERLEY YIG GLOUCES GLOUCESTER\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 13,
+        "group_count": 13,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "BRIERLEY YIG GLOUCES GLOUCESTER"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "FARM BOY OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "FARM BOY OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.72
+      },
+      "confidence": 0.72,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"FARM BOY OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 21,
+        "group_count": 21,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "FARM BOY OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "NOORBAKERY OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "NOORBAKERY OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.72
+      },
+      "confidence": 0.72,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"NOORBAKERY OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 12,
+        "group_count": 12,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 12,
+        "estimated_match_ratio": 0.0016
+      },
+      "source_kind": "description",
+      "pattern": "NOORBAKERY OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "UBER CANADA UBERTRIP TORONTO",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "UBER CANADA UBERTRIP TORONTO",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.72
+      },
+      "confidence": 0.72,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"UBER CANADA UBERTRIP TORONTO\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 12,
+        "group_count": 12,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 12,
+        "estimated_match_ratio": 0.0016
+      },
+      "source_kind": "description",
+      "pattern": "UBER CANADA UBERTRIP TORONTO"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "CMART CROWN SUPERCENTE ORANJESTAD",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "CMART CROWN SUPERCENTE ORANJESTAD",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          2
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.72
+      },
+      "confidence": 0.72,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"CMART CROWN SUPERCENTE ORANJESTAD\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[2],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 12,
+        "group_count": 12,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 12,
+        "estimated_match_ratio": 0.0016
+      },
+      "source_kind": "description",
+      "pattern": "CMART CROWN SUPERCENTE ORANJESTAD"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SHOPPERSDRUGMART 1302 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SHOPPERSDRUGMART 1302 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.72
+      },
+      "confidence": 0.72,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SHOPPERSDRUGMART 1302 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 11,
+        "group_count": 11,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 11,
+        "estimated_match_ratio": 0.0015
+      },
+      "source_kind": "description",
+      "pattern": "SHOPPERSDRUGMART 1302 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "BMO BAL INS TAX",
+      "match_type": "contains_case_insensitive",
+      "category_id": 17,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "BMO BAL INS TAX",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 17
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.72
+      },
+      "confidence": 0.72,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"BMO BAL INS TAX\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":17,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 11,
+        "group_count": 11,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "BMO BAL INS TAX"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PETROCAN 3320 FALLOWFIELD NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PETROCAN 3320 FALLOWFIELD NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          3
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.72
+      },
+      "confidence": 0.72,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PETROCAN 3320 FALLOWFIELD NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[3],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 11,
+        "group_count": 11,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 11,
+        "estimated_match_ratio": 0.0015
+      },
+      "source_kind": "description",
+      "pattern": "PETROCAN 3320 FALLOWFIELD NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SUNLIFE MED INS INS",
+      "match_type": "contains_case_insensitive",
+      "category_id": 17,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SUNLIFE MED INS INS",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 17
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.72
+      },
+      "confidence": 0.72,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SUNLIFE MED INS INS\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":17,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 11,
+        "group_count": 11,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 11,
+        "estimated_match_ratio": 0.0015
+      },
+      "source_kind": "description",
+      "pattern": "SUNLIFE MED INS INS"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "INVESTIA MTF",
+      "match_type": "contains_case_insensitive",
+      "category_id": 13,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "INVESTIA MTF",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 13
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.72
+      },
+      "confidence": 0.72,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"INVESTIA MTF\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":13,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 11,
+        "group_count": 11,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 11,
+        "estimated_match_ratio": 0.0015
+      },
+      "source_kind": "description",
+      "pattern": "INVESTIA MTF"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "LOBLAWS 1035 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "LOBLAWS 1035 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"LOBLAWS 1035 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 20,
+        "group_count": 20,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 20,
+        "estimated_match_ratio": 0.0026
+      },
+      "source_kind": "description",
+      "pattern": "LOBLAWS 1035 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIMHORTONS 7525 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIMHORTONS 7525 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIMHORTONS 7525 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 10,
+        "group_count": 10,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 10,
+        "estimated_match_ratio": 0.0013
+      },
+      "source_kind": "description",
+      "pattern": "TIMHORTONS 7525 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "IKEAOTTAWA OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "IKEAOTTAWA OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"IKEAOTTAWA OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 10,
+        "group_count": 10,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 10,
+        "estimated_match_ratio": 0.0013
+      },
+      "source_kind": "description",
+      "pattern": "IKEAOTTAWA OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "WAL MART 3066 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "WAL MART 3066 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"WAL MART 3066 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 10,
+        "group_count": 10,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 10,
+        "estimated_match_ratio": 0.0013
+      },
+      "source_kind": "description",
+      "pattern": "WAL MART 3066 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIM HORTONS 3028 OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIM HORTONS 3028 OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIM HORTONS 3028 OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 10,
+        "group_count": 10,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 10,
+        "estimated_match_ratio": 0.0013
+      },
+      "source_kind": "description",
+      "pattern": "TIM HORTONS 3028 OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SUPERFOOD ORANJESTAD ABW",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SUPERFOOD ORANJESTAD ABW",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          2
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SUPERFOOD ORANJESTAD ABW\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[2],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 10,
+        "group_count": 10,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 10,
+        "estimated_match_ratio": 0.0013
+      },
+      "source_kind": "description",
+      "pattern": "SUPERFOOD ORANJESTAD ABW"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MCDONALD 40058 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MCDONALD 40058 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MCDONALD 40058 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 9,
+        "group_count": 9,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "MCDONALD 40058 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "UBERBV HELP UBER COMNLD",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "UBERBV HELP UBER COMNLD",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"UBERBV HELP UBER COMNLD\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 9,
+        "group_count": 9,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 9,
+        "estimated_match_ratio": 0.0012
+      },
+      "source_kind": "description",
+      "pattern": "UBERBV HELP UBER COMNLD"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MCDONALD 19785 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MCDONALD 19785 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MCDONALD 19785 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 9,
+        "group_count": 9,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "MCDONALD 19785 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "LENSCRAFTERS 0960 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "LENSCRAFTERS 0960 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"LENSCRAFTERS 0960 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 9,
+        "group_count": 9,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 9,
+        "estimated_match_ratio": 0.0012
+      },
+      "source_kind": "description",
+      "pattern": "LENSCRAFTERS 0960 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SUPER FOOD ORANJESTAD ABW",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SUPER FOOD ORANJESTAD ABW",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          2
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SUPER FOOD ORANJESTAD ABW\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[2],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 9,
+        "group_count": 9,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 9,
+        "estimated_match_ratio": 0.0012
+      },
+      "source_kind": "description",
+      "pattern": "SUPER FOOD ORANJESTAD ABW"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "FARM BOY NEPEON",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "FARM BOY NEPEON",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          3
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.71
+      },
+      "confidence": 0.71,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"FARM BOY NEPEON\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[3],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 9,
+        "group_count": 9,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "FARM BOY NEPEON"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "FOOD BASICS 900 OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "FOOD BASICS 900 OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"FOOD BASICS 900 OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 18,
+        "group_count": 18,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 18,
+        "estimated_match_ratio": 0.0024
+      },
+      "source_kind": "description",
+      "pattern": "FOOD BASICS 900 OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ANDREEABIRSILADE OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ANDREEABIRSILADE OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ANDREEABIRSILADE OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 8,
+        "group_count": 8,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 8,
+        "estimated_match_ratio": 0.0011
+      },
+      "source_kind": "description",
+      "pattern": "ANDREEABIRSILADE OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MCDONALD 40058 MYMC NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MCDONALD 40058 MYMC NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MCDONALD 40058 MYMC NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 8,
+        "group_count": 8,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "MCDONALD 40058 MYMC NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "THEBAKER NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "THEBAKER NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"THEBAKER NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 8,
+        "group_count": 8,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 8,
+        "estimated_match_ratio": 0.0011
+      },
+      "source_kind": "description",
+      "pattern": "THEBAKER NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIMHORTONS 3072 OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIMHORTONS 3072 OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIMHORTONS 3072 OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 8,
+        "group_count": 8,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 8,
+        "estimated_match_ratio": 0.0011
+      },
+      "source_kind": "description",
+      "pattern": "TIMHORTONS 3072 OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MARKETPLACECHIROPRACT NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MARKETPLACECHIROPRACT NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MARKETPLACECHIROPRACT NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 8,
+        "group_count": 8,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 8,
+        "estimated_match_ratio": 0.0011
+      },
+      "source_kind": "description",
+      "pattern": "MARKETPLACECHIROPRACT NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "STARR GYMNASTICS OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 15,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "STARR GYMNASTICS OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 15
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"STARR GYMNASTICS OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":15,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 8,
+        "group_count": 8,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 8,
+        "estimated_match_ratio": 0.0011
+      },
+      "source_kind": "description",
+      "pattern": "STARR GYMNASTICS OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ALLSTATE INS CANADA MARKHAM",
+      "match_type": "contains_case_insensitive",
+      "category_id": 17,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ALLSTATE INS CANADA MARKHAM",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 17
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ALLSTATE INS CANADA MARKHAM\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":17,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 8,
+        "group_count": 8,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "ALLSTATE INS CANADA MARKHAM"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ADVANTAGEPARKING QPS OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ADVANTAGEPARKING QPS OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ADVANTAGEPARKING QPS OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 7,
+        "estimated_match_ratio": 0.0009
+      },
+      "source_kind": "description",
+      "pattern": "ADVANTAGEPARKING QPS OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIMHORTONS 1853 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIMHORTONS 1853 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIMHORTONS 1853 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 7,
+        "estimated_match_ratio": 0.0009
+      },
+      "source_kind": "description",
+      "pattern": "TIMHORTONS 1853 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PARAMOUNTFINEFOOD NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PARAMOUNTFINEFOOD NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PARAMOUNTFINEFOOD NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 7,
+        "estimated_match_ratio": 0.0009
+      },
+      "source_kind": "description",
+      "pattern": "PARAMOUNTFINEFOOD NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIMHORTONS 2434 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIMHORTONS 2434 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIMHORTONS 2434 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 7,
+        "estimated_match_ratio": 0.0009
+      },
+      "source_kind": "description",
+      "pattern": "TIMHORTONS 2434 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "AMZ AMAZON AMAZON",
+      "match_type": "contains_case_insensitive",
+      "category_id": 2,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "AMZ AMAZON AMAZON",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 2
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"AMZ AMAZON AMAZON\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":2,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "AMZ AMAZON AMAZON"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ADONISOTTAWA OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ADONISOTTAWA OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ADONISOTTAWA OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 7,
+        "estimated_match_ratio": 0.0009
+      },
+      "source_kind": "description",
+      "pattern": "ADONISOTTAWA OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "IKEAOTTAWA BURLINGTON",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "IKEAOTTAWA BURLINGTON",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"IKEAOTTAWA BURLINGTON\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 7,
+        "estimated_match_ratio": 0.0009
+      },
+      "source_kind": "description",
+      "pattern": "IKEAOTTAWA BURLINGTON"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PETRO CANADA65048 OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PETRO CANADA65048 OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.7
+      },
+      "confidence": 0.7,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PETRO CANADA65048 OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 7,
+        "estimated_match_ratio": 0.0009
+      },
+      "source_kind": "description",
+      "pattern": "PETRO CANADA65048 OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "UBERTRIPHELP UBER HELP UBER COM",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "UBERTRIPHELP UBER HELP UBER COM",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"UBERTRIPHELP UBER HELP UBER COM\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "UBERTRIPHELP UBER HELP UBER COM"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIMHORTONS 1789 OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIMHORTONS 1789 OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIMHORTONS 1789 OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "TIMHORTONS 1789 OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "4612 BARRHAVEN NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "4612 BARRHAVEN NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"4612 BARRHAVEN NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "4612 BARRHAVEN NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MCDONALDS 19785 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MCDONALDS 19785 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MCDONALDS 19785 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "MCDONALDS 19785 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "SANTE ALLIANCE HEALTH OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "SANTE ALLIANCE HEALTH OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"SANTE ALLIANCE HEALTH OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "SANTE ALLIANCE HEALTH OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ESSO CIRCLE OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ESSO CIRCLE OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ESSO CIRCLE OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "ESSO CIRCLE OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "IBALANCEPHYSIOTHERAPY OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "IBALANCEPHYSIOTHERAPY OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"IBALANCEPHYSIOTHERAPY OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "IBALANCEPHYSIOTHERAPY OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "LING SONS IGA ORANJESTAD",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "LING SONS IGA ORANJESTAD",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          2
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"LING SONS IGA ORANJESTAD\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[2],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "LING SONS IGA ORANJESTAD"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "YIG MONCIONS 847 GLOUCESTER",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "YIG MONCIONS 847 GLOUCESTER",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          3
+        ]
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"YIG MONCIONS 847 GLOUCESTER\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[3],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "YIG MONCIONS 847 GLOUCESTER"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TAX REFUND RIT",
+      "match_type": "contains_case_insensitive",
+      "category_id": 23,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TAX REFUND RIT",
+          "case_sensitive": false
+        },
+        "amount_sign": "income",
+        "account_ids": [
+          4
+        ]
+      },
+      "actions": {
+        "set_category_id": 23
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TAX REFUND RIT\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"income\",\"account_ids\":[4],\"date_range\":null,\"set_category_id\":23,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "TAX REFUND RIT"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIMHORTONS 7288 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIMHORTONS 7288 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIMHORTONS 7288 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 5,
+        "estimated_match_ratio": 0.0007
+      },
+      "source_kind": "description",
+      "pattern": "TIMHORTONS 7288 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MARSHALLS 767 KANATA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MARSHALLS 767 KANATA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MARSHALLS 767 KANATA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 5,
+        "estimated_match_ratio": 0.0007
+      },
+      "source_kind": "description",
+      "pattern": "MARSHALLS 767 KANATA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "AUDIBLE AMZN COM BILL",
+      "match_type": "contains_case_insensitive",
+      "category_id": 2,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "AUDIBLE AMZN COM BILL",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 2
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"AUDIBLE AMZN COM BILL\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":2,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "AUDIBLE AMZN COM BILL"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "AUBERGEETSPALENORD CHELSEA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "AUBERGEETSPALENORD CHELSEA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"AUBERGEETSPALENORD CHELSEA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 5,
+        "estimated_match_ratio": 0.0007
+      },
+      "source_kind": "description",
+      "pattern": "AUBERGEETSPALENORD CHELSEA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PETRO CANADA00568 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PETRO CANADA00568 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PETRO CANADA00568 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 5,
+        "estimated_match_ratio": 0.0007
+      },
+      "source_kind": "description",
+      "pattern": "PETRO CANADA00568 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PARK INDIGO OTT RESE OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 21,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PARK INDIGO OTT RESE OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 21
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PARK INDIGO OTT RESE OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":21,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 5,
+        "estimated_match_ratio": 0.0007
+      },
+      "source_kind": "description",
+      "pattern": "PARK INDIGO OTT RESE OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MEDNOW PHARMACY TORONTO",
+      "match_type": "contains_case_insensitive",
+      "category_id": 7,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MEDNOW PHARMACY TORONTO",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 7
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MEDNOW PHARMACY TORONTO\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":7,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 5,
+        "estimated_match_ratio": 0.0007
+      },
+      "source_kind": "description",
+      "pattern": "MEDNOW PHARMACY TORONTO"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIM HORTONS APP TORONTO",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIM HORTONS APP TORONTO",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIM HORTONS APP TORONTO\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 5,
+        "estimated_match_ratio": 0.0007
+      },
+      "source_kind": "description",
+      "pattern": "TIM HORTONS APP TORONTO"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "HANGTAG PARKING VANCOUVER",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "HANGTAG PARKING VANCOUVER",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          1
+        ]
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"HANGTAG PARKING VANCOUVER\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[1],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 5,
+        "estimated_match_ratio": 0.0007
+      },
+      "source_kind": "description",
+      "pattern": "HANGTAG PARKING VANCOUVER"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PONSON GENERAL NOORD",
+      "match_type": "contains_case_insensitive",
+      "category_id": 26,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PONSON GENERAL NOORD",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense",
+        "account_ids": [
+          2
+        ]
+      },
+      "actions": {
+        "set_category_id": 26
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.69
+      },
+      "confidence": 0.69,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PONSON GENERAL NOORD\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[2],\"date_range\":null,\"set_category_id\":26,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "PONSON GENERAL NOORD"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "DOLLARAMA 1179 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "DOLLARAMA 1179 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.68
+      },
+      "confidence": 0.68,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"DOLLARAMA 1179 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 13,
+        "group_count": 13,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 13,
+        "estimated_match_ratio": 0.0017
+      },
+      "source_kind": "description",
+      "pattern": "DOLLARAMA 1179 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PETRO CANADA35157 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PETRO CANADA35157 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.68
+      },
+      "confidence": 0.68,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PETRO CANADA35157 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 13,
+        "group_count": 13,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 13,
+        "estimated_match_ratio": 0.0017
+      },
+      "source_kind": "description",
+      "pattern": "PETRO CANADA35157 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ADONIS OTTAWA OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ADONIS OTTAWA OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.68
+      },
+      "confidence": 0.68,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ADONIS OTTAWA OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 13,
+        "group_count": 13,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 14,
+        "estimated_match_ratio": 0.0018
+      },
+      "source_kind": "description",
+      "pattern": "ADONIS OTTAWA OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PETRO CANADA 34572 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PETRO CANADA 34572 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.67
+      },
+      "confidence": 0.67,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PETRO CANADA 34572 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 11,
+        "group_count": 11,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 11,
+        "estimated_match_ratio": 0.0015
+      },
+      "source_kind": "description",
+      "pattern": "PETRO CANADA 34572 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "CDN TIRE STORE 00442 BARRHAVEN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "CDN TIRE STORE 00442 BARRHAVEN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.66
+      },
+      "confidence": 0.66,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"CDN TIRE STORE 00442 BARRHAVEN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 10,
+        "group_count": 10,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 10,
+        "estimated_match_ratio": 0.0013
+      },
+      "source_kind": "description",
+      "pattern": "CDN TIRE STORE 00442 BARRHAVEN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PETRO CANADA34572 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PETRO CANADA34572 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.66
+      },
+      "confidence": 0.66,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PETRO CANADA34572 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 10,
+        "group_count": 10,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 10,
+        "estimated_match_ratio": 0.0013
+      },
+      "source_kind": "description",
+      "pattern": "PETRO CANADA34572 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "PETRO CANADA 35157 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "PETRO CANADA 35157 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.65
+      },
+      "confidence": 0.65,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"PETRO CANADA 35157 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 8,
+        "group_count": 8,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 8,
+        "estimated_match_ratio": 0.0011
+      },
+      "source_kind": "description",
+      "pattern": "PETRO CANADA 35157 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "IMPARK00110024U OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 1,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "IMPARK00110024U OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 1
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.65
+      },
+      "confidence": 0.65,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"IMPARK00110024U OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":1,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 8,
+        "group_count": 8,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 8,
+        "estimated_match_ratio": 0.0011
+      },
+      "source_kind": "description",
+      "pattern": "IMPARK00110024U OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "ANNUAL CARD FEE",
+      "match_type": "contains_case_insensitive",
+      "category_id": 19,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "ANNUAL CARD FEE",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 19
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.65
+      },
+      "confidence": 0.65,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"ANNUAL CARD FEE\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":19,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 7,
+        "group_count": 7,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 7,
+        "estimated_match_ratio": 0.0009
+      },
+      "source_kind": "description",
+      "pattern": "ANNUAL CARD FEE"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "NOOR BAKERY OTTAWA",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "NOOR BAKERY OTTAWA",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.64
+      },
+      "confidence": 0.64,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"NOOR BAKERY OTTAWA\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "NOOR BAKERY OTTAWA"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "DOLLAR TREE 40153 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "DOLLAR TREE 40153 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.64
+      },
+      "confidence": 0.64,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"DOLLAR TREE 40153 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "DOLLAR TREE 40153 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "TIM HORTONS 1853 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 6,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "TIM HORTONS 1853 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 6
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.64
+      },
+      "confidence": 0.64,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"TIM HORTONS 1853 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":6,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 6,
+        "group_count": 6,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 6,
+        "estimated_match_ratio": 0.0008
+      },
+      "source_kind": "description",
+      "pattern": "TIM HORTONS 1853 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "DOLLARAMA 797 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 14,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "DOLLARAMA 797 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 14
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.64
+      },
+      "confidence": 0.64,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"DOLLARAMA 797 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":14,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 5,
+        "estimated_match_ratio": 0.0007
+      },
+      "source_kind": "description",
+      "pattern": "DOLLARAMA 797 NEPEAN"
+    },
+    {
+      "name": "Description rebuild rule",
+      "keyword": "MCDONOUGH YIG 7377 NEPEAN",
+      "match_type": "contains_case_insensitive",
+      "category_id": 16,
+      "conditions": {
+        "description": {
+          "operator": "contains",
+          "value": "MCDONOUGH YIG 7377 NEPEAN",
+          "case_sensitive": false
+        },
+        "amount_sign": "expense"
+      },
+      "actions": {
+        "set_category_id": 16
+      },
+      "behavior": {
+        "priority": 4,
+        "is_enabled": true,
+        "stop_processing": false,
+        "source": "learned",
+        "confidence": 0.64
+      },
+      "confidence": 0.64,
+      "signature": "{\"description\":{\"operator\":\"contains\",\"case_sensitive\":false,\"value\":\"MCDONOUGH YIG 7377 NEPEAN\"},\"merchant\":null,\"amount\":null,\"amount_sign\":\"expense\",\"account_ids\":[],\"date_range\":null,\"set_category_id\":16,\"tags\":null,\"set_merchant_name\":null,\"set_is_income_override\":null,\"set_exclude_from_totals\":null}",
+      "stats": {
+        "support_count": 5,
+        "group_count": 5,
+        "purity": 1,
+        "conflict_rate": 0,
+        "estimated_match_count": 0,
+        "estimated_match_ratio": 0
+      },
+      "source_kind": "description",
+      "pattern": "MCDONOUGH YIG 7377 NEPEAN"
+    }
+  ],
+  "apply_summary": {
+    "created": 0,
+    "skipped": 0
+  },
+  "config": {
+    "apply": false,
+    "reset_learned": false,
+    "max_suggestions": 180,
+    "min_support": 5,
+    "min_purity": 0.97,
+    "max_conflict_rate": 0.03,
+    "max_match_ratio": 0.08,
+    "exclude_category_ids": [
+      25
+    ]
+  }
+}

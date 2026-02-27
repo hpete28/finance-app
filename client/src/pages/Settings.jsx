@@ -1,5 +1,5 @@
 // src/pages/Settings.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, Trash2, Pencil, Check, X, Zap, RefreshCw, Eye, AlertTriangle, Sparkles, CheckSquare, Square,
 } from 'lucide-react';
@@ -205,6 +205,38 @@ function summarizeRule(rule, categoriesById = {}) {
     conditions: parts.length ? parts.join(' · ') : 'No conditions',
     actions: actionParts.length ? actionParts.join(' · ') : 'No actions',
   };
+}
+
+function parseFilenameFromDisposition(disposition) {
+  const raw = String(disposition || '');
+  const utf8Match = raw.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try { return decodeURIComponent(utf8Match[1]); } catch { return utf8Match[1]; }
+  }
+  const quotedMatch = raw.match(/filename="([^"]+)"/i);
+  if (quotedMatch?.[1]) return quotedMatch[1];
+  const basicMatch = raw.match(/filename=([^;]+)/i);
+  if (basicMatch?.[1]) return basicMatch[1].trim();
+  return null;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function inferRuleFileFormat(file) {
+  const name = String(file?.name || '').toLowerCase();
+  if (name.endsWith('.csv')) return 'csv';
+  if (name.endsWith('.json')) return 'json';
+  return undefined;
 }
 
 function CategoriesTab() {
@@ -515,7 +547,35 @@ function RulesTab() {
   const [preview, setPreview] = useState(null);
   const [needsForceSave, setNeedsForceSave] = useState(false);
   const [applyBusy, setApplyBusy] = useState(false);
-  const [applyOptions, setApplyOptions] = useState({ overwrite_category: false, overwrite_tags: false, overwrite_merchant: false, overwrite_flags: false, only_uncategorized: true });
+  const [applyOptions, setApplyOptions] = useState({
+    overwrite_category: false,
+    overwrite_tags: false,
+    overwrite_merchant: false,
+    overwrite_flags: false,
+    only_uncategorized: true,
+    skip_transfers: true,
+    skip_excluded_from_totals: true,
+    exclude_category_ids: [],
+  });
+  const [exportBusy, setExportBusy] = useState('');
+  const [importingRules, setImportingRules] = useState(false);
+  const [rulesImportFile, setRulesImportFile] = useState(null);
+  const [lastImportSummary, setLastImportSummary] = useState(null);
+  const defaultExclusionsSeededRef = useRef(false);
+  const [snapshotBusy, setSnapshotBusy] = useState(false);
+  const [lintBusy, setLintBusy] = useState(false);
+  const [lintScope, setLintScope] = useState('all');
+  const [lintResult, setLintResult] = useState(null);
+  const [lintReports, setLintReports] = useState([]);
+  const [resettingLearned, setResettingLearned] = useState(false);
+  const [rebuildingLearned, setRebuildingLearned] = useState(false);
+  const [rebuildResult, setRebuildResult] = useState(null);
+  const [rebuildRuns, setRebuildRuns] = useState([]);
+  const [previewApplyBusy, setPreviewApplyBusy] = useState(false);
+  const [applyPreview, setApplyPreview] = useState(null);
+  const [explainBusy, setExplainBusy] = useState(false);
+  const [explainIdsRaw, setExplainIdsRaw] = useState('');
+  const [explainResult, setExplainResult] = useState(null);
   const [form, setForm] = useState({ ...emptyRuleForm });
 
   const categoriesById = useMemo(() => {
@@ -528,9 +588,29 @@ function RulesTab() {
     rulesApi.list().then((r) => setRules(r.data || [])),
     categoriesApi.list().then((r) => setCats(r.data || [])),
     tagRulesApi.list().then((r) => setLegacyTagRules(r.data || [])),
+    rulesApi.lintReports(10).then((r) => setLintReports(r.data || [])).catch(() => {}),
+    rulesApi.rebuildRuns(10).then((r) => setRebuildRuns(r.data || [])).catch(() => {}),
   ]);
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (!cats.length) return;
+    setApplyOptions((prev) => {
+      const valid = new Set(cats.map((c) => Number(c.id)));
+      let excludeIds = (prev.exclude_category_ids || []).filter((id) => valid.has(Number(id)));
+
+      if (!defaultExclusionsSeededRef.current) {
+        const ccPayment = cats.find((c) => String(c.name || '').toLowerCase() === 'cc payment');
+        if (ccPayment) {
+          excludeIds = [...new Set([...excludeIds, Number(ccPayment.id)])];
+        }
+        defaultExclusionsSeededRef.current = true;
+      }
+
+      return { ...prev, exclude_category_ids: excludeIds };
+    });
+  }, [cats]);
 
   const openNew = () => { setForm({ ...emptyRuleForm }); setPreview(null); setNeedsForceSave(false); setShowBuilder(true); };
   const openEdit = (rule) => { setForm(ruleToForm(rule)); setPreview(null); setNeedsForceSave(false); setShowBuilder(true); };
@@ -587,11 +667,155 @@ function RulesTab() {
   const handleApply = async () => {
     setApplyBusy(true);
     try {
-      const res = await rulesApi.apply(applyOptions);
+      const res = await rulesApi.apply({ ...applyOptions, dry_run: false, sample_limit: 80 });
       showToast(`Updated ${res.data.updated} transactions`);
+      setApplyPreview(null);
     } catch {
       showToast('Failed to apply rules', 'error');
     } finally { setApplyBusy(false); }
+  };
+
+  const handlePreviewApply = async () => {
+    setPreviewApplyBusy(true);
+    try {
+      const res = await rulesApi.apply({ ...applyOptions, dry_run: true, sample_limit: 80 });
+      setApplyPreview(res.data || null);
+      showToast(`Dry run: ${res?.data?.updated || 0} transactions would change`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to preview apply', 'error');
+    } finally {
+      setPreviewApplyBusy(false);
+    }
+  };
+
+  const runLint = async () => {
+    setLintBusy(true);
+    try {
+      const res = await rulesApi.lint({ scope: lintScope, persist: true });
+      setLintResult(res.data || null);
+      const reports = await rulesApi.lintReports(10);
+      setLintReports(reports.data || []);
+      showToast(`Lint complete (risk score ${res?.data?.summary?.risk_score ?? 'n/a'})`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Lint failed', 'error');
+    } finally {
+      setLintBusy(false);
+    }
+  };
+
+  const downloadLint = () => {
+    if (!lintResult) return;
+    const blob = new Blob([JSON.stringify(lintResult, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `rules-lint-${lintScope}.json`);
+  };
+
+  const handleSnapshot = async () => {
+    setSnapshotBusy(true);
+    try {
+      const res = await rulesApi.snapshot();
+      showToast(`Snapshot created: ${res?.data?.file_name || 'backup'}`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to create snapshot', 'error');
+    } finally {
+      setSnapshotBusy(false);
+    }
+  };
+
+  const handleResetLearned = async () => {
+    setResettingLearned(true);
+    try {
+      const res = await rulesApi.resetLearned({ reason: 'wizard_reset', manual_dedupe: true });
+      await load();
+      setRebuildResult(null);
+      showToast(`Archived ${res?.data?.archive?.archived_count || 0} learned rules and disabled ${res?.data?.archive?.disabled_count || 0}`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to reset learned rules', 'error');
+    } finally {
+      setResettingLearned(false);
+    }
+  };
+
+  const handleRebuildLearned = async (apply = false) => {
+    setRebuildingLearned(true);
+    try {
+      const res = await rulesApi.rebuildLearned({
+        apply,
+        reset_learned: false,
+        max_suggestions: 120,
+        min_support: 2,
+        include_reviewed_trusted: true,
+      });
+      setRebuildResult(res.data || null);
+      const runs = await rulesApi.rebuildRuns(10);
+      setRebuildRuns(runs.data || []);
+      if (apply) {
+        await load();
+        showToast(`Applied ${res?.data?.apply_summary?.created || 0} rebuilt learned rules`);
+      } else {
+        showToast(`Generated ${res?.data?.suggestions_count || 0} rebuild suggestions`);
+      }
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to rebuild learned rules', 'error');
+    } finally {
+      setRebuildingLearned(false);
+    }
+  };
+
+  const handleExplain = async () => {
+    const ids = [...new Set(String(explainIdsRaw || '').split(/[,\s]+/).map((v) => v.trim()).filter(Boolean))];
+    if (!ids.length) {
+      showToast('Enter at least one transaction ID', 'error');
+      return;
+    }
+    setExplainBusy(true);
+    try {
+      const res = await rulesApi.explain({ transaction_ids: ids, include_legacy_tag_rules: true, limit: 30 });
+      setExplainResult(res.data || null);
+      showToast(`Explained ${res?.data?.count || 0} transactions`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to explain transactions', 'error');
+    } finally {
+      setExplainBusy(false);
+    }
+  };
+
+  const handleExport = async (scope, format) => {
+    const busyKey = `${scope}:${format}`;
+    setExportBusy(busyKey);
+    try {
+      const res = await rulesApi.exportFile({ scope, format });
+      const filename =
+        parseFilenameFromDisposition(res?.headers?.['content-disposition'])
+        || `rules-${scope}.${format}`;
+      downloadBlob(res.data, filename);
+      showToast(`Exported ${scope} rules (${format.toUpperCase()})`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to export rules', 'error');
+    } finally {
+      setExportBusy('');
+    }
+  };
+
+  const handleImportRules = async () => {
+    if (!rulesImportFile) return;
+    setImportingRules(true);
+    setLastImportSummary(null);
+    try {
+      const format = inferRuleFileFormat(rulesImportFile);
+      const res = await rulesApi.importFile(rulesImportFile, {
+        scope: 'learned',
+        mode: 'replace',
+        format,
+      });
+      setLastImportSummary(res.data || null);
+      await load();
+      setRulesImportFile(null);
+      showToast(`Imported ${res?.data?.created_rules || 0} learned rules`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to import rules', 'error');
+    } finally {
+      setImportingRules(false);
+    }
   };
 
   const summaryRows = rules.map((rule) => ({ rule, summary: summarizeRule(rule, categoriesById) }));
@@ -607,7 +831,197 @@ function RulesTab() {
           <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.overwrite_tags} onChange={(e) => setApplyOptions((v) => ({ ...v, overwrite_tags: e.target.checked }))} />Overwrite existing tags</label>
           <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.overwrite_merchant} onChange={(e) => setApplyOptions((v) => ({ ...v, overwrite_merchant: e.target.checked }))} />Overwrite existing merchant</label>
           <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.only_uncategorized} onChange={(e) => setApplyOptions((v) => ({ ...v, only_uncategorized: e.target.checked }))} />Only uncategorized rows</label>
+          <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.skip_transfers} onChange={(e) => setApplyOptions((v) => ({ ...v, skip_transfers: e.target.checked }))} />Skip transfer transactions</label>
+          <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.skip_excluded_from_totals} onChange={(e) => setApplyOptions((v) => ({ ...v, skip_excluded_from_totals: e.target.checked }))} />Skip already excluded transactions</label>
         </div>
+        <div className="mt-3">
+          <label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Exclude categories from re-apply</label>
+          <select
+            multiple
+            className="select h-24 w-full"
+            value={(applyOptions.exclude_category_ids || []).map(String)}
+            onChange={(e) => setApplyOptions((v) => ({
+              ...v,
+              exclude_category_ids: [...e.target.selectedOptions].map((o) => Number(o.value)),
+            }))}
+          >
+            {cats.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+            Selected: {(applyOptions.exclude_category_ids || []).length}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Rules portability</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="btn-secondary text-xs" onClick={() => handleExport('learned', 'json')} disabled={!!exportBusy}>
+            {exportBusy === 'learned:json' ? 'Exporting…' : 'Export learned JSON'}
+          </button>
+          <button className="btn-secondary text-xs" onClick={() => handleExport('learned', 'csv')} disabled={!!exportBusy}>
+            {exportBusy === 'learned:csv' ? 'Exporting…' : 'Export learned CSV'}
+          </button>
+          <button className="btn-secondary text-xs" onClick={() => handleExport('all', 'json')} disabled={!!exportBusy}>
+            {exportBusy === 'all:json' ? 'Exporting…' : 'Export all JSON'}
+          </button>
+          <button className="btn-secondary text-xs" onClick={() => handleExport('all', 'csv')} disabled={!!exportBusy}>
+            {exportBusy === 'all:csv' ? 'Exporting…' : 'Export all CSV'}
+          </button>
+          <input
+            type="file"
+            accept=".json,.csv"
+            onChange={(e) => setRulesImportFile(e.target.files?.[0] || null)}
+            className="input text-xs"
+            style={{ maxWidth: 280 }}
+          />
+          <button className="btn-primary text-xs" onClick={handleImportRules} disabled={!rulesImportFile || importingRules}>
+            {importingRules ? 'Importing…' : 'Import (replace learned)'}
+          </button>
+          {rulesImportFile && <span style={{ color: 'var(--text-muted)' }}>{rulesImportFile.name}</span>}
+        </div>
+        {lastImportSummary && (
+          <div className="mt-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Parsed {lastImportSummary.parsed_count || 0} | Created {lastImportSummary.created_rules || 0} | Removed {lastImportSummary.removed_rules || 0} | Invalid {lastImportSummary.skipped_invalid || 0} | Duplicate {lastImportSummary.skipped_duplicates || 0}
+            </p>
+            {!!(lastImportSummary.created_categories || []).length && (
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                Auto-created categories: {(lastImportSummary.created_categories || []).map((c) => c.name).join(', ')}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Rules health (lint)</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <select className="select text-xs" value={lintScope} onChange={(e) => setLintScope(e.target.value)}>
+            <option value="all">Scope: all</option>
+            <option value="manual">Scope: manual</option>
+            <option value="learned">Scope: learned</option>
+          </select>
+          <button className="btn-secondary text-xs" onClick={runLint} disabled={lintBusy}>
+            {lintBusy ? 'Running lint…' : 'Run lint'}
+          </button>
+          <button className="btn-secondary text-xs" onClick={downloadLint} disabled={!lintResult}>
+            Download lint JSON
+          </button>
+        </div>
+        {lintResult?.summary && (
+          <div className="mt-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Risk score {lintResult.summary.risk_score} | Duplicate groups {lintResult.summary.duplicate_signature_groups} | Cross-category conflicts {lintResult.summary.cross_category_conflicts} | Broad learned violations {lintResult.summary.broad_token_violations} | Missing income sign guard {lintResult.summary.missing_income_sign_guard}
+            </p>
+            {!!lintResult?.findings?.cross_category_conflicts?.length && (
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                Top conflict: {(lintResult.findings.cross_category_conflicts[0]?.description_needle || '').slice(0, 60)}
+              </p>
+            )}
+          </div>
+        )}
+        {!!lintReports.length && (
+          <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+            Recent lint reports: {lintReports.map((r) => `#${r.id}`).join(', ')}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Rebuild wizard</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="btn-secondary text-xs" onClick={handleSnapshot} disabled={snapshotBusy}>
+            {snapshotBusy ? 'Creating snapshot…' : '1) Snapshot DB'}
+          </button>
+          <button className="btn-secondary text-xs" onClick={handleResetLearned} disabled={resettingLearned}>
+            {resettingLearned ? 'Resetting…' : '2) Archive + disable learned'}
+          </button>
+          <button className="btn-secondary text-xs" onClick={() => handleRebuildLearned(false)} disabled={rebuildingLearned}>
+            {rebuildingLearned ? 'Building…' : '3) Build suggestions'}
+          </button>
+          <button className="btn-primary text-xs" onClick={() => handleRebuildLearned(true)} disabled={rebuildingLearned || !(rebuildResult?.suggestions_count > 0)}>
+            {rebuildingLearned ? 'Applying…' : '4) Apply rebuilt learned'}
+          </button>
+        </div>
+        {rebuildResult && (
+          <div className="mt-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Trusted rows {rebuildResult.trusted_rows || 0} (manual {rebuildResult.trusted_rows_manual || 0}, reviewed {rebuildResult.trusted_rows_reviewed || 0}) | Candidate groups {rebuildResult.candidate_groups || 0} | Suggestions {rebuildResult.suggestions_count || 0} | Applied {rebuildResult.apply_summary?.created || 0}
+            </p>
+            {!!(rebuildResult.suggestions || []).length && (
+              <div className="mt-2 max-h-40 overflow-y-auto rounded-lg" style={{ border: '1px solid var(--border)' }}>
+                {(rebuildResult.suggestions || []).slice(0, 20).map((s, idx) => (
+                  <div key={`${s.signature || s.keyword}-${idx}`} className="px-2 py-1 border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
+                    <p className="text-[11px]" style={{ color: 'var(--text-primary)' }}>
+                      {s.pattern || s.keyword}{' -> '}{categoriesById[s.category_id] || s.category_id} ({Math.round((s.confidence || 0) * 100)}%)
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {!!rebuildRuns.length && (
+          <p className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+            Recent rebuild runs: {rebuildRuns.map((r) => `#${r.id}(${r.status})`).join(', ')}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Shadow reapply (dry run)</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="btn-secondary text-xs" onClick={handlePreviewApply} disabled={previewApplyBusy}>
+            {previewApplyBusy ? 'Previewing…' : 'Preview reapply'}
+          </button>
+        </div>
+        {applyPreview && (
+          <div className="mt-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Would update {applyPreview.updated || 0} rows | category {applyPreview.category_updates || 0} | blocked negative-income {applyPreview.blocked_income_assignments || 0}
+            </p>
+            {!!(applyPreview.category_change_buckets || []).length && (
+                <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                  Top category change: {(applyPreview.category_change_buckets[0]?.from_category_id ?? 'null')}{' -> '}{(applyPreview.category_change_buckets[0]?.to_category_id ?? 'null')} ({applyPreview.category_change_buckets[0]?.count || 0})
+                </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Explain categorization</p>
+        <div className="flex flex-col gap-2">
+          <textarea
+            className="input text-xs"
+            style={{ minHeight: 72 }}
+            value={explainIdsRaw}
+            onChange={(e) => setExplainIdsRaw(e.target.value)}
+            placeholder="Paste transaction IDs (comma or newline separated)"
+          />
+          <div className="flex gap-2">
+            <button className="btn-secondary text-xs" onClick={handleExplain} disabled={explainBusy}>
+              {explainBusy ? 'Explaining…' : 'Explain IDs'}
+            </button>
+          </div>
+        </div>
+        {explainResult?.explanations?.length > 0 && (
+          <div className="mt-3 max-h-52 overflow-y-auto rounded-lg" style={{ border: '1px solid var(--border)' }}>
+            {explainResult.explanations.map((item) => (
+              <div key={item.transaction.id} className="px-2 py-2 border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
+                  <p className="text-[11px]" style={{ color: 'var(--text-primary)' }}>
+                    {item.transaction.id}{' -> '}{categoriesById[item.outcome.category_id] || item.outcome.category_id || 'Uncategorized'}
+                  </p>
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  winning rule: {item.outcome.winning_category_rule?.id || 'none'} | blocked: {(item.outcome.blocked_rules || []).length}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 space-y-2">

@@ -1,0 +1,1697 @@
+{
+  "summary": {
+    "scope": "all",
+    "total_rules_in_scope": 813,
+    "enabled_rules_in_scope": 813,
+    "duplicate_signature_groups": 18,
+    "cross_category_conflicts": 5,
+    "broad_token_violations": 24,
+    "missing_income_sign_guard": 20,
+    "predicted_blast_rules": 80,
+    "blocked_income_assignments": 91,
+    "risk_score": 0,
+    "generated_at": "2026-02-26T21:01:39.127Z"
+  },
+  "findings": {
+    "duplicate_signatures": [
+      [
+        {
+          "id": 127,
+          "source": "manual",
+          "priority": 10,
+          "name": null,
+          "keyword": "CITY OF OTTAWA TAX",
+          "category_name": "Property Tax"
+        },
+        {
+          "id": 128,
+          "source": "manual",
+          "priority": 10,
+          "name": null,
+          "keyword": "CITY OF OTTAWA - TAX",
+          "category_name": "Property Tax"
+        }
+      ],
+      [
+        {
+          "id": 135,
+          "source": "manual",
+          "priority": 10,
+          "name": null,
+          "keyword": "ST MARY COPTIC",
+          "category_name": "Donation"
+        },
+        {
+          "id": 136,
+          "source": "manual",
+          "priority": 10,
+          "name": null,
+          "keyword": "ST. MARY COPTIC",
+          "category_name": "Donation"
+        }
+      ],
+      [
+        {
+          "id": 676,
+          "source": "manual",
+          "priority": 10,
+          "name": null,
+          "keyword": " Algonquin Colle MSP",
+          "category_name": "Income"
+        },
+        {
+          "id": 681,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "ALGONQUIN COLLE MSP",
+          "category_name": "Income"
+        }
+      ],
+      [
+        {
+          "id": 677,
+          "source": "manual",
+          "priority": 10,
+          "name": null,
+          "keyword": " ACCT BAL REBATE",
+          "category_name": "Bank Fees"
+        },
+        {
+          "id": 680,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "ACCT BAL REBATE",
+          "category_name": "Bank Fees"
+        }
+      ],
+      [
+        {
+          "id": 241,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "METRO 256 NEPEAN ON",
+          "category_name": "Groceries & Pharmacy"
+        },
+        {
+          "id": 394,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "METRO#256 NEPEAN ON",
+          "category_name": "Groceries & Pharmacy"
+        }
+      ],
+      [
+        {
+          "id": 243,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "METRO #256 NEPEAN",
+          "category_name": "Groceries & Pharmacy"
+        },
+        {
+          "id": 264,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "METRO 256 NEPEAN",
+          "category_name": "Groceries & Pharmacy"
+        }
+      ],
+      [
+        {
+          "id": 253,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "WAL-MART #3638 NEPEAN ON",
+          "category_name": "Groceries & Pharmacy"
+        },
+        {
+          "id": 332,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "WAL-MART#3638 NEPEAN ON",
+          "category_name": "Groceries & Pharmacy"
+        }
+      ],
+      [
+        {
+          "id": 260,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "ROGERS ******8075 888-764-3771 ON",
+          "category_name": "Utilities & Taxes"
+        },
+        {
+          "id": 309,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "ROGERS******8075 888-764-3771 ON",
+          "category_name": "Utilities & Taxes"
+        }
+      ],
+      [
+        {
+          "id": 275,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "FRESHCO #9689 NEPEAN ON",
+          "category_name": "Groceries & Pharmacy"
+        },
+        {
+          "id": 324,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "FRESHCO#9689 NEPEAN ON",
+          "category_name": "Groceries & Pharmacy"
+        }
+      ],
+      [
+        {
+          "id": 302,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "DOLLARAMA#380 NEPEAN ON",
+          "category_name": "Shopping & Home"
+        },
+        {
+          "id": 307,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "DOLLARAMA # 380 NEPEAN ON",
+          "category_name": "Shopping & Home"
+        }
+      ],
+      [
+        {
+          "id": 336,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "AMZ*AMAZON.CA AMAZON.CA ON",
+          "category_name": "Amazon"
+        },
+        {
+          "id": 616,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "AMZ AMAZON.CA AMAZON.CA ON",
+          "category_name": "Amazon"
+        }
+      ],
+      [
+        {
+          "id": 343,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "DOLLARAMA #1179 NEPEAN ON",
+          "category_name": "Shopping & Home"
+        },
+        {
+          "id": 390,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "DOLLARAMA#1179 NEPEAN ON",
+          "category_name": "Shopping & Home"
+        }
+      ],
+      [
+        {
+          "id": 364,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "WAL-MART #3066 NEPEAN ON",
+          "category_name": "Groceries & Pharmacy"
+        },
+        {
+          "id": 408,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "WAL-MART#3066 NEPEAN ON",
+          "category_name": "Groceries & Pharmacy"
+        }
+      ],
+      [
+        {
+          "id": 373,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "MCDONALD'S #19785 NEPEAN ON",
+          "category_name": "Dining"
+        },
+        {
+          "id": 392,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "MCDONALD'S#19785 NEPEAN ON",
+          "category_name": "Dining"
+        }
+      ],
+      [
+        {
+          "id": 374,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "MCDONALD'S#40058 NEPEAN ON",
+          "category_name": "Dining"
+        },
+        {
+          "id": 391,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "MCDONALD'S #40058 NEPEAN ON",
+          "category_name": "Dining"
+        }
+      ],
+      [
+        {
+          "id": 377,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "PAYPAL *UBER 4029357733 ON",
+          "category_name": "Auto & Transportation"
+        },
+        {
+          "id": 521,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "PAYPAL*UBER 4029357733 ON",
+          "category_name": "Auto & Transportation"
+        }
+      ],
+      [
+        {
+          "id": 382,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "A&W#4612 BARRHAVEN NEPEAN ON",
+          "category_name": "Dining"
+        },
+        {
+          "id": 457,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "A&W #4612 BARRHAVEN NEPEAN ON",
+          "category_name": "Dining"
+        }
+      ],
+      [
+        {
+          "id": 665,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "PETRO-CANADA NEPEAN",
+          "category_name": "Auto & Transportation"
+        },
+        {
+          "id": 683,
+          "source": "manual",
+          "priority": 5,
+          "name": null,
+          "keyword": "PETRO CANADA NEPEAN",
+          "category_name": "Auto & Transportation"
+        }
+      ]
+    ],
+    "cross_category_conflicts": [
+      {
+        "description_needle": "COSTCO",
+        "category_count": 2,
+        "rules": [
+          {
+            "id": 32,
+            "source": "manual",
+            "priority": 10,
+            "category_id": 3,
+            "category_name": "Costco",
+            "keyword": "COSTCO",
+            "has_sign": false,
+            "account_scope": 0
+          },
+          {
+            "id": 733,
+            "source": "learned",
+            "priority": 4,
+            "category_id": 1,
+            "category_name": "Auto & Transportation",
+            "keyword": "COSTCO",
+            "has_sign": false,
+            "account_scope": 0
+          },
+          {
+            "id": 760,
+            "source": "learned",
+            "priority": 4,
+            "category_id": 3,
+            "category_name": "Costco",
+            "keyword": "COSTCO",
+            "has_sign": false,
+            "account_scope": 0
+          }
+        ]
+      },
+      {
+        "description_needle": "CMART",
+        "category_count": 2,
+        "rules": [
+          {
+            "id": 193,
+            "source": "manual",
+            "priority": 10,
+            "category_id": 16,
+            "category_name": "Groceries & Pharmacy",
+            "keyword": "CMART",
+            "has_sign": false,
+            "account_scope": 0
+          },
+          {
+            "id": 743,
+            "source": "learned",
+            "priority": 4,
+            "category_id": 26,
+            "category_name": "Travel - $US",
+            "keyword": "CMART",
+            "has_sign": false,
+            "account_scope": 0
+          },
+          {
+            "id": 825,
+            "source": "learned",
+            "priority": 4,
+            "category_id": 26,
+            "category_name": "Travel - $US",
+            "keyword": "CMART",
+            "has_sign": true,
+            "account_scope": 1
+          }
+        ]
+      },
+      {
+        "description_needle": "ENBRIDGE",
+        "category_count": 2,
+        "rules": [
+          {
+            "id": 63,
+            "source": "manual",
+            "priority": 10,
+            "category_id": 5,
+            "category_name": "Utilities & Taxes",
+            "keyword": "ENBRIDGE",
+            "has_sign": false,
+            "account_scope": 0
+          },
+          {
+            "id": 777,
+            "source": "learned",
+            "priority": 4,
+            "category_id": 1,
+            "category_name": "Auto & Transportation",
+            "keyword": "ENBRIDGE",
+            "has_sign": true,
+            "account_scope": 1
+          }
+        ]
+      },
+      {
+        "description_needle": "SUPERFOOD",
+        "category_count": 2,
+        "rules": [
+          {
+            "id": 190,
+            "source": "manual",
+            "priority": 10,
+            "category_id": 16,
+            "category_name": "Groceries & Pharmacy",
+            "keyword": "SUPERFOOD",
+            "has_sign": false,
+            "account_scope": 0
+          },
+          {
+            "id": 747,
+            "source": "learned",
+            "priority": 4,
+            "category_id": 26,
+            "category_name": "Travel - $US",
+            "keyword": "SUPERFOOD",
+            "has_sign": false,
+            "account_scope": 0
+          }
+        ]
+      },
+      {
+        "description_needle": "OTTAWA",
+        "category_count": 2,
+        "rules": [
+          {
+            "id": 724,
+            "source": "learned",
+            "priority": 4,
+            "category_id": 14,
+            "category_name": "Shopping & Home",
+            "keyword": "OTTAWA",
+            "has_sign": false,
+            "account_scope": 0
+          },
+          {
+            "id": 744,
+            "source": "learned",
+            "priority": 4,
+            "category_id": 16,
+            "category_name": "Groceries & Pharmacy",
+            "keyword": "OTTAWA",
+            "has_sign": false,
+            "account_scope": 0
+          }
+        ]
+      }
+    ],
+    "broad_token_violations": [
+      {
+        "id": 713,
+        "source": "learned",
+        "name": "Auto & Transportation · description rule",
+        "keyword": "TRSFFROM",
+        "category_name": "Auto & Transportation",
+        "priority": 4,
+        "condition": "TRSFFROM"
+      },
+      {
+        "id": 714,
+        "source": "learned",
+        "name": "Housing & Mortgage · description rule",
+        "keyword": "MCAP",
+        "category_name": "Housing & Mortgage",
+        "priority": 4,
+        "condition": "MCAP"
+      },
+      {
+        "id": 715,
+        "source": "learned",
+        "name": "Property Tax · description rule",
+        "keyword": "CITY",
+        "category_name": "Property Tax",
+        "priority": 4,
+        "condition": "CITY"
+      },
+      {
+        "id": 716,
+        "source": "learned",
+        "name": "Income · description rule",
+        "keyword": "FEDERAL",
+        "category_name": "Income",
+        "priority": 4,
+        "condition": "FEDERAL"
+      },
+      {
+        "id": 717,
+        "source": "learned",
+        "name": "Income · description rule",
+        "keyword": "CANADA",
+        "category_name": "Income",
+        "priority": 4,
+        "condition": "CANADA"
+      },
+      {
+        "id": 718,
+        "source": "learned",
+        "name": "Insurance & Benefits · description rule",
+        "keyword": "LIFE",
+        "category_name": "Insurance & Benefits",
+        "priority": 4,
+        "condition": "LIFE"
+      },
+      {
+        "id": 719,
+        "source": "learned",
+        "name": "Income · description rule",
+        "keyword": "ALGONQUIN",
+        "category_name": "Income",
+        "priority": 4,
+        "condition": "ALGONQUIN"
+      },
+      {
+        "id": 721,
+        "source": "learned",
+        "name": "Income · description rule",
+        "keyword": "EMPL",
+        "category_name": "Income",
+        "priority": 4,
+        "condition": "EMPL"
+      },
+      {
+        "id": 724,
+        "source": "learned",
+        "name": "Shopping & Home · description rule",
+        "keyword": "OTTAWA",
+        "category_name": "Shopping & Home",
+        "priority": 4,
+        "condition": "OTTAWA"
+      },
+      {
+        "id": 726,
+        "source": "learned",
+        "name": "Income · description rule",
+        "keyword": "CHILD",
+        "category_name": "Income",
+        "priority": 4,
+        "condition": "CHILD"
+      },
+      {
+        "id": 728,
+        "source": "learned",
+        "name": "Groceries & Pharmacy · description rule",
+        "keyword": "MART",
+        "category_name": "Groceries & Pharmacy",
+        "priority": 4,
+        "condition": "MART"
+      },
+      {
+        "id": 730,
+        "source": "learned",
+        "name": "Health & Medical · description rule",
+        "keyword": "VITALITY",
+        "category_name": "Health & Medical",
+        "priority": 4,
+        "condition": "VITALITY"
+      },
+      {
+        "id": 733,
+        "source": "learned",
+        "name": "Auto & Transportation · description rule",
+        "keyword": "COSTCO",
+        "category_name": "Auto & Transportation",
+        "priority": 4,
+        "condition": "COSTCO"
+      },
+      {
+        "id": 734,
+        "source": "learned",
+        "name": "Auto & Transportation · description rule",
+        "keyword": "PETRO",
+        "category_name": "Auto & Transportation",
+        "priority": 4,
+        "condition": "PETRO"
+      },
+      {
+        "id": 738,
+        "source": "learned",
+        "name": "Income · description rule",
+        "keyword": "PAYROLL",
+        "category_name": "Income",
+        "priority": 4,
+        "condition": "PAYROLL"
+      },
+      {
+        "id": 743,
+        "source": "learned",
+        "name": "Travel - $US · description rule",
+        "keyword": "CMART",
+        "category_name": "Travel - $US",
+        "priority": 4,
+        "condition": "CMART"
+      },
+      {
+        "id": 744,
+        "source": "learned",
+        "name": "Groceries & Pharmacy · description rule",
+        "keyword": "OTTAWA",
+        "category_name": "Groceries & Pharmacy",
+        "priority": 4,
+        "condition": "OTTAWA"
+      },
+      {
+        "id": 745,
+        "source": "learned",
+        "name": "Insurance & Benefits · description rule",
+        "keyword": "SUNLIFE",
+        "category_name": "Insurance & Benefits",
+        "priority": 4,
+        "condition": "SUNLIFE"
+      },
+      {
+        "id": 747,
+        "source": "learned",
+        "name": "Travel - $US · description rule",
+        "keyword": "SUPERFOOD",
+        "category_name": "Travel - $US",
+        "priority": 4,
+        "condition": "SUPERFOOD"
+      },
+      {
+        "id": 749,
+        "source": "learned",
+        "name": "Auto & Transportation · description rule",
+        "keyword": "UBERBV",
+        "category_name": "Auto & Transportation",
+        "priority": 4,
+        "condition": "UBERBV"
+      },
+      {
+        "id": 750,
+        "source": "learned",
+        "name": "Groceries & Pharmacy · description rule",
+        "keyword": "FARM",
+        "category_name": "Groceries & Pharmacy",
+        "priority": 4,
+        "condition": "FARM"
+      },
+      {
+        "id": 751,
+        "source": "learned",
+        "name": "Travel - $US · description rule",
+        "keyword": "SUPER",
+        "category_name": "Travel - $US",
+        "priority": 4,
+        "condition": "SUPER"
+      },
+      {
+        "id": 756,
+        "source": "learned",
+        "name": "Dining · description rule",
+        "keyword": "THEBAKER",
+        "category_name": "Dining",
+        "priority": 4,
+        "condition": "THEBAKER"
+      },
+      {
+        "id": 761,
+        "source": "learned",
+        "name": "Child Care · description rule",
+        "keyword": "STARR",
+        "category_name": "Child Care",
+        "priority": 4,
+        "condition": "STARR"
+      }
+    ],
+    "missing_income_sign_guard": [
+      {
+        "id": 676,
+        "source": "manual",
+        "priority": 10,
+        "name": null,
+        "keyword": " Algonquin Colle MSP",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 235,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "NAV CANADA PAY",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 250,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "EMPL INS EI",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 681,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "ALGONQUIN COLLE MSP",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 689,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "CANADA PAY",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 699,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "CANADA CCB",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 700,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "CHILD TAX BEN CCB",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 701,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "CANADA RIT",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 702,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "CANADA FED",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 703,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "TAX REFUND RIT",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 704,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "CANADA EI",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 705,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "CDACARBONREBATE CCR",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 706,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "FEDERAL GOVT MSP",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 707,
+        "source": "manual",
+        "priority": 5,
+        "name": null,
+        "keyword": "PAYROLL PAY",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 716,
+        "source": "learned",
+        "priority": 4,
+        "name": "Income · description rule",
+        "keyword": "FEDERAL",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 717,
+        "source": "learned",
+        "priority": 4,
+        "name": "Income · description rule",
+        "keyword": "CANADA",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 719,
+        "source": "learned",
+        "priority": 4,
+        "name": "Income · description rule",
+        "keyword": "ALGONQUIN",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 721,
+        "source": "learned",
+        "priority": 4,
+        "name": "Income · description rule",
+        "keyword": "EMPL",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 726,
+        "source": "learned",
+        "priority": 4,
+        "name": "Income · description rule",
+        "keyword": "CHILD",
+        "category_name": "Income",
+        "amount_sign": "any"
+      },
+      {
+        "id": 738,
+        "source": "learned",
+        "priority": 4,
+        "name": "Income · description rule",
+        "keyword": "PAYROLL",
+        "category_name": "Income",
+        "amount_sign": "any"
+      }
+    ],
+    "predicted_blast": [
+      {
+        "id": 724,
+        "name": "Shopping & Home · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "OTTAWA",
+        "category_name": "Shopping & Home",
+        "match_count": 1243,
+        "match_ratio": 0.1178
+      },
+      {
+        "id": 744,
+        "name": "Groceries & Pharmacy · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "OTTAWA",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 1243,
+        "match_ratio": 0.1178
+      },
+      {
+        "id": 30,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "AMZN",
+        "category_name": "Amazon",
+        "match_count": 759,
+        "match_ratio": 0.0719
+      },
+      {
+        "id": 717,
+        "name": "Income · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "CANADA",
+        "category_name": "Income",
+        "match_count": 739,
+        "match_ratio": 0.07
+      },
+      {
+        "id": 31,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "AMAZON",
+        "category_name": "Amazon",
+        "match_count": 650,
+        "match_ratio": 0.0616
+      },
+      {
+        "id": 684,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "BMO MC",
+        "category_name": "CC Payment",
+        "match_count": 569,
+        "match_ratio": 0.0539
+      },
+      {
+        "id": 196,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "INS",
+        "category_name": "Insurance & Benefits",
+        "match_count": 502,
+        "match_ratio": 0.0476
+      },
+      {
+        "id": 32,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "COSTCO",
+        "category_name": "Costco",
+        "match_count": 412,
+        "match_ratio": 0.039
+      },
+      {
+        "id": 733,
+        "name": "Auto & Transportation · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "COSTCO",
+        "category_name": "Auto & Transportation",
+        "match_count": 412,
+        "match_ratio": 0.039
+      },
+      {
+        "id": 690,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "PAYMENTRECEIVED-THANKYOU",
+        "category_name": "CC Payment",
+        "match_count": 358,
+        "match_ratio": 0.0339
+      },
+      {
+        "id": 691,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "PAYMENT RECEIVED - THANK YOU",
+        "category_name": "CC Payment",
+        "match_count": 354,
+        "match_ratio": 0.0335
+      },
+      {
+        "id": 718,
+        "name": "Insurance & Benefits · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "LIFE",
+        "category_name": "Insurance & Benefits",
+        "match_count": 342,
+        "match_ratio": 0.0324
+      },
+      {
+        "id": 198,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "SUN LIFE",
+        "category_name": "Insurance & Benefits",
+        "match_count": 324,
+        "match_ratio": 0.0307
+      },
+      {
+        "id": 728,
+        "name": "Groceries & Pharmacy · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "MART",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 314,
+        "match_ratio": 0.0297
+      },
+      {
+        "id": 689,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "CANADA PAY",
+        "category_name": "Income",
+        "match_count": 300,
+        "match_ratio": 0.0284
+      },
+      {
+        "id": 686,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "C/C",
+        "category_name": "CC Payment",
+        "match_count": 295,
+        "match_ratio": 0.0279
+      },
+      {
+        "id": 143,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "SLF INV SER",
+        "category_name": "Investments",
+        "match_count": 271,
+        "match_ratio": 0.0257
+      },
+      {
+        "id": 229,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "SLF INV SER INC MTF",
+        "category_name": "Investments",
+        "match_count": 271,
+        "match_ratio": 0.0257
+      },
+      {
+        "id": 692,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "PAYMENT - THANK YOU",
+        "category_name": "CC Payment",
+        "match_count": 243,
+        "match_ratio": 0.023
+      },
+      {
+        "id": 734,
+        "name": "Auto & Transportation · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "PETRO",
+        "category_name": "Auto & Transportation",
+        "match_count": 189,
+        "match_ratio": 0.0179
+      },
+      {
+        "id": 230,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "SUN LIFE MSP",
+        "category_name": "Insurance & Benefits",
+        "match_count": 180,
+        "match_ratio": 0.0171
+      },
+      {
+        "id": 712,
+        "name": "Costco · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "COSTCOWHOLESALEW",
+        "category_name": "Costco",
+        "match_count": 179,
+        "match_ratio": 0.017
+      },
+      {
+        "id": 771,
+        "name": "Costco · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "COSTCOWHOLESALEW",
+        "category_name": "Costco",
+        "match_count": 179,
+        "match_ratio": 0.017
+      },
+      {
+        "id": 195,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "ALLSTATE",
+        "category_name": "Insurance & Benefits",
+        "match_count": 170,
+        "match_ratio": 0.0161
+      },
+      {
+        "id": 19,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "BP",
+        "category_name": "Auto & Transportation",
+        "match_count": 168,
+        "match_ratio": 0.0159
+      },
+      {
+        "id": 174,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "METRO",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 166,
+        "match_ratio": 0.0157
+      },
+      {
+        "id": 216,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "PARK",
+        "category_name": "Travel - Entertainment",
+        "match_count": 166,
+        "match_ratio": 0.0157
+      },
+      {
+        "id": 243,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "METRO #256 NEPEAN",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 158,
+        "match_ratio": 0.015
+      },
+      {
+        "id": 264,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "METRO 256 NEPEAN",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 158,
+        "match_ratio": 0.015
+      },
+      {
+        "id": 715,
+        "name": "Property Tax · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "CITY",
+        "category_name": "Property Tax",
+        "match_count": 158,
+        "match_ratio": 0.015
+      },
+      {
+        "id": 201,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "MCAP SERVICE",
+        "category_name": "Housing & Mortgage",
+        "match_count": 156,
+        "match_ratio": 0.0148
+      },
+      {
+        "id": 202,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "MTG",
+        "category_name": "Housing & Mortgage",
+        "match_count": 156,
+        "match_ratio": 0.0148
+      },
+      {
+        "id": 211,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "E-TRANSFER",
+        "category_name": "E-Transfers",
+        "match_count": 156,
+        "match_ratio": 0.0148
+      },
+      {
+        "id": 232,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "MCAP SERVICE MTG",
+        "category_name": "Housing & Mortgage",
+        "match_count": 156,
+        "match_ratio": 0.0148
+      },
+      {
+        "id": 714,
+        "name": "Housing & Mortgage · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "MCAP",
+        "category_name": "Housing & Mortgage",
+        "match_count": 156,
+        "match_ratio": 0.0148
+      },
+      {
+        "id": 235,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "NAV CANADA PAY",
+        "category_name": "Income",
+        "match_count": 155,
+        "match_ratio": 0.0147
+      },
+      {
+        "id": 231,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "COSTCOWHOLESALEW 1263 NEPEAN ON",
+        "category_name": "Costco",
+        "match_count": 154,
+        "match_ratio": 0.0146
+      },
+      {
+        "id": 233,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "SUN LIFE INS",
+        "category_name": "Insurance & Benefits",
+        "match_count": 144,
+        "match_ratio": 0.0136
+      },
+      {
+        "id": 210,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "E-TFR",
+        "category_name": "E-Transfers",
+        "match_count": 138,
+        "match_ratio": 0.0131
+      },
+      {
+        "id": 172,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "SHOPPERS",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 137,
+        "match_ratio": 0.013
+      },
+      {
+        "id": 234,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "COSTCO WHOLESALE W1263 NEPEAN",
+        "category_name": "Costco",
+        "match_count": 129,
+        "match_ratio": 0.0122
+      },
+      {
+        "id": 8,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "PETROCAN",
+        "category_name": "Auto & Transportation",
+        "match_count": 119,
+        "match_ratio": 0.0113
+      },
+      {
+        "id": 66,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "ROGERS",
+        "category_name": "Utilities & Taxes",
+        "match_count": 119,
+        "match_ratio": 0.0113
+      },
+      {
+        "id": 152,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "APPLE",
+        "category_name": "Shopping & Home",
+        "match_count": 118,
+        "match_ratio": 0.0112
+      },
+      {
+        "id": 205,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "FEE",
+        "category_name": "Bank Fees",
+        "match_count": 118,
+        "match_ratio": 0.0112
+      },
+      {
+        "id": 787,
+        "name": "Utilities & Taxes · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "ROGERS",
+        "category_name": "Utilities & Taxes",
+        "match_count": 118,
+        "match_ratio": 0.0112
+      },
+      {
+        "id": 774,
+        "name": "Shopping & Home · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "APPLE",
+        "category_name": "Shopping & Home",
+        "match_count": 115,
+        "match_ratio": 0.0109
+      },
+      {
+        "id": 806,
+        "name": "Auto & Transportation · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "PETRO",
+        "category_name": "Auto & Transportation",
+        "match_count": 115,
+        "match_ratio": 0.0109
+      },
+      {
+        "id": 13,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "GAS",
+        "category_name": "Auto & Transportation",
+        "match_count": 114,
+        "match_ratio": 0.0108
+      },
+      {
+        "id": 96,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "TIMHORTONS",
+        "category_name": "Dining",
+        "match_count": 113,
+        "match_ratio": 0.0107
+      },
+      {
+        "id": 788,
+        "name": "Dining · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "TIMHORTONS",
+        "category_name": "Dining",
+        "match_count": 113,
+        "match_ratio": 0.0107
+      },
+      {
+        "id": 44,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "INN",
+        "category_name": "Travel",
+        "match_count": 112,
+        "match_ratio": 0.0106
+      },
+      {
+        "id": 177,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "WAL-MART",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 112,
+        "match_ratio": 0.0106
+      },
+      {
+        "id": 12,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "IMPARK",
+        "category_name": "Auto & Transportation",
+        "match_count": 111,
+        "match_ratio": 0.0105
+      },
+      {
+        "id": 770,
+        "name": "Auto & Transportation · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "IMPARK",
+        "category_name": "Auto & Transportation",
+        "match_count": 109,
+        "match_ratio": 0.0103
+      },
+      {
+        "id": 100,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "A&W",
+        "category_name": "Dining",
+        "match_count": 106,
+        "match_ratio": 0.01
+      },
+      {
+        "id": 144,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "TANGERINE",
+        "category_name": "Investments",
+        "match_count": 106,
+        "match_ratio": 0.01
+      },
+      {
+        "id": 236,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "TANGERINE FTD",
+        "category_name": "Investments",
+        "match_count": 106,
+        "match_ratio": 0.01
+      },
+      {
+        "id": 711,
+        "name": "Investments · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "TANGERINE",
+        "category_name": "Investments",
+        "match_count": 106,
+        "match_ratio": 0.01
+      },
+      {
+        "id": 769,
+        "name": "Investments · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "TANGERINE",
+        "category_name": "Investments",
+        "match_count": 106,
+        "match_ratio": 0.01
+      },
+      {
+        "id": 807,
+        "name": "Insurance & Benefits · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "ALLSTATE",
+        "category_name": "Insurance & Benefits",
+        "match_count": 104,
+        "match_ratio": 0.0099
+      },
+      {
+        "id": 154,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "WINNERS",
+        "category_name": "Shopping & Home",
+        "match_count": 103,
+        "match_ratio": 0.0098
+      },
+      {
+        "id": 785,
+        "name": "Shopping & Home · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "WINNERS",
+        "category_name": "Shopping & Home",
+        "match_count": 100,
+        "match_ratio": 0.0095
+      },
+      {
+        "id": 719,
+        "name": "Income · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "ALGONQUIN",
+        "category_name": "Income",
+        "match_count": 95,
+        "match_ratio": 0.009
+      },
+      {
+        "id": 237,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "APPLE.COM/BILL 866-712-7753 ON",
+        "category_name": "Shopping & Home",
+        "match_count": 94,
+        "match_ratio": 0.0089
+      },
+      {
+        "id": 238,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "IMPARK 00110008 H 844-309-1028 ON",
+        "category_name": "Auto & Transportation",
+        "match_count": 93,
+        "match_ratio": 0.0088
+      },
+      {
+        "id": 775,
+        "name": "Groceries & Pharmacy · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "METRO",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 92,
+        "match_ratio": 0.0087
+      },
+      {
+        "id": 751,
+        "name": "Travel - $US · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "SUPER",
+        "category_name": "Travel - $US",
+        "match_count": 91,
+        "match_ratio": 0.0086
+      },
+      {
+        "id": 783,
+        "name": "Shopping & Home · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "DEPOT",
+        "category_name": "Shopping & Home",
+        "match_count": 91,
+        "match_ratio": 0.0086
+      },
+      {
+        "id": 781,
+        "name": "Groceries & Pharmacy · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "SHOPPERS",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 89,
+        "match_ratio": 0.0084
+      },
+      {
+        "id": 590,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "ALLSTATE INS OF CANADA - -",
+        "category_name": "Insurance & Benefits",
+        "match_count": 82,
+        "match_ratio": 0.0078
+      },
+      {
+        "id": 704,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "CANADA EI",
+        "category_name": "Income",
+        "match_count": 78,
+        "match_ratio": 0.0074
+      },
+      {
+        "id": 706,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "FEDERAL GOVT MSP",
+        "category_name": "Income",
+        "match_count": 77,
+        "match_ratio": 0.0073
+      },
+      {
+        "id": 716,
+        "name": "Income · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "FEDERAL",
+        "category_name": "Income",
+        "match_count": 77,
+        "match_ratio": 0.0073
+      },
+      {
+        "id": 778,
+        "name": "Income · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "FEDERAL",
+        "category_name": "Income",
+        "match_count": 77,
+        "match_ratio": 0.0073
+      },
+      {
+        "id": 280,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "ALLSTATE INS OF CANADA 800-255-7828",
+        "category_name": "Insurance & Benefits",
+        "match_count": 74,
+        "match_ratio": 0.007
+      },
+      {
+        "id": 772,
+        "name": "Groceries & Pharmacy · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "METRO",
+        "category_name": "Groceries & Pharmacy",
+        "match_count": 74,
+        "match_ratio": 0.007
+      },
+      {
+        "id": 63,
+        "name": null,
+        "source": "manual",
+        "priority": 10,
+        "keyword": "ENBRIDGE",
+        "category_name": "Utilities & Taxes",
+        "match_count": 73,
+        "match_ratio": 0.0069
+      },
+      {
+        "id": 239,
+        "name": null,
+        "source": "manual",
+        "priority": 5,
+        "keyword": "ENBRIDGE GAS BPY",
+        "category_name": "Utilities & Taxes",
+        "match_count": 73,
+        "match_ratio": 0.0069
+      },
+      {
+        "id": 777,
+        "name": "Auto & Transportation · description rule",
+        "source": "learned",
+        "priority": 4,
+        "keyword": "ENBRIDGE",
+        "category_name": "Auto & Transportation",
+        "match_count": 73,
+        "match_ratio": 0.0069
+      }
+    ]
+  }
+}

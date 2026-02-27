@@ -36,6 +36,27 @@ export const rulesApi = {
   create: (data) => api.post('/rules', data),
   update: (id, data) => api.patch(`/rules/${id}`, data),
   delete: (id) => api.delete(`/rules/${id}`),
+  snapshot: () => api.post('/rules/snapshot'),
+  lint: ({ scope = 'all', persist = true } = {}) => api.get('/rules/lint', { params: { scope, persist } }),
+  lintReports: (limit = 20) => api.get('/rules/lint/reports', { params: { limit } }),
+  explain: (data) => api.post('/rules/explain', data),
+  resetLearned: (data = {}) => api.post('/rules/learn/reset', data),
+  rebuildLearned: (data = {}) => api.post('/rules/learn/rebuild', data),
+  rebuildRuns: (limit = 20) => api.get('/rules/learn/rebuild/runs', { params: { limit } }),
+  exportFile: ({ scope = 'learned', format = 'json' } = {}) => api.get('/rules/export', {
+    params: { scope, format },
+    responseType: 'blob',
+  }),
+  importFile: (file, { scope = 'learned', mode = 'replace', format } = {}) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('scope', scope);
+    fd.append('mode', mode);
+    if (format) fd.append('format', format);
+    return api.post('/rules/import', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   preview: (rule, sample_limit = 20) => api.post('/rules/preview', { rule, sample_limit }),
   apply: (options = {}) => {
     if (typeof options === 'boolean') return api.post('/rules/apply', { overwrite: options });

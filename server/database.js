@@ -173,6 +173,50 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_import_runs_created_at  ON import_runs(created_at);
     CREATE INDEX IF NOT EXISTS idx_import_runs_account     ON import_runs(account_name, created_at);
+
+    CREATE TABLE IF NOT EXISTS rules_archived (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      archive_batch_id TEXT    NOT NULL,
+      archived_reason  TEXT    NOT NULL DEFAULT 'learned_reset',
+      original_rule_id INTEGER,
+      name            TEXT,
+      keyword         TEXT    NOT NULL,
+      match_type      TEXT    NOT NULL DEFAULT 'contains_case_insensitive',
+      category_id     INTEGER,
+      priority        INTEGER NOT NULL DEFAULT 10,
+      is_enabled      INTEGER NOT NULL DEFAULT 1,
+      stop_processing INTEGER NOT NULL DEFAULT 0,
+      source          TEXT    NOT NULL DEFAULT 'manual',
+      confidence      REAL,
+      conditions_json TEXT    NOT NULL DEFAULT '{}',
+      actions_json    TEXT    NOT NULL DEFAULT '{}',
+      original_created_at TEXT,
+      archived_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_rules_archived_batch ON rules_archived(archive_batch_id, archived_at);
+    CREATE INDEX IF NOT EXISTS idx_rules_archived_source ON rules_archived(source, archived_at DESC);
+
+    CREATE TABLE IF NOT EXISTS rule_lint_reports (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+      scope         TEXT    NOT NULL DEFAULT 'all',
+      summary_json  TEXT    NOT NULL DEFAULT '{}',
+      findings_json TEXT    NOT NULL DEFAULT '{}'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_rule_lint_reports_created ON rule_lint_reports(created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS rule_rebuild_runs (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+      config_json      TEXT    NOT NULL DEFAULT '{}',
+      suggestions_json TEXT    NOT NULL DEFAULT '[]',
+      applied_count    INTEGER NOT NULL DEFAULT 0,
+      status           TEXT    NOT NULL DEFAULT 'preview'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_rule_rebuild_runs_created ON rule_rebuild_runs(created_at DESC);
   `);
 
   // Safe migrations — run every startup, ignored if column already exists
@@ -201,6 +245,8 @@ function initSchema() {
 
   // Auto-flag any category named Income as is_income=1
   db.prepare(`UPDATE categories SET is_income = 1 WHERE UPPER(name) LIKE '%INCOME%' AND is_income = 0`).run();
+  // Income Taxes should behave as expense-oriented category in analytics/rules guards.
+  db.prepare(`UPDATE categories SET is_income = 0 WHERE UPPER(name) = 'INCOME TAXES'`).run();
 
   // Seed default accounts
   const insertAccount = db.prepare(`

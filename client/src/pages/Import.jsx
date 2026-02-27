@@ -1,7 +1,7 @@
 // src/pages/Import.jsx
 import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, CheckCircle, AlertCircle, FileText, Zap, FileSearch } from 'lucide-react';
-import { uploadApi, rulesApi, importHistoryApi, transactionsApi } from '../utils/api';
+import { uploadApi, importHistoryApi, transactionsApi } from '../utils/api';
 import { Card, SectionHeader, Spinner } from '../components/ui';
 import useAppStore from '../stores/appStore';
 
@@ -77,7 +77,7 @@ function CsvImportTab({ onImported }) {
     setLoading(true);
     setStep(2);
     try {
-      if (rulesFile) await rulesApi.upload(rulesFile);
+      if (rulesFile) await uploadApi.rules(rulesFile);
       const res = await uploadApi.transactions(csvFiles);
       setResults(res.data);
       try {

@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-02-26T21:02:06.569Z",
+  "transactions_total": 10555,
+  "transactions_uncategorized": 1052,
+  "transactions_transfer": 1921,
+  "transactions_excluded": 1922,
+  "rules_total": 813,
+  "rules_enabled": 813,
+  "rules_manual": 701,
+  "rules_learned": 112,
+  "rules_learned_enabled": 112,
+  "income_taxes": {
+    "id": 10,
+    "name": "Income Taxes",
+    "is_income": 0
+  },
+  "top_categories": [
+    {
+      "category": "CC Payment",
+      "n": 1857
+    },
+    {
+      "category": "(uncategorized)",
+      "n": 1052
+    },
+    {
+      "category": "Amazon",
+      "n": 987
+    },
+    {
+      "category": "Shopping & Home",
+      "n": 878
+    },
+    {
+      "category": "Groceries & Pharmacy",
+      "n": 706
+    },
+    {
+      "category": "Income",
+      "n": 685
+    },
+    {
+      "category": "Insurance & Benefits",
+      "n": 681
+    },
+    {
+      "category": "Auto & Transportation",
+      "n": 652
+    },
+    {
+      "category": "Dining",
+      "n": 524
+    },
+    {
+      "category": "Investments",
+      "n": 432
+    },
+    {
+      "category": "Costco",
+      "n": 374
+    },
+    {
+      "category": "E-Transfers",
+      "n": 287
+    },
+    {
+      "category": "Bank Fees",
+      "n": 248
+    },
+    {
+      "category": "Utilities & Taxes",
+      "n": 244
+    },
+    {
+      "category": "Travel",
+      "n": 223
+    },
+    {
+      "category": "Health & Medical",
+      "n": 182
+    },
+    {
+      "category": "Housing & Mortgage",
+      "n": 156
+    },
+    {
+      "category": "Property Tax",
+      "n": 150
+    },
+    {
+      "category": "Travel - $US",
+      "n": 121
+    },
+    {
+      "category": "Travel - Entertainment",
+      "n": 53
+    }
+  ]
+}
