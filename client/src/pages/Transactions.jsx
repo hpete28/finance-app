@@ -22,13 +22,31 @@ const PRESETS = [
 ];
 
 const AI_FALLBACK_MAX_BATCH = 80;
-const PREWRITTEN_TAGS = [
+const DEFAULT_SAVED_TAGS = [
   'Property Rental-Cresthaven',
   'Property Rental-Woodruff',
 ];
 
 function readApiError(err, fallback) {
   return err?.response?.data?.error || err?.response?.data?.code || err?.message || fallback;
+}
+
+function normalizeTagValues(tags = []) {
+  const deduped = [];
+  const seen = new Set();
+  tags.forEach((tag) => {
+    const value = String(tag || '').trim();
+    if (!value) return;
+    const key = value.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    deduped.push(value);
+  });
+  return deduped;
+}
+
+function parseCommaSeparatedTags(value) {
+  return normalizeTagValues(String(value || '').split(','));
 }
 
 function getPresetDates(preset, days) {
@@ -297,6 +315,7 @@ function SplitModal({ open, onClose, transaction, categories, onSave }) {
 // ─── Edit Modal ────────────────────────────────────────────────────────────────
 function EditModal({ open, onClose, transaction, categories, onSave }) {
   const [categoryId, setCategoryId] = useState('');
+  const [recategorizeMode, setRecategorizeMode] = useState('create_winning_rule');
   const [notes, setNotes] = useState('');
   const [tags, setTags] = useState('');
   const [merchantName, setMerchantName] = useState('');
@@ -306,6 +325,7 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
   useEffect(() => {
     if (transaction) {
       setCategoryId(transaction.category_id || '');
+      setRecategorizeMode('create_winning_rule');
       setNotes(transaction.notes || '');
       setTags((transaction.tags || []).join(', '));
       setMerchantName(transaction.merchant_name || '');
@@ -332,6 +352,16 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+          <div className="rounded-lg p-2" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              <input
+                type="checkbox"
+                checked={recategorizeMode === 'one_off_only'}
+                onChange={(e) => setRecategorizeMode(e.target.checked ? 'one_off_only' : 'create_winning_rule')}
+              />
+              One-off only (do not create a winning rule)
+            </label>
+          </div>
           <div>
             <label className="text-xs text-slate-500 block mb-1">Notes</label>
             <input className="input" value={notes} onChange={e => setNotes(e.target.value)} />
@@ -356,6 +386,7 @@ function EditModal({ open, onClose, transaction, categories, onSave }) {
             <button className="btn-secondary" onClick={onClose}>Cancel</button>
             <button className="btn-primary" onClick={async () => {
               await onSave({ category_id: categoryId || null, notes, merchant_name: merchantName.trim() || null,
+                recategorize_mode: recategorizeMode,
                 is_transfer: isTransfer,
                 exclude_from_totals: excludeFromTotals,
                 tags: tags.split(',').map(t => t.trim()).filter(Boolean), reviewed: true });
@@ -426,8 +457,10 @@ export default function Transactions() {
   const [inlineCategorySavingId, setInlineCategorySavingId] = useState(null);
   const [bulkCategory, setBulkCategory] = useState('');
   const [bulkTags, setBulkTags] = useState('');
-  const [bulkTagPick, setBulkTagPick] = useState('');
+  const [bulkTagMode, setBulkTagMode] = useState('append');
   const [bulkMerchant, setBulkMerchant] = useState('');
+  const [savedTags, setSavedTags] = useState(DEFAULT_SAVED_TAGS);
+  const [savingBulkEdits, setSavingBulkEdits] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [undoDelete, setUndoDelete] = useState(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -486,6 +519,32 @@ export default function Transactions() {
     }
   }, [aiEnabled]);
 
+  const addTagsToSavedList = useCallback((tags = []) => {
+    const nextTags = normalizeTagValues(tags);
+    if (!nextTags.length) return;
+
+    setSavedTags((prev) => {
+      const merged = normalizeTagValues([...prev, ...nextTags]);
+      return merged.sort((a, b) => a.localeCompare(b));
+    });
+  }, []);
+
+  const loadSavedTags = useCallback(async () => {
+    try {
+      const res = await transactionsApi.tags({ limit: 500 });
+      const fetched = normalizeTagValues(
+        (res.data?.tags || []).map((row) => row?.tag)
+      );
+      const merged = normalizeTagValues([...DEFAULT_SAVED_TAGS, ...fetched]);
+      setSavedTags(merged.sort((a, b) => a.localeCompare(b)));
+    } catch {
+      setSavedTags((prev) => {
+        const merged = normalizeTagValues([...DEFAULT_SAVED_TAGS, ...prev]);
+        return merged.sort((a, b) => a.localeCompare(b));
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (!aiEnabled) {
       setAiStatus(null);
@@ -536,6 +595,7 @@ export default function Transactions() {
     [search, filterCategory, filterAccount, startDate, endDate, showUncategorized, filterType, amountSearch]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { categoriesApi.list().then(r => setCategories(r.data)); }, []);
+  useEffect(() => { loadSavedTags(); }, [loadSavedTags]);
   useEffect(() => {
     if (!monthSyncInitialized.current) {
       monthSyncInitialized.current = true;
@@ -609,16 +669,6 @@ export default function Transactions() {
     load();
   };
 
-  const handleBulkUpdate = async () => {
-  if (!bulkCategory) return;
-  const categoryId = bulkCategory === '__uncategorized__' ? null : Number(bulkCategory);
-  await transactionsApi.bulk({ ids: [...selected], category_id: categoryId });
-  setSelected(new Set()); setBulkCategory(''); load();
-  showToast(categoryId === null
-    ? `✅ Removed category from ${selected.size} transactions`
-    : `✅ Updated ${selected.size} transactions`);
-  };
-
   const handleBulkIncome = async (value) => {
     const count = selected.size;
     await transactionsApi.bulk({ ids: [...selected], is_income_override: value });
@@ -627,45 +677,63 @@ export default function Transactions() {
   };
 
 
-  const handleBulkTags = async (mode = 'append') => {
-    if (!selected.size) {
-      showToast('Select at least one transaction first', 'warning');
-      return;
-    }
-    const parsed = bulkTags.split(',').map(t => t.trim()).filter(Boolean);
-    if (!parsed.length && mode !== 'remove') return;
-    const { data } = await transactionsApi.bulk({ ids: [...selected], tags: parsed, tags_mode: mode });
-    const modeLabel = mode === 'append' ? 'Appended' : mode === 'replace' ? 'Replaced' : 'Removed';
-    const changed = Number(data?.updated || 0);
-    showToast(`🏷️ ${modeLabel} tags on ${changed} transaction${changed === 1 ? '' : 's'}`);
-    setBulkTags('');
-    setSelected(new Set());
-    load();
-  };
-
-  const applyPickedTag = async () => {
-    const picked = String(bulkTagPick || '').trim();
+  const handlePickSavedTag = (pickedRaw) => {
+    const picked = String(pickedRaw || '').trim();
     if (!picked) return;
+    setBulkTags((prev) => {
+      const merged = normalizeTagValues([...parseCommaSeparatedTags(prev), picked]);
+      return merged.join(', ');
+    });
+  };
+
+  const handleSaveBulkEdits = async () => {
     if (!selected.size) {
       showToast('Select at least one transaction first', 'warning');
       return;
     }
-    const { data } = await transactionsApi.bulk({ ids: [...selected], tags: [picked], tags_mode: 'replace' });
-    const changed = Number(data?.updated || 0);
-    showToast(`🏷️ Applied ${picked} to ${changed} transaction${changed === 1 ? '' : 's'}`);
-    setBulkTags(picked);
-    setBulkTagPick('');
-    setSelected(new Set());
-    load();
-  };
 
-  const handleBulkMerchant = async () => {
-    if (!bulkMerchant.trim()) return;
-    await transactionsApi.bulk({ ids: [...selected], merchant_name: bulkMerchant.trim() });
-    showToast(`🏪 Tagged ${selected.size} transactions as ${bulkMerchant.trim()}`);
-    setBulkMerchant('');
-    setSelected(new Set());
-    load();
+    const payload = { ids: [...selected] };
+    const parsedTags = parseCommaSeparatedTags(bulkTags);
+    const merchant = bulkMerchant.trim();
+    let pendingChanges = 0;
+
+    if (bulkCategory) {
+      payload.category_id = bulkCategory === '__uncategorized__' ? null : Number(bulkCategory);
+      pendingChanges += 1;
+    }
+    if (parsedTags.length) {
+      payload.tags = parsedTags;
+      payload.tags_mode = bulkTagMode;
+      pendingChanges += 1;
+    }
+    if (merchant) {
+      payload.merchant_name = merchant;
+      pendingChanges += 1;
+    }
+
+    if (!pendingChanges) {
+      showToast('Choose at least one field before saving', 'warning');
+      return;
+    }
+
+    setSavingBulkEdits(true);
+    try {
+      const { data } = await transactionsApi.bulk(payload);
+      const changed = Number(data?.updated || selected.size);
+      if (parsedTags.length) addTagsToSavedList(parsedTags);
+      showToast(`✅ Saved edits on ${changed} transaction${changed === 1 ? '' : 's'}`);
+      setBulkCategory('');
+      setBulkTags('');
+      setBulkTagMode('append');
+      setBulkMerchant('');
+      setSelected(new Set());
+      await load();
+      loadSavedTags();
+    } catch (err) {
+      showToast(readApiError(err, 'Failed to save edits'), 'error');
+    } finally {
+      setSavingBulkEdits(false);
+    }
   };
 
   const handleBulkExclude = async (value) => {
@@ -700,7 +768,11 @@ export default function Transactions() {
 
     setInlineCategorySavingId(tx.id);
     try {
-      await transactionsApi.update(tx.id, { category_id: categoryId, reviewed: true });
+      await transactionsApi.update(tx.id, {
+        category_id: categoryId,
+        reviewed: true,
+        recategorize_mode: 'create_winning_rule',
+      });
       const category = categoryId === null
         ? null
         : categories.find((c) => Number(c.id) === Number(categoryId));
@@ -1142,32 +1214,34 @@ export default function Transactions() {
               <option value="__uncategorized__">Uncategorized (remove category)</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <button
-              className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleBulkUpdate}
-              disabled={!bulkCategory}
-            >
-              Apply category
-            </button>
             <input className="input text-xs w-56" value={bulkTags} onChange={e => setBulkTags(e.target.value)} placeholder="tags: travel, tax" />
             <select
-              className="select text-xs w-56"
-              value={bulkTagPick}
-              onChange={(e) => setBulkTagPick(e.target.value)}
+              className="select text-xs w-40"
+              value={bulkTagMode}
+              onChange={(e) => setBulkTagMode(e.target.value)}
             >
-              <option value="">Pick saved tag…</option>
-              {PREWRITTEN_TAGS.map((tag) => (
+              <option value="append">Tags: append</option>
+              <option value="replace">Tags: replace</option>
+              <option value="remove">Tags: remove</option>
+            </select>
+            <select
+              className="select text-xs w-56"
+              value=""
+              onChange={(e) => handlePickSavedTag(e.target.value)}
+            >
+              <option value="">Add saved tag…</option>
+              {savedTags.map((tag) => (
                 <option key={tag} value={tag}>{tag}</option>
               ))}
             </select>
-            <button className="btn-secondary text-xs" onClick={applyPickedTag} disabled={!bulkTagPick}>
-              Apply picked tag
-            </button>
-            <button className="btn-secondary text-xs" onClick={() => handleBulkTags('append')}>Append tags</button>
-            <button className="btn-secondary text-xs" onClick={() => handleBulkTags('replace')}>Replace tags</button>
-            <button className="btn-secondary text-xs" onClick={() => handleBulkTags('remove')}>Remove tags</button>
             <input className="input text-xs w-44" value={bulkMerchant} onChange={e => setBulkMerchant(e.target.value)} placeholder="merchant/vendor" />
-            <button className="btn-secondary text-xs" onClick={handleBulkMerchant}>Apply merchant</button>
+            <button
+              className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleSaveBulkEdits}
+              disabled={savingBulkEdits || (!bulkCategory && !bulkTags.trim() && !bulkMerchant.trim())}
+            >
+              {savingBulkEdits ? <><Spinner size={12} /> Saving…</> : 'Save edits'}
+            </button>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
@@ -1600,7 +1674,14 @@ export default function Transactions() {
         onSave={async (splits) => { await transactionsApi.split(splitTx.id, splits); load(); showToast('Split saved'); }} />
       <EditModal open={!!editTx} onClose={() => setEditTx(null)}
         transaction={editTx} categories={categories}
-        onSave={async (data) => { await transactionsApi.update(editTx.id, data); load(); showToast('Updated'); }} />
+        onSave={async (data) => {
+          await transactionsApi.update(editTx.id, data);
+          const nextTags = Array.isArray(data?.tags) ? normalizeTagValues(data.tags) : [];
+          if (nextTags.length) addTagsToSavedList(nextTags);
+          await load();
+          loadSavedTags();
+          showToast('Updated');
+        }} />
     </div>
   );
 }

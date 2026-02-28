@@ -1,0 +1,46 @@
+[
+  {
+    "bucket": "Travel -> Shopping & Home",
+    "count": 103
+  },
+  {
+    "bucket": "Shopping & Home -> Auto & Transportation",
+    "count": 34
+  },
+  {
+    "bucket": "Auto & Transportation -> Costco",
+    "count": 16
+  },
+  {
+    "bucket": "Auto & Transportation -> Travel",
+    "count": 5
+  },
+  {
+    "bucket": "Amazon -> Auto & Transportation",
+    "count": 4
+  },
+  {
+    "bucket": "Auto & Transportation -> E-Transfers",
+    "count": 3
+  },
+  {
+    "bucket": "Dining -> Health & Medical",
+    "count": 2
+  },
+  {
+    "bucket": "Utilities & Taxes -> Home Maintenance/upgrade",
+    "count": 2
+  },
+  {
+    "bucket": "Dining -> Groceries & Pharmacy",
+    "count": 2
+  },
+  {
+    "bucket": "Auto & Transportation -> Dining",
+    "count": 1
+  },
+  {
+    "bucket": "Uncategorized -> Bank Fees",
+    "count": 1
+  }
+]

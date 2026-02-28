@@ -12,6 +12,7 @@ export const transactionsApi = {
   tags: (params) => api.get('/transactions/tags', { params }),
   get: (id) => api.get(`/transactions/${id}`),
   update: (id, data) => api.patch(`/transactions/${id}`, data),
+  updateLock: (id, data) => api.patch(`/transactions/${id}/lock`, data),
   delete: (id) => api.delete(`/transactions/${id}`),
   bulk: (data) => api.post('/transactions/bulk', data),
   bulkDelete: (ids) => api.delete('/transactions/bulk', { data: { ids } }),
@@ -66,6 +67,16 @@ export const rulesApi = {
   learn: (data = {}) => api.post('/rules/learn', data),
   applyLearned: (suggestions, max_create) => api.post('/rules/learn/apply', { suggestions, max_create }),
   revertLearned: (data = {}) => api.post('/rules/learn/revert', data),
+};
+
+export const rulesetsApi = {
+  list: () => api.get('/rulesets'),
+  create: (data) => api.post('/rulesets', data),
+  activate: (id) => api.post(`/rulesets/${id}/activate`),
+  shadowCompare: (id, data = {}) => api.post(`/rulesets/${id}/shadow-compare`, data),
+  extractProtected: (id, data = {}) => api.post(`/rulesets/${id}/extract-protected`, data),
+  cleanupPreview: (id) => api.post(`/rulesets/${id}/cleanup/preview`),
+  cleanupApply: (id) => api.post(`/rulesets/${id}/cleanup/apply`),
 };
 
 

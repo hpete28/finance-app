@@ -4,7 +4,12 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { getDb } = require('../database');
-const { categorize } = require('../services/categorizer');
+const {
+  normalizeForMatching,
+  getActiveRuleSetId,
+  getRules,
+  compileRules,
+} = require('../services/categorizer');
 const { detectTransferCandidates } = require('../services/transferDetection');
 const { applyAccountStrategyToRow, STRATEGY_SOURCE, BMO_US_ACCOUNT_ID } = require('../services/accountStrategies');
 const { v4: uuidv4 } = require('uuid');
@@ -111,6 +116,177 @@ function csvEscape(value) {
 
 function stableTagString(tags) {
   return JSON.stringify(parseTags(Array.isArray(tags) ? JSON.stringify(tags) : tags));
+}
+
+function normalizeRuleTier(value, fallback = 'manual_fix') {
+  const tier = String(value || fallback).toLowerCase();
+  if (['manual_fix', 'protected_core', 'generated_curated', 'legacy_archived', 'legacy_tag'].includes(tier)) return tier;
+  return fallback;
+}
+
+function normalizeRuleOrigin(value, fallback = 'manual_fix') {
+  const origin = String(value || fallback).toLowerCase();
+  if (['manual_fix', 'imported', 'generated', 'protected_migrated'].includes(origin)) return origin;
+  return fallback;
+}
+
+function normalizeRuleMatchSemantics(value, fallback = 'token_default') {
+  const semantics = String(value || fallback).toLowerCase();
+  if (['token_default', 'substring_explicit', 'exact', 'starts_with', 'regex_safe'].includes(semantics)) return semantics;
+  return fallback;
+}
+
+function deriveDescriptionConditionValue(description = '') {
+  const tokens = normalizeForMatching(description)
+    .split(' ')
+    .filter((t) => t.length >= 3 && !/^\d+$/.test(t));
+  if (!tokens.length) return '';
+  return tokens.slice(0, Math.min(tokens.length >= 3 ? 3 : 2, 4)).join(' ').trim();
+}
+
+function buildManualFixRuleFromTransaction({ tx, categoryId, categoryName, options = {} }) {
+  const merchant = String(options.merchant_name ?? tx.merchant_name ?? '').trim();
+  const descriptionValue = deriveDescriptionConditionValue(tx.description || '');
+  const amountSign = Number(tx.amount || 0) < 0 ? 'expense' : (Number(tx.amount || 0) > 0 ? 'income' : 'any');
+
+  const conditions = {
+    amount_sign: amountSign,
+    account_ids: Number.isFinite(Number(tx.account_id)) ? [Number(tx.account_id)] : [],
+  };
+
+  if (merchant) {
+    conditions.merchant = {
+      operator: 'equals',
+      value: merchant,
+      case_sensitive: false,
+      match_semantics: 'token_default',
+    };
+  } else if (descriptionValue) {
+    conditions.description = {
+      operator: 'contains',
+      value: descriptionValue,
+      case_sensitive: false,
+      match_semantics: 'token_default',
+    };
+  } else {
+    conditions.description = {
+      operator: 'contains',
+      value: String(tx.description || '').slice(0, 80),
+      case_sensitive: false,
+      match_semantics: 'token_default',
+    };
+  }
+
+  if (options.amount_mode === 'exact') {
+    conditions.amount = { exact: Math.abs(Number(tx.amount) || 0) };
+  } else if (options.amount_mode === 'range') {
+    const base = Math.abs(Number(tx.amount) || 0);
+    const delta = Math.max(1, Number((base * 0.05).toFixed(2)));
+    conditions.amount = { min: Number((base - delta).toFixed(2)), max: Number((base + delta).toFixed(2)) };
+  }
+
+  const priority = Math.max(100, Math.min(1000, Number(options.priority) || 950));
+  const source = String(options.source || 'manual').toLowerCase() === 'learned' ? 'learned' : 'manual';
+  const ruleNamePrefix = merchant || descriptionValue || String(tx.description || '').slice(0, 40) || `TX ${tx.id}`;
+  const friendlyCategory = String(categoryName || `Category ${categoryId}`);
+
+  return {
+    name: `Manual fix: ${ruleNamePrefix} -> ${friendlyCategory}`.slice(0, 160),
+    keyword: merchant || descriptionValue || String(tx.description || '').slice(0, 80),
+    match_type: 'contains_case_insensitive',
+    category_id: Number(categoryId),
+    priority,
+    is_enabled: 1,
+    stop_processing: 1,
+    source,
+    rule_tier: normalizeRuleTier(options.rule_tier, 'manual_fix'),
+    origin: normalizeRuleOrigin(options.origin, 'manual_fix'),
+    match_semantics: normalizeRuleMatchSemantics(options.match_semantics, 'token_default'),
+    specificity_score: Number(options.specificity_score) || 100,
+    confidence: null,
+    conditions,
+    actions: {
+      set_category_id: Number(categoryId),
+    },
+  };
+}
+
+function buildRuleSignatureLite(rule) {
+  const conditions = rule.conditions || {};
+  const desc = conditions.description || null;
+  const merchant = conditions.merchant || null;
+  const amount = conditions.amount || null;
+  const actions = rule.actions || {};
+  return JSON.stringify({
+    keyword: normalizeForMatching(rule.keyword || ''),
+    category_id: Number(rule.category_id) || null,
+    conditions: {
+      description: desc ? {
+        operator: String(desc.operator || 'contains').toLowerCase(),
+        case_sensitive: !!desc.case_sensitive,
+        match_semantics: normalizeRuleMatchSemantics(desc.match_semantics, 'token_default'),
+        value: desc.case_sensitive ? String(desc.value || '') : normalizeForMatching(desc.value || ''),
+      } : null,
+      merchant: merchant ? {
+        operator: String(merchant.operator || 'contains').toLowerCase(),
+        case_sensitive: !!merchant.case_sensitive,
+        match_semantics: normalizeRuleMatchSemantics(merchant.match_semantics, 'token_default'),
+        value: merchant.case_sensitive ? String(merchant.value || '') : normalizeForMatching(merchant.value || ''),
+      } : null,
+      amount: amount ? {
+        exact: amount.exact ?? null,
+        min: amount.min ?? null,
+        max: amount.max ?? null,
+      } : null,
+      amount_sign: String(conditions.amount_sign || 'any').toLowerCase(),
+      account_ids: Array.isArray(conditions.account_ids)
+        ? [...conditions.account_ids].map((v) => Number(v)).filter((v) => Number.isFinite(v)).sort((a, b) => a - b)
+        : [],
+      date_range: conditions.date_range || null,
+    },
+    actions: {
+      set_category_id: actions.set_category_id ?? null,
+      tags: actions.tags || null,
+      set_merchant_name: actions.set_merchant_name || null,
+      set_is_income_override: actions.set_is_income_override ?? null,
+      set_exclude_from_totals: actions.set_exclude_from_totals ?? null,
+    },
+    rule_tier: normalizeRuleTier(rule.rule_tier, 'manual_fix'),
+    source: String(rule.source || 'manual').toLowerCase(),
+  });
+}
+
+function insertManualFixRule(db, payload, ruleSetId) {
+  const existingCompiled = compileRules(getRules({ ruleSetId, includeAllRuleSets: false }), { includeLegacyTagRules: false });
+  const existingSignatures = new Set(existingCompiled.map(buildRuleSignatureLite));
+  const signature = buildRuleSignatureLite(payload);
+  if (existingSignatures.has(signature)) return { created: false, duplicate: true };
+
+  const info = db.prepare(`
+    INSERT INTO rules (
+      name, keyword, match_type, category_id, priority,
+      is_enabled, stop_processing, source, confidence,
+      conditions_json, actions_json, rule_set_id, rule_tier, origin, match_semantics, specificity_score
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    payload.name || null,
+    payload.keyword || '',
+    payload.match_type || 'contains_case_insensitive',
+    payload.category_id ?? null,
+    Number(payload.priority) || 950,
+    payload.is_enabled ? 1 : 0,
+    payload.stop_processing ? 1 : 0,
+    payload.source || 'manual',
+    payload.confidence ?? null,
+    JSON.stringify(payload.conditions || {}),
+    JSON.stringify(payload.actions || {}),
+    ruleSetId,
+    normalizeRuleTier(payload.rule_tier, 'manual_fix'),
+    normalizeRuleOrigin(payload.origin, 'manual_fix'),
+    normalizeRuleMatchSemantics(payload.match_semantics, 'token_default'),
+    Number(payload.specificity_score) || 100
+  );
+  return { created: true, id: Number(info.lastInsertRowid) };
 }
 
 function ensureBackupDir(runId) {
@@ -427,7 +603,7 @@ router.post('/strategies/bmo-us-travel/backfill', (req, res) => {
   const rows = db.prepare(`
     SELECT id, account_id, date, description, amount, category_id, tags, merchant_name,
            is_transfer, exclude_from_totals, is_income_override,
-           category_source, category_locked, tags_locked
+           category_source, category_locked, tags_locked, lock_category, lock_tags, lock_merchant, lock_reason, locked_at
     FROM transactions
     WHERE ${where.join(' AND ')}
     ORDER BY date ASC, id ASC
@@ -454,6 +630,9 @@ router.post('/strategies/bmo-us-travel/backfill', (req, res) => {
       || String(row.category_source || 'import_default') !== String(next.category_source || 'import_default')
       || Number(row.category_locked || 0) !== Number(next.category_locked || 0)
       || Number(row.tags_locked || 0) !== Number(next.tags_locked || 0)
+      || Number(row.lock_category || 0) !== Number(next.lock_category || next.category_locked || 0)
+      || Number(row.lock_tags || 0) !== Number(next.lock_tags || next.tags_locked || 0)
+      || Number(row.lock_merchant || 0) !== Number(next.lock_merchant || 0)
     );
     if (!changed) continue;
     candidates.push({ before: row, after: next });
@@ -479,6 +658,9 @@ router.post('/strategies/bmo-us-travel/backfill', (req, res) => {
         category_source: c.before.category_source || 'import_default',
         category_locked: c.before.category_locked ? 1 : 0,
         tags_locked: c.before.tags_locked ? 1 : 0,
+        lock_category: c.before.lock_category ? 1 : 0,
+        lock_tags: c.before.lock_tags ? 1 : 0,
+        lock_merchant: c.before.lock_merchant ? 1 : 0,
       },
       after: {
         category_id: c.after.category_id ?? null,
@@ -488,6 +670,9 @@ router.post('/strategies/bmo-us-travel/backfill', (req, res) => {
         category_source: c.after.category_source || 'import_default',
         category_locked: c.after.category_locked ? 1 : 0,
         tags_locked: c.after.tags_locked ? 1 : 0,
+        lock_category: c.after.lock_category ? 1 : (c.after.category_locked ? 1 : 0),
+        lock_tags: c.after.lock_tags ? 1 : (c.after.tags_locked ? 1 : 0),
+        lock_merchant: c.after.lock_merchant ? 1 : 0,
       },
     })),
   };
@@ -500,7 +685,8 @@ router.post('/strategies/bmo-us-travel/backfill', (req, res) => {
   const backupDir = ensureBackupDir(runId);
   const updateOne = db.prepare(`
     UPDATE transactions
-    SET category_id = ?, tags = ?, is_transfer = ?, exclude_from_totals = ?, category_source = ?, category_locked = ?, tags_locked = ?
+    SET category_id = ?, tags = ?, is_transfer = ?, exclude_from_totals = ?, category_source = ?, category_locked = ?, tags_locked = ?,
+        lock_category = ?, lock_tags = ?, lock_reason = ?, locked_at = ?
     WHERE id = ?
   `);
 
@@ -515,6 +701,10 @@ router.post('/strategies/bmo-us-travel/backfill', (req, res) => {
         after.category_source || STRATEGY_SOURCE,
         after.category_locked ? 1 : 0,
         after.tags_locked ? 1 : 0,
+        after.category_locked ? 1 : 0,
+        after.tags_locked ? 1 : 0,
+        (after.category_locked || after.tags_locked) ? 'account_strategy' : null,
+        (after.category_locked || after.tags_locked) ? new Date().toISOString() : null,
         before.id
       );
     }
@@ -530,6 +720,11 @@ router.post('/strategies/bmo-us-travel/backfill', (req, res) => {
     category_source: c.before.category_source || 'import_default',
     category_locked: c.before.category_locked ? 1 : 0,
     tags_locked: c.before.tags_locked ? 1 : 0,
+    lock_category: c.before.lock_category ? 1 : 0,
+    lock_tags: c.before.lock_tags ? 1 : 0,
+    lock_merchant: c.before.lock_merchant ? 1 : 0,
+    lock_reason: c.before.lock_reason || null,
+    locked_at: c.before.locked_at || null,
   }));
   const afterRows = candidates.map((c) => ({
     id: c.after.id,
@@ -541,6 +736,11 @@ router.post('/strategies/bmo-us-travel/backfill', (req, res) => {
     category_source: c.after.category_source || STRATEGY_SOURCE,
     category_locked: c.after.category_locked ? 1 : 0,
     tags_locked: c.after.tags_locked ? 1 : 0,
+    lock_category: c.after.category_locked ? 1 : 0,
+    lock_tags: c.after.tags_locked ? 1 : 0,
+    lock_merchant: c.after.lock_merchant ? 1 : 0,
+    lock_reason: (c.after.category_locked || c.after.tags_locked) ? 'account_strategy' : null,
+    locked_at: (c.after.category_locked || c.after.tags_locked) ? new Date().toISOString() : null,
   }));
 
   fs.writeFileSync(path.join(backupDir, 'summary.json'), JSON.stringify({ ...summary, dry_run: false, run_id: runId }, null, 2));
@@ -577,7 +777,8 @@ router.post('/strategies/bmo-us-travel/rollback', (req, res) => {
 
   const updateOne = db.prepare(`
     UPDATE transactions
-    SET category_id = ?, tags = ?, is_transfer = ?, exclude_from_totals = ?, merchant_name = ?, category_source = ?, category_locked = ?, tags_locked = ?
+    SET category_id = ?, tags = ?, is_transfer = ?, exclude_from_totals = ?, merchant_name = ?, category_source = ?, category_locked = ?, tags_locked = ?,
+        lock_category = ?, lock_tags = ?, lock_merchant = ?, lock_reason = ?, locked_at = ?
     WHERE id = ?
   `);
 
@@ -592,6 +793,11 @@ router.post('/strategies/bmo-us-travel/rollback', (req, res) => {
         row.category_source || 'import_default',
         row.category_locked ? 1 : 0,
         row.tags_locked ? 1 : 0,
+        row.lock_category !== undefined ? (row.lock_category ? 1 : 0) : (row.category_locked ? 1 : 0),
+        row.lock_tags !== undefined ? (row.lock_tags ? 1 : 0) : (row.tags_locked ? 1 : 0),
+        row.lock_merchant ? 1 : 0,
+        row.lock_reason || null,
+        row.locked_at || null,
         row.id
       );
     }
@@ -661,12 +867,37 @@ router.get('/:id', (req, res) => {
 // PATCH /api/transactions/:id — update single transaction
 router.patch('/:id', (req, res) => {
   const db = getDb();
-  const { category_id, notes, tags, is_transfer, reviewed, is_income_override, exclude_from_totals, merchant_name } = req.body;
+  const txBefore = db.prepare(`
+    SELECT id, account_id, date, description, amount, category_id, merchant_name, category_source
+    FROM transactions
+    WHERE id = ?
+  `).get(req.params.id);
+  if (!txBefore) return res.status(404).json({ error: 'Transaction not found' });
+
+  const {
+    category_id,
+    notes,
+    tags,
+    is_transfer,
+    reviewed,
+    is_income_override,
+    exclude_from_totals,
+    merchant_name,
+    recategorize_mode,
+    manual_fix_options,
+  } = req.body;
   const fields = [];
   const vals = [];
   const forceExclude = is_transfer === true || is_transfer === 1;
   const manualCategoryEdit = category_id !== undefined;
   const manualTagEdit = tags !== undefined;
+  const manualMerchantEdit = merchant_name !== undefined;
+  const recategorizeMode = manualCategoryEdit
+    ? String(recategorize_mode || 'create_winning_rule').toLowerCase()
+    : null;
+  if (manualCategoryEdit && !['create_winning_rule', 'one_off_only'].includes(recategorizeMode)) {
+    return res.status(400).json({ error: `Invalid recategorize_mode: ${recategorize_mode}` });
+  }
 
   if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(category_id || null); }
   if (notes !== undefined) { fields.push('notes = ?'); vals.push(notes); }
@@ -679,21 +910,132 @@ router.patch('/:id', (req, res) => {
     vals.push(forceExclude ? 1 : (exclude_from_totals ? 1 : 0));
   }
   if (merchant_name !== undefined) { fields.push('merchant_name = ?'); vals.push(merchant_name || null); }
+
   if (manualCategoryEdit || manualTagEdit) {
     fields.push('category_source = ?');
     vals.push('manual_override');
   }
   if (manualCategoryEdit) {
     fields.push('category_locked = 1');
+    fields.push('lock_category = 1');
+    fields.push('lock_reason = ?');
+    vals.push(recategorizeMode === 'one_off_only' ? 'manual_one_off' : 'manual_fix_rule');
+    fields.push('locked_at = datetime(\'now\')');
   }
   if (manualTagEdit) {
     fields.push('tags_locked = 1');
+    fields.push('lock_tags = 1');
+    if (!manualCategoryEdit) {
+      fields.push('lock_reason = ?');
+      vals.push('manual_tag_edit');
+      fields.push('locked_at = datetime(\'now\')');
+    }
+  }
+  if (manualMerchantEdit) {
+    fields.push('lock_merchant = 1');
+    if (!manualCategoryEdit && !manualTagEdit) {
+      fields.push('lock_reason = ?');
+      vals.push('manual_merchant_edit');
+      fields.push('locked_at = datetime(\'now\')');
+    }
   }
 
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
 
-  db.prepare(`UPDATE transactions SET ${fields.join(', ')} WHERE id = ?`).run(...vals, req.params.id);
-  res.json({ ok: true });
+  let createdRule = null;
+  db.transaction(() => {
+    db.prepare(`UPDATE transactions SET ${fields.join(', ')} WHERE id = ?`).run(...vals, req.params.id);
+
+    if (!manualCategoryEdit || recategorizeMode !== 'create_winning_rule' || !category_id) return;
+
+    const categoryRow = db.prepare(`SELECT id, name FROM categories WHERE id = ?`).get(category_id);
+    if (!categoryRow) return;
+    const activeRuleSetId = getActiveRuleSetId({});
+    if (!Number.isFinite(Number(activeRuleSetId))) return;
+
+    const manualFixPayload = buildManualFixRuleFromTransaction({
+      tx: {
+        ...txBefore,
+        merchant_name: merchant_name !== undefined ? merchant_name : txBefore.merchant_name,
+      },
+      categoryId: Number(categoryRow.id),
+      categoryName: categoryRow.name,
+      options: {
+        amount_mode: manual_fix_options?.amount_mode,
+        priority: manual_fix_options?.priority,
+        rule_tier: manual_fix_options?.rule_tier,
+        origin: manual_fix_options?.origin,
+      },
+    });
+    const insertInfo = insertManualFixRule(db, manualFixPayload, Number(activeRuleSetId));
+    if (insertInfo.created) createdRule = { id: insertInfo.id, name: manualFixPayload.name };
+  })();
+
+  res.json({
+    ok: true,
+    recategorize_mode: recategorizeMode || undefined,
+    created_winning_rule: createdRule,
+  });
+});
+
+// PATCH /api/transactions/:id/lock — lock/unlock category/tags/merchant fields
+router.patch('/:id/lock', (req, res) => {
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT id, lock_category, lock_tags, lock_merchant, category_locked, tags_locked
+    FROM transactions
+    WHERE id = ?
+  `).get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Transaction not found' });
+
+  const updates = [];
+  const vals = [];
+  const hasCategory = Object.prototype.hasOwnProperty.call(req.body || {}, 'lock_category');
+  const hasTags = Object.prototype.hasOwnProperty.call(req.body || {}, 'lock_tags');
+  const hasMerchant = Object.prototype.hasOwnProperty.call(req.body || {}, 'lock_merchant');
+  const hasReason = Object.prototype.hasOwnProperty.call(req.body || {}, 'lock_reason');
+
+  if (!hasCategory && !hasTags && !hasMerchant && !hasReason) {
+    return res.status(400).json({ error: 'No lock fields provided' });
+  }
+
+  const nextCategory = hasCategory ? (req.body.lock_category ? 1 : 0) : Number(row.lock_category || 0);
+  const nextTags = hasTags ? (req.body.lock_tags ? 1 : 0) : Number(row.lock_tags || 0);
+  const nextMerchant = hasMerchant ? (req.body.lock_merchant ? 1 : 0) : Number(row.lock_merchant || 0);
+  const anyLocked = nextCategory === 1 || nextTags === 1 || nextMerchant === 1;
+
+  if (hasCategory) {
+    updates.push('lock_category = ?');
+    vals.push(nextCategory);
+    updates.push('category_locked = ?');
+    vals.push(nextCategory);
+  }
+  if (hasTags) {
+    updates.push('lock_tags = ?');
+    vals.push(nextTags);
+    updates.push('tags_locked = ?');
+    vals.push(nextTags);
+  }
+  if (hasMerchant) {
+    updates.push('lock_merchant = ?');
+    vals.push(nextMerchant);
+  }
+  if (hasReason) {
+    updates.push('lock_reason = ?');
+    vals.push(req.body.lock_reason ? String(req.body.lock_reason) : null);
+  } else if (!anyLocked) {
+    updates.push('lock_reason = NULL');
+  }
+  updates.push(`locked_at = ${anyLocked ? "datetime('now')" : 'NULL'}`);
+
+  db.prepare(`UPDATE transactions SET ${updates.join(', ')} WHERE id = ?`).run(...vals, req.params.id);
+  res.json({
+    ok: true,
+    lock_category: nextCategory,
+    lock_tags: nextTags,
+    lock_merchant: nextMerchant,
+    locked: anyLocked,
+  });
 });
 
 // POST /api/transactions/bulk — bulk update
@@ -714,7 +1056,11 @@ router.post('/bulk', (req, res) => {
   if (tags !== undefined) {
     if (tags_mode === 'append' || tags_mode === 'remove') {
       const rows = db.prepare(`SELECT id, tags FROM transactions WHERE id IN (${placeholders})`).all(...ids);
-      const updateOne = db.prepare(`UPDATE transactions SET tags = ?, tags_locked = 1, category_source = 'manual_override' WHERE id = ?`);
+      const updateOne = db.prepare(`
+        UPDATE transactions
+        SET tags = ?, tags_locked = 1, lock_tags = 1, category_source = 'manual_override', lock_reason = 'manual_tag_edit', locked_at = datetime('now')
+        WHERE id = ?
+      `);
       const nextTags = canonicalizeTags(tags);
       const nextTagSet = new Set(nextTags.map((tag) => tag.toLowerCase()));
       rows.forEach(r => {
@@ -748,8 +1094,27 @@ router.post('/bulk', (req, res) => {
     fields.push('category_source = ?');
     vals.push('manual_override');
   }
-  if (manualCategoryEdit) fields.push('category_locked = 1');
-  if (manualTagEdit && tags_mode !== 'append' && tags_mode !== 'remove') fields.push('tags_locked = 1');
+  if (manualCategoryEdit) {
+    fields.push('category_locked = 1');
+    fields.push('lock_category = 1');
+    fields.push(`lock_reason = 'manual_bulk_category_edit'`);
+    fields.push(`locked_at = datetime('now')`);
+  }
+  if (manualTagEdit && tags_mode !== 'append' && tags_mode !== 'remove') {
+    fields.push('tags_locked = 1');
+    fields.push('lock_tags = 1');
+    if (!manualCategoryEdit) {
+      fields.push(`lock_reason = 'manual_bulk_tag_edit'`);
+      fields.push(`locked_at = datetime('now')`);
+    }
+  }
+  if (merchant_name !== undefined) {
+    fields.push('lock_merchant = 1');
+    if (!manualCategoryEdit && !manualTagEdit) {
+      fields.push(`lock_reason = 'manual_bulk_merchant_edit'`);
+      fields.push(`locked_at = datetime('now')`);
+    }
+  }
 
   let updated = updatedViaAppend;
   if (fields.length) {
@@ -848,8 +1213,9 @@ router.post('/restore', (req, res) => {
     INSERT OR REPLACE INTO transactions (
       id, account_id, date, description, amount, category_id, tags, notes,
       is_transfer, is_recurring, reviewed, created_at, is_income_override,
-      exclude_from_totals, merchant_name, category_source, category_locked, tags_locked
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      exclude_from_totals, merchant_name, category_source, category_locked, tags_locked,
+      lock_category, lock_tags, lock_merchant, lock_reason, locked_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const deleteSplits = db.prepare(`DELETE FROM transaction_splits WHERE transaction_id = ?`);
   const insertSplit = db.prepare(`
@@ -878,6 +1244,11 @@ router.post('/restore', (req, res) => {
         tx.category_source || 'import_default',
         tx.category_locked ? 1 : 0,
         tx.tags_locked ? 1 : 0,
+        tx.lock_category ? 1 : 0,
+        tx.lock_tags ? 1 : 0,
+        tx.lock_merchant ? 1 : 0,
+        tx.lock_reason || null,
+        tx.locked_at || null,
       );
 
       deleteSplits.run(tx.id);

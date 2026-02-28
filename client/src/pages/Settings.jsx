@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, Trash2, Pencil, Check, X, Zap, RefreshCw, Eye, AlertTriangle, Sparkles, CheckSquare, Square,
 } from 'lucide-react';
-import { categoriesApi, rulesApi, tagRulesApi, aiApi } from '../utils/api';
+import { categoriesApi, rulesApi, rulesetsApi, tagRulesApi, aiApi } from '../utils/api';
 import { Card, Modal, SectionHeader, Badge, EmptyState, Spinner } from '../components/ui';
 import useAppStore from '../stores/appStore';
 
@@ -24,10 +24,12 @@ const emptyRuleForm = {
   id: null,
   name: '',
   description_operator: 'contains',
+  description_match_semantics: 'token_default',
   description_value: '',
   description_case_sensitive: false,
   merchant_enabled: false,
   merchant_operator: 'contains',
+  merchant_match_semantics: 'token_default',
   merchant_value: '',
   merchant_case_sensitive: false,
   amount_mode: 'any',
@@ -68,6 +70,9 @@ function buildRulePayload(form, forceSave = false) {
       operator: form.description_operator,
       value: form.description_value.trim(),
       case_sensitive: !!form.description_case_sensitive,
+      match_semantics: form.description_operator === 'contains'
+        ? (form.description_match_semantics || 'token_default')
+        : undefined,
     };
   }
   if (form.merchant_enabled && form.merchant_value.trim()) {
@@ -75,6 +80,9 @@ function buildRulePayload(form, forceSave = false) {
       operator: form.merchant_operator,
       value: form.merchant_value.trim(),
       case_sensitive: !!form.merchant_case_sensitive,
+      match_semantics: form.merchant_operator === 'contains'
+        ? (form.merchant_match_semantics || 'token_default')
+        : undefined,
     };
   }
   if (form.amount_mode === 'exact' && form.amount_exact !== '') conditions.amount = { exact: Number(form.amount_exact) };
@@ -117,6 +125,7 @@ function buildRulePayload(form, forceSave = false) {
     stop_processing: !!form.stop_processing,
     source: form.source || 'manual',
     confidence: form.confidence === '' ? null : Number(form.confidence),
+    match_semantics: conditions.description?.match_semantics || conditions.merchant?.match_semantics || 'token_default',
     force_save: !!forceSave,
   };
 }
@@ -136,10 +145,12 @@ function ruleToForm(rule) {
     id: rule.id,
     name: rule.name || '',
     description_operator: d.operator || 'contains',
+    description_match_semantics: d.match_semantics || 'token_default',
     description_value: d.value || rule.keyword || '',
     description_case_sensitive: !!d.case_sensitive,
     merchant_enabled: !!m.value,
     merchant_operator: m.operator || 'contains',
+    merchant_match_semantics: m.match_semantics || 'token_default',
     merchant_value: m.value || '',
     merchant_case_sensitive: !!m.case_sensitive,
     amount_mode: amountMode,
@@ -205,6 +216,18 @@ function summarizeRule(rule, categoriesById = {}) {
     conditions: parts.length ? parts.join(' · ') : 'No conditions',
     actions: actionParts.length ? actionParts.join(' · ') : 'No actions',
   };
+}
+
+function getRuleDisplayName(rule) {
+  const explicit = String(rule?.name || '').trim();
+  if (explicit && !/^rule\s*#?\s*\d+$/i.test(explicit)) return explicit;
+  const keyword = String(rule?.keyword || '').trim();
+  if (keyword) return keyword;
+  const descriptionValue = String(rule?.conditions?.description?.value || '').trim();
+  if (descriptionValue) return descriptionValue;
+  const merchantValue = String(rule?.conditions?.merchant?.value || '').trim();
+  if (merchantValue) return merchantValue;
+  return `Rule #${rule?.id ?? '?'}`;
 }
 
 function parseFilenameFromDisposition(disposition) {
@@ -421,38 +444,71 @@ function CategoriesTab() {
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
             {learnResult.suggestions_count || 0} candidate rules from {learnResult.analyzed} categorized transactions.
           </p>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+            Suggestions are generated from repeated categorized patterns. Nothing is written until you click Apply selected.
+          </p>
+          {learnResult?.thresholds && (
+            <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+              Policy {learnResult.policy || 'default'} · support ≥ {learnResult.thresholds.min_support} · confidence ≥ {Math.round((learnResult.thresholds.min_confidence || 0) * 100)}% · max match ratio {(Number(learnResult.thresholds.max_match_ratio || 0) * 100).toFixed(1)}%
+            </p>
+          )}
+          {learnResult?.dropped_reason_counts && Object.keys(learnResult.dropped_reason_counts).length > 0 && (
+            <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+              Filtered out: {Object.entries(learnResult.dropped_reason_counts).map(([k, v]) => `${k}=${v}`).join(' · ')}
+            </p>
+          )}
           <div className="mt-3 space-y-2 max-h-56 overflow-y-auto pr-1">
-            {(learnResult.suggestions || []).map((s, idx) => (
-              <label key={idx} className="flex gap-3 p-2 rounded-lg cursor-pointer" style={{ border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
-                <input type="checkbox" checked={selectedSuggestions.has(idx)} onChange={() => toggleSuggestion(idx)} />
-                <div className="min-w-0">
-                  <p className="text-xs text-slate-200">{s.name || 'Learned rule'} <span className="text-emerald-400">({Math.round((s.confidence || 0) * 100)}%)</span></p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{(s.rationale || []).join(' · ')}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Will apply:
-                    {' '}
-                    {s.category_name ? `Category ${s.category_name}` : 'No category'}
-                    {s.actions?.tags?.values?.length ? ` · ${s.actions.tags.mode} tags: ${s.actions.tags.values.join(', ')}` : ''}
-                    {s.actions?.set_merchant_name ? ` · Merchant ${s.actions.set_merchant_name}` : ''}
-                  </p>
-                  {s.preview && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Matches {s.preview.match_count} tx ({(s.preview.match_ratio * 100).toFixed(1)}%)</p>}
-                  {s.stats?.precision !== undefined && (
+            {(learnResult.suggestions || []).map((s, idx) => {
+              const targetCategoryId = Number(s.actions?.set_category_id ?? s.category_id);
+              const targetCategoryName = categoriesById[targetCategoryId] || s.category_name || null;
+              const descPattern = s.conditions?.description?.value || s.pattern || s.keyword || '';
+              const amountSign = s.conditions?.amount_sign || 'any';
+              const accountIds = Array.isArray(s.conditions?.account_ids) ? s.conditions.account_ids : [];
+              const supportCount = Number(s.stats?.support_count || 0);
+              const estimatedMatchCount = Number(s.stats?.estimated_match_count || 0);
+              const estimatedMatchRatio = Number(s.stats?.estimated_match_ratio || 0);
+              return (
+                <label key={idx} className="flex gap-3 p-2 rounded-lg cursor-pointer" style={{ border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+                  <input type="checkbox" checked={selectedSuggestions.has(idx)} onChange={() => toggleSuggestion(idx)} />
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-200">{s.name || (targetCategoryName ? `${targetCategoryName} · learned rule` : 'Learned rule')} <span className="text-emerald-400">({Math.round((s.confidence || 0) * 100)}%)</span></p>
+                    {!!descPattern && (
+                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        Pattern: {descPattern}
+                      </p>
+                    )}
                     <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      Precision: {(Number(s.stats.precision) * 100).toFixed(1)}%
-                      {Number(s.stats.conflicting_matches || 0) > 0 ? ` · conflicts: ${s.stats.conflicting_matches}` : ''}
+                      Will apply:
+                      {' '}
+                      {targetCategoryName ? `Category ${targetCategoryName}` : 'No category action'}
+                      {s.actions?.tags?.values?.length ? ` · ${s.actions.tags.mode} tags: ${s.actions.tags.values.join(', ')}` : ''}
+                      {s.actions?.set_merchant_name ? ` · Merchant ${s.actions.set_merchant_name}` : ''}
                     </p>
-                  )}
-                  <button
-                    className="btn-ghost text-[11px] mt-1 px-2 py-1"
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewSuggestion(s, idx); }}
-                    disabled={previewingSuggestionIdx === idx}
-                  >
-                    {previewingSuggestionIdx === idx ? 'Loading…' : 'View matches'}
-                  </button>
-                </div>
-              </label>
-            ))}
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      Constraints:
+                      {' '}
+                      {amountSign === 'any' ? 'any sign' : amountSign}
+                      {accountIds.length ? ` · account ${accountIds.join(', ')}` : ''}
+                    </p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      Seen in {supportCount} categorized tx
+                      {estimatedMatchCount > 0 ? ` · estimated matches ${estimatedMatchCount} (${(estimatedMatchRatio * 100).toFixed(2)}%)` : ''}
+                    </p>
+                    {(s.rationale || []).length > 0 && (
+                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{(s.rationale || []).join(' · ')}</p>
+                    )}
+                    <button
+                      className="btn-ghost text-[11px] mt-1 px-2 py-1"
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePreviewSuggestion(s, idx); }}
+                      disabled={previewingSuggestionIdx === idx}
+                    >
+                      {previewingSuggestionIdx === idx ? 'Loading…' : 'View matches'}
+                    </button>
+                  </div>
+                </label>
+              );
+            })}
           </div>
           <div className="flex justify-end gap-2 mt-3">
             <button className="btn-secondary text-xs" onClick={() => setLearnResult(null)}>Dismiss</button>
@@ -576,6 +632,13 @@ function RulesTab() {
   const [explainBusy, setExplainBusy] = useState(false);
   const [explainIdsRaw, setExplainIdsRaw] = useState('');
   const [explainResult, setExplainResult] = useState(null);
+  const [ruleSetsState, setRuleSetsState] = useState({ active_rule_set_id: null, rule_sets: [] });
+  const [ruleSetsBusy, setRuleSetsBusy] = useState(false);
+  const [shadowCompareBusy, setShadowCompareBusy] = useState(false);
+  const [shadowCompareResult, setShadowCompareResult] = useState(null);
+  const [cleanupPreviewBusy, setCleanupPreviewBusy] = useState(false);
+  const [cleanupPreviewResult, setCleanupPreviewResult] = useState(null);
+  const [cleanupApplyBusy, setCleanupApplyBusy] = useState(false);
   const [form, setForm] = useState({ ...emptyRuleForm });
 
   const categoriesById = useMemo(() => {
@@ -588,6 +651,7 @@ function RulesTab() {
     rulesApi.list().then((r) => setRules(r.data || [])),
     categoriesApi.list().then((r) => setCats(r.data || [])),
     tagRulesApi.list().then((r) => setLegacyTagRules(r.data || [])),
+    rulesetsApi.list().then((r) => setRuleSetsState(r.data || { active_rule_set_id: null, rule_sets: [] })).catch(() => {}),
     rulesApi.lintReports(10).then((r) => setLintReports(r.data || [])).catch(() => {}),
     rulesApi.rebuildRuns(10).then((r) => setRebuildRuns(r.data || [])).catch(() => {}),
   ]);
@@ -667,7 +731,12 @@ function RulesTab() {
   const handleApply = async () => {
     setApplyBusy(true);
     try {
-      const res = await rulesApi.apply({ ...applyOptions, dry_run: false, sample_limit: 80 });
+      const res = await rulesApi.apply({
+        ...applyOptions,
+        dry_run: false,
+        sample_limit: 80,
+        rule_set_id: activeRuleSetId || undefined,
+      });
       showToast(`Updated ${res.data.updated} transactions`);
       setApplyPreview(null);
     } catch {
@@ -678,7 +747,12 @@ function RulesTab() {
   const handlePreviewApply = async () => {
     setPreviewApplyBusy(true);
     try {
-      const res = await rulesApi.apply({ ...applyOptions, dry_run: true, sample_limit: 80 });
+      const res = await rulesApi.apply({
+        ...applyOptions,
+        dry_run: true,
+        sample_limit: 80,
+        rule_set_id: activeRuleSetId || undefined,
+      });
       setApplyPreview(res.data || null);
       showToast(`Dry run: ${res?.data?.updated || 0} transactions would change`);
     } catch (err) {
@@ -818,6 +892,112 @@ function RulesTab() {
     }
   };
 
+  const activeRuleSetId = Number(ruleSetsState?.active_rule_set_id || 0) || null;
+
+  const refreshRuleSets = async () => {
+    setRuleSetsBusy(true);
+    try {
+      const res = await rulesetsApi.list();
+      setRuleSetsState(res.data || { active_rule_set_id: null, rule_sets: [] });
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to load rulesets', 'error');
+    } finally {
+      setRuleSetsBusy(false);
+    }
+  };
+
+  const handleCreateRuleSet = async () => {
+    const suggested = `ruleset_v3_candidate_${new Date().toISOString().slice(0, 10)}`;
+    const name = window.prompt('New ruleset name', suggested);
+    if (!name) return;
+    setRuleSetsBusy(true);
+    try {
+      await rulesetsApi.create({
+        name,
+        description: 'Candidate ruleset (v3)',
+        clone_from_rule_set_id: activeRuleSetId,
+        clone_rules: true,
+      });
+      await refreshRuleSets();
+      showToast('Ruleset created');
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to create ruleset', 'error');
+    } finally {
+      setRuleSetsBusy(false);
+    }
+  };
+
+  const handleActivateRuleSet = async (id) => {
+    if (!window.confirm('Activate this ruleset now?')) return;
+    setRuleSetsBusy(true);
+    try {
+      await rulesetsApi.activate(id);
+      await load();
+      showToast('Ruleset activated');
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to activate ruleset', 'error');
+    } finally {
+      setRuleSetsBusy(false);
+    }
+  };
+
+  const handleShadowCompare = async (ruleSetId) => {
+    setShadowCompareBusy(true);
+    setShadowCompareResult(null);
+    try {
+      const res = await rulesetsApi.shadowCompare(ruleSetId, {
+        baseline_rule_set_id: activeRuleSetId,
+        sample_limit: 120,
+      });
+      setShadowCompareResult(res.data || null);
+      showToast(`Shadow compare complete: ${res?.data?.total_diffs || 0} diffs`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed shadow compare', 'error');
+    } finally {
+      setShadowCompareBusy(false);
+    }
+  };
+
+  const handleExtractProtected = async (ruleSetId) => {
+    setRuleSetsBusy(true);
+    try {
+      const res = await rulesetsApi.extractProtected(ruleSetId, { from_rule_set_id: activeRuleSetId });
+      await load();
+      showToast(`Extracted ${res?.data?.extracted || 0} protected rules`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to extract protected rules', 'error');
+    } finally {
+      setRuleSetsBusy(false);
+    }
+  };
+
+  const handleCleanupPreview = async (ruleSetId) => {
+    setCleanupPreviewBusy(true);
+    try {
+      const res = await rulesetsApi.cleanupPreview(ruleSetId);
+      setCleanupPreviewResult(res.data || null);
+      showToast(`Cleanup preview: ${(res?.data?.safe_disable_count || 0)} safe candidates`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Cleanup preview failed', 'error');
+    } finally {
+      setCleanupPreviewBusy(false);
+    }
+  };
+
+  const handleCleanupApply = async (ruleSetId) => {
+    if (!window.confirm('Disable all safe cleanup candidates in this ruleset?')) return;
+    setCleanupApplyBusy(true);
+    try {
+      const res = await rulesetsApi.cleanupApply(ruleSetId);
+      await load();
+      showToast(`Disabled ${res?.data?.disabled || 0} rules`);
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Cleanup apply failed', 'error');
+    } finally {
+      setCleanupApplyBusy(false);
+    }
+  };
+
   const summaryRows = rules.map((rule) => ({ rule, summary: summarizeRule(rule, categoriesById) }));
 
   return (
@@ -825,7 +1005,96 @@ function RulesTab() {
       <SectionHeader title="Rules Engine" subtitle={`${rules.length} rules · deterministic order`} actions={<div className="flex gap-2"><button className="btn-secondary text-xs flex items-center gap-1.5" onClick={handleApply} disabled={applyBusy}>{applyBusy ? <Spinner size={12} /> : <RefreshCw size={12} />}{applyBusy ? 'Applying…' : 'Apply rules'}</button><button className="btn-primary text-xs flex items-center gap-1.5" onClick={openNew}><Plus size={12} /> New Rule</button></div>} />
 
       <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_330px] gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Rulesets (v3 shadow rollout)</p>
+              <div className="flex gap-2">
+                <button className="btn-secondary text-xs" onClick={refreshRuleSets} disabled={ruleSetsBusy}>
+                  {ruleSetsBusy ? 'Refreshing…' : 'Refresh rulesets'}
+                </button>
+                <button className="btn-primary text-xs" onClick={handleCreateRuleSet} disabled={ruleSetsBusy}>
+                  Create candidate ruleset
+                </button>
+              </div>
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {(ruleSetsState?.rule_sets || []).map((rs) => (
+                <div key={rs.id} className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+                  <div className="min-w-0">
+                    <p className="text-xs" style={{ color: 'var(--text-primary)' }}>
+                      #{rs.id} {rs.name} {rs.is_active ? '· active' : ''}
+                    </p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      rules {rs.rule_count} (enabled {rs.enabled_rule_count}) · manual-fix {rs.manual_fix_count} · protected {rs.protected_core_count} · generated {rs.generated_curated_count}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {!rs.is_active && <button className="btn-secondary text-[11px] px-2 py-1" onClick={() => handleActivateRuleSet(rs.id)} disabled={ruleSetsBusy}>Activate</button>}
+                    <button className="btn-secondary text-[11px] px-2 py-1" onClick={() => handleShadowCompare(rs.id)} disabled={shadowCompareBusy}>Shadow</button>
+                    <button className="btn-secondary text-[11px] px-2 py-1" onClick={() => handleExtractProtected(rs.id)} disabled={ruleSetsBusy}>Extract protected</button>
+                    <button className="btn-secondary text-[11px] px-2 py-1" onClick={() => handleCleanupPreview(rs.id)} disabled={cleanupPreviewBusy}>Cleanup preview</button>
+                    <button className="btn-secondary text-[11px] px-2 py-1" onClick={() => handleCleanupApply(rs.id)} disabled={cleanupApplyBusy}>Cleanup apply</button>
+                  </div>
+                </div>
+              ))}
+              {(ruleSetsState?.rule_sets || []).length === 0 && (
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No rulesets found.</p>
+              )}
+            </div>
+            {shadowCompareResult && (
+              <div className="mt-2 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Shadow diff: total {shadowCompareResult.total_diffs || 0} · category {shadowCompareResult.category_diffs || 0} · tags {shadowCompareResult.tags_diffs || 0} · merchant {shadowCompareResult.merchant_diffs || 0} · flags {shadowCompareResult.flag_diffs || 0}
+                </p>
+              </div>
+            )}
+            {cleanupPreviewResult && (
+              <div className="mt-2 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Cleanup preview (ruleset {cleanupPreviewResult.rule_set_id}): safe disable {cleanupPreviewResult.safe_disable_count || 0}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg p-3 h-fit" style={{ border: '1px solid var(--border)', background: 'linear-gradient(180deg, rgba(99,102,241,0.14), rgba(16,185,129,0.08))' }}>
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Recommended Workflow</p>
+            <ol className="mt-2 space-y-1 text-[11px] pl-4 list-decimal" style={{ color: 'var(--text-secondary)' }}>
+              <li>Create candidate ruleset from active.</li>
+              <li>Run Shadow on candidate and check diff counts.</li>
+              <li>Run Cleanup preview, then Cleanup apply if safe count looks good.</li>
+              <li>Use top-level Apply rules to reapply to transactions.</li>
+              <li>Activate candidate only after results look correct.</li>
+            </ol>
+
+            <p className="text-sm font-semibold mt-3" style={{ color: 'var(--text-primary)' }}>Button Meanings</p>
+            <div className="mt-2 space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+              <p><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Shadow:</span> compare this ruleset vs active without writing changes.</p>
+              <p><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Extract protected:</span> copy protected logic from active into this ruleset.</p>
+              <p><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Cleanup preview:</span> show rules likely safe to disable.</p>
+              <p><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Cleanup apply:</span> disable those safe cleanup candidates.</p>
+              <p><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Activate:</span> make this ruleset the default for future imports/reapply.</p>
+            </div>
+
+            <p className="text-[11px] mt-3" style={{ color: 'var(--text-muted)' }}>
+              Tip: applying with <code>rule_set_id</code> uses that ruleset for one run, even if another ruleset is active.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Apply options</p>
+        <div className="mb-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+          <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            Use these toggles to control how aggressive re-apply is.
+            Safe default: keep overwrite options off, keep only uncategorized on.
+          </p>
+          <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+            Overwrite category/tags/merchant will replace existing values. Skip transfers/excluded prevents touching those transactions.
+          </p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.overwrite_category} onChange={(e) => setApplyOptions((v) => ({ ...v, overwrite_category: e.target.checked, only_uncategorized: e.target.checked ? false : v.only_uncategorized }))} />Overwrite existing category</label>
           <label className="flex items-center gap-2 cursor-pointer" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={applyOptions.overwrite_tags} onChange={(e) => setApplyOptions((v) => ({ ...v, overwrite_tags: e.target.checked }))} />Overwrite existing tags</label>
@@ -857,6 +1126,11 @@ function RulesTab() {
 
       <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Rules portability</p>
+        <div className="mb-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+          <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            Export to back up rules or move them between machines. Import replaces learned rules only; manual/protected rules stay.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <button className="btn-secondary text-xs" onClick={() => handleExport('learned', 'json')} disabled={!!exportBusy}>
             {exportBusy === 'learned:json' ? 'Exporting…' : 'Export learned JSON'}
@@ -898,6 +1172,11 @@ function RulesTab() {
 
       <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Rules health (lint)</p>
+        <div className="mb-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+          <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            Lint finds risky rules: duplicates, conflicts, overly broad matches, and missing safeguards.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <select className="select text-xs" value={lintScope} onChange={(e) => setLintScope(e.target.value)}>
             <option value="all">Scope: all</option>
@@ -932,6 +1211,11 @@ function RulesTab() {
 
       <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Rebuild wizard</p>
+        <div className="mb-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+          <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            Step 1 makes a database safety snapshot. Step 2 disables learned rules. Step 3 generates safer suggestions. Step 4 applies selected rebuilt learned rules.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <button className="btn-secondary text-xs" onClick={handleSnapshot} disabled={snapshotBusy}>
             {snapshotBusy ? 'Creating snapshot…' : '1) Snapshot DB'}
@@ -973,6 +1257,11 @@ function RulesTab() {
 
       <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Shadow reapply (dry run)</p>
+        <div className="mb-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+          <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            Preview only. Shows how many transactions would change without writing anything.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <button className="btn-secondary text-xs" onClick={handlePreviewApply} disabled={previewApplyBusy}>
             {previewApplyBusy ? 'Previewing…' : 'Preview reapply'}
@@ -994,6 +1283,11 @@ function RulesTab() {
 
       <div className="mt-3 rounded-xl p-3 text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <p className="font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Explain categorization</p>
+        <div className="mb-3 p-2 rounded-lg" style={{ border: '1px solid var(--border)', background: 'var(--bg-card-hover)' }}>
+          <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            Paste transaction IDs to see the winning rule, matched rules, and blocked rules for each transaction.
+          </p>
+        </div>
         <div className="flex flex-col gap-2">
           <textarea
             className="input text-xs"
@@ -1030,7 +1324,7 @@ function RulesTab() {
           <div key={rule.id} className="rounded-xl p-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap"><Badge color={rule.category_color || '#6366f1'}>{rule.name || rule.keyword || `Rule #${rule.id}`}</Badge><span className="text-xs" style={{ color: 'var(--text-muted)' }}>priority {rule.priority}</span><span className="text-xs" style={{ color: 'var(--text-muted)' }}>source {rule.source || 'manual'}</span>{rule.stop_processing ? <span className="text-xs text-amber-300">stop processing</span> : null}{!rule.is_enabled ? <span className="text-xs text-slate-400">disabled</span> : null}</div>
+                <div className="flex items-center gap-2 flex-wrap"><Badge color={rule.category_color || '#6366f1'}>{getRuleDisplayName(rule)}</Badge><span className="text-xs" style={{ color: 'var(--text-muted)' }}>priority {rule.priority}</span><span className="text-xs" style={{ color: 'var(--text-muted)' }}>source {rule.source || 'manual'}</span>{rule.stop_processing ? <span className="text-xs text-amber-300">stop processing</span> : null}{!rule.is_enabled ? <span className="text-xs text-slate-400">disabled</span> : null}</div>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{summary.conditions}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{summary.actions}</p>
               </div>
@@ -1048,16 +1342,26 @@ function RulesTab() {
         </div>
       </div>
 
-      <Modal open={showBuilder} onClose={() => setShowBuilder(false)} title={form.id ? 'Edit Rule' : 'New Rule'} size="xl">
-        <div className="space-y-4 max-h-[78vh] overflow-y-auto pr-2">
+      <Modal open={showBuilder} onClose={() => setShowBuilder(false)} title={form.id ? 'Edit Rule' : 'New Rule'} size="xxl">
+        <div className="space-y-4 pr-2">
           <div className="p-3 rounded-lg text-xs" style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border)' }}>Build conditions with AND logic. Use Preview before saving.</div>
           <div><label className="text-xs block mb-1.5" style={{ color: 'var(--text-muted)' }}>Rule name</label><input className="input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Netflix monthly" /></div>
           <div className="space-y-3 p-3 rounded-lg" style={{ border: '1px solid var(--border)' }}>
             <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Conditions (AND)</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><select className="select" value={form.description_operator} onChange={(e) => setForm((f) => ({ ...f, description_operator: e.target.value }))}>{MATCH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><input className="input md:col-span-2" value={form.description_value} onChange={(e) => setForm((f) => ({ ...f, description_value: e.target.value }))} placeholder="Description pattern" /></div>
             <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={form.description_case_sensitive} onChange={(e) => setForm((f) => ({ ...f, description_case_sensitive: e.target.checked }))} />Description case-sensitive</label>
+            {form.description_operator === 'contains' && (
+              <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={form.description_match_semantics === 'substring_explicit'}
+                  onChange={(e) => setForm((f) => ({ ...f, description_match_semantics: e.target.checked ? 'substring_explicit' : 'token_default' }))}
+                />
+                Use broad substring matching (advanced)
+              </label>
+            )}
             <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={form.merchant_enabled} onChange={(e) => setForm((f) => ({ ...f, merchant_enabled: e.target.checked }))} />Add merchant condition</label>
-            {form.merchant_enabled && <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><select className="select" value={form.merchant_operator} onChange={(e) => setForm((f) => ({ ...f, merchant_operator: e.target.value }))}>{MATCH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><input className="input md:col-span-2" value={form.merchant_value} onChange={(e) => setForm((f) => ({ ...f, merchant_value: e.target.value }))} placeholder="Merchant value" /></div>}
+            {form.merchant_enabled && <div className="space-y-2"><div className="grid grid-cols-1 md:grid-cols-3 gap-2"><select className="select" value={form.merchant_operator} onChange={(e) => setForm((f) => ({ ...f, merchant_operator: e.target.value }))}>{MATCH_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select><input className="input md:col-span-2" value={form.merchant_value} onChange={(e) => setForm((f) => ({ ...f, merchant_value: e.target.value }))} placeholder="Merchant value" /></div>{form.merchant_operator === 'contains' && <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}><input type="checkbox" checked={form.merchant_match_semantics === 'substring_explicit'} onChange={(e) => setForm((f) => ({ ...f, merchant_match_semantics: e.target.checked ? 'substring_explicit' : 'token_default' }))} />Use broad substring matching for merchant (advanced)</label>}</div>}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2"><select className="select" value={form.amount_mode} onChange={(e) => setForm((f) => ({ ...f, amount_mode: e.target.value }))}><option value="any">Any amount</option><option value="exact">Exact amount</option><option value="range">Amount range</option></select>{form.amount_mode === 'exact' && <input className="input md:col-span-3" type="number" step="0.01" value={form.amount_exact} onChange={(e) => setForm((f) => ({ ...f, amount_exact: e.target.value }))} placeholder="Exact amount" />}{form.amount_mode === 'range' && <><input className="input md:col-span-1" type="number" step="0.01" value={form.amount_min} onChange={(e) => setForm((f) => ({ ...f, amount_min: e.target.value }))} placeholder="Min" /><input className="input md:col-span-2" type="number" step="0.01" value={form.amount_max} onChange={(e) => setForm((f) => ({ ...f, amount_max: e.target.value }))} placeholder="Max" /></>}</div>
             <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Amount uses absolute value; combine with sign for income/expense.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><select className="select" value={form.amount_sign} onChange={(e) => setForm((f) => ({ ...f, amount_sign: e.target.value }))}><option value="any">Any sign</option><option value="expense">Expense (negative)</option><option value="income">Income (positive)</option></select><select multiple className="select md:col-span-2 h-24" value={form.account_ids.map(String)} onChange={(e) => setForm((f) => ({ ...f, account_ids: [...e.target.selectedOptions].map((o) => Number(o.value)) }))}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></div>

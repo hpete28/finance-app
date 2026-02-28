@@ -73,7 +73,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
 
   if (!open) return null;
 
-  const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
+  const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl', xxl: 'max-w-6xl' };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

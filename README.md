@@ -194,6 +194,7 @@ Core tables:
 - `GET /api/transactions/export.csv`
 - `GET /api/transactions/:id`
 - `PATCH /api/transactions/:id`
+- `PATCH /api/transactions/:id/lock`
 - `POST /api/transactions/bulk`
 - `POST /api/transactions/:id/split`
 - `GET /api/transactions/summary/monthly`
@@ -205,6 +206,12 @@ Core tables:
 - `POST /api/rules/apply`
 - `POST /api/rules/learn`
 - `POST /api/rules/learn/apply`
+- `GET/POST /api/rulesets`
+- `POST /api/rulesets/:id/activate`
+- `POST /api/rulesets/:id/shadow-compare`
+- `POST /api/rulesets/:id/extract-protected`
+- `POST /api/rulesets/:id/cleanup/preview`
+- `POST /api/rulesets/:id/cleanup/apply`
 
 ### Income sources
 - `GET/POST/DELETE /api/income-sources`
@@ -248,18 +255,21 @@ Core tables:
 
 ### Evaluation order
 - Rules are evaluated in deterministic order:
-  1. `priority DESC`
-  2. source rank (`manual` before `learned` before legacy `tag_rules`)
-  3. `id ASC`
+  1. tier rank (`manual_fix` -> `protected_core` -> `generated_curated` -> `legacy_archived` -> legacy tag compatibility)
+  2. `priority DESC`
+  3. `specificity_score DESC`
+  4. source rank (`manual` before `learned` before legacy tag compatibility)
+  5. `id ASC`
 - Category assignment uses first-match-wins.
 - Merchant, income-override, and exclude-from-totals use first-write-wins.
 - Tag actions execute sequentially across matched rules.
 - If a rule has `stop_processing = true`, evaluation stops after that match.
+- Active rules are selected from the active `rule_set` (`rule_sets.is_active=1`), enabling shadow rollout and reversible cutover.
 
 ### Rule payload shape (API)
 - `conditions`:
-  - `description`: `{ operator, value, case_sensitive }`
-  - `merchant`: `{ operator, value, case_sensitive }`
+  - `description`: `{ operator, value, case_sensitive, match_semantics }`
+  - `merchant`: `{ operator, value, case_sensitive, match_semantics }`
   - `amount`: `{ exact }` or `{ min, max }`
   - `amount_sign`: `any | income | expense`
   - `account_ids`: `number[]`
@@ -272,10 +282,17 @@ Core tables:
   - `set_exclude_from_totals`
 - `behavior`:
   - `priority`, `is_enabled`, `stop_processing`, `source`, `confidence`
+  - `rule_set_id`, `rule_tier`, `origin`, `match_semantics`, `specificity_score`
 
 ### Backward compatibility
 - Existing legacy `rules` rows still work (keyword + match type + category).
 - Existing legacy `tag_rules` are still evaluated as compatibility tag append rules.
+- Legacy data is auto-mapped into a default ruleset (`legacy_default`) during v3 migration.
+
+### Manual recategorization modes
+- `create_winning_rule` (default): updates the transaction and creates a high-priority tier-A (`manual_fix`) rule in the active ruleset.
+- `one_off_only`: updates only that transaction and locks it without creating a global rule.
+- Transaction locks (`lock_category`, `lock_tags`, `lock_merchant`) are respected by rule reapply/import categorization.
 
 ---
 

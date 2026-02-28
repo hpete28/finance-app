@@ -3,7 +3,22 @@ const { getDb } = require('../database');
 
 const MAX_REGEX_PATTERN_LENGTH = 256;
 const SOURCE_RANK = { manual: 0, learned: 1, legacy_tag: 2 };
+const RULE_TIER_RANK = {
+  manual_fix: 0,
+  protected_core: 1,
+  generated_curated: 2,
+  legacy_archived: 3,
+  legacy_tag: 4,
+};
+const MATCH_SEMANTICS = {
+  token_default: 'token_default',
+  substring_explicit: 'substring_explicit',
+  exact: 'exact',
+  starts_with: 'starts_with',
+  regex_safe: 'regex_safe',
+};
 let incomeCategoryCache = { ids: new Set(), fetched_at: 0 };
+let activeRuleSetCache = { id: null, fetched_at: 0 };
 
 function normalizeForMatching(value) {
   return String(value || '')
@@ -35,6 +50,59 @@ function normalizeTagArray(tags) {
   return [];
 }
 
+function normalizeRuleTier(value, fallback = 'generated_curated') {
+  const tier = String(value || fallback).toLowerCase();
+  if (tier in RULE_TIER_RANK) return tier;
+  return fallback;
+}
+
+function normalizeMatchSemantics(value, fallback = MATCH_SEMANTICS.token_default) {
+  const semantics = String(value || fallback).toLowerCase();
+  if (semantics === MATCH_SEMANTICS.token_default) return MATCH_SEMANTICS.token_default;
+  if (semantics === MATCH_SEMANTICS.substring_explicit) return MATCH_SEMANTICS.substring_explicit;
+  if (semantics === MATCH_SEMANTICS.exact) return MATCH_SEMANTICS.exact;
+  if (semantics === MATCH_SEMANTICS.starts_with) return MATCH_SEMANTICS.starts_with;
+  if (semantics === MATCH_SEMANTICS.regex_safe) return MATCH_SEMANTICS.regex_safe;
+  return fallback;
+}
+
+function computeSpecificityScore(conditions = {}) {
+  let score = 0;
+  const desc = conditions.description || null;
+  const merchant = conditions.merchant || null;
+  const amount = conditions.amount || null;
+
+  if (desc?.value) {
+    const op = String(desc.operator || 'contains').toLowerCase();
+    if (op === 'equals') score += 8;
+    else if (op === 'starts_with') score += 6;
+    else if (op === 'regex') score += 5;
+    else if (String(desc.match_semantics || MATCH_SEMANTICS.token_default) === MATCH_SEMANTICS.substring_explicit) score += 2;
+    else score += 4;
+    score += Math.min(3, Math.floor(normalizeForMatching(desc.value).length / 8));
+  }
+
+  if (merchant?.value) {
+    const op = String(merchant.operator || 'contains').toLowerCase();
+    if (op === 'equals') score += 7;
+    else if (op === 'starts_with') score += 5;
+    else if (op === 'regex') score += 4;
+    else if (String(merchant.match_semantics || MATCH_SEMANTICS.token_default) === MATCH_SEMANTICS.substring_explicit) score += 2;
+    else score += 4;
+  }
+
+  if (amount) {
+    if (Number.isFinite(amount.exact)) score += 6;
+    else if (Number.isFinite(amount.min) || Number.isFinite(amount.max)) score += 4;
+  }
+  if (String(conditions.amount_sign || 'any').toLowerCase() !== 'any') score += 2;
+  if (Array.isArray(conditions.account_ids) && conditions.account_ids.length) {
+    score += 3 + Math.min(2, conditions.account_ids.length);
+  }
+  if (conditions.date_range && (conditions.date_range.from || conditions.date_range.to)) score += 2;
+  return Number(score.toFixed(2));
+}
+
 function normalizeMatchType(matchType) {
   switch (String(matchType || '').toLowerCase()) {
     case 'contains':
@@ -55,6 +123,36 @@ function sourceRank(source) {
   return SOURCE_RANK[String(source || 'manual').toLowerCase()] ?? 9;
 }
 
+function tierRank(tier) {
+  return RULE_TIER_RANK[normalizeRuleTier(tier)] ?? 9;
+}
+
+function getActiveRuleSetId(options = {}) {
+  const explicit = options.ruleSetId;
+  if (explicit !== undefined && explicit !== null && explicit !== '') {
+    const n = Number(explicit);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (options.includeAllRuleSets) return null;
+
+  const now = Date.now();
+  if ((now - activeRuleSetCache.fetched_at) < 1500) {
+    return activeRuleSetCache.id;
+  }
+
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT id
+    FROM rule_sets
+    WHERE is_active = 1
+    ORDER BY id DESC
+    LIMIT 1
+  `).get();
+  const id = row ? Number(row.id) : null;
+  activeRuleSetCache = { id: Number.isFinite(id) ? id : null, fetched_at: now };
+  return activeRuleSetCache.id;
+}
+
 function getIncomeCategoryIds(options = {}) {
   if (options.incomeCategoryIds instanceof Set) return options.incomeCategoryIds;
   if (Array.isArray(options.incomeCategoryIds)) {
@@ -72,7 +170,7 @@ function getIncomeCategoryIds(options = {}) {
   return incomeCategoryCache.ids;
 }
 
-function normalizeTextCondition(input, fallbackKeyword = '', fallbackMatchType = '') {
+function normalizeTextCondition(input, fallbackKeyword = '', fallbackMatchType = '', fallbackSemantics = MATCH_SEMANTICS.token_default) {
   const fallback = normalizeMatchType(fallbackMatchType);
 
   let raw = input;
@@ -84,8 +182,16 @@ function normalizeTextCondition(input, fallbackKeyword = '', fallbackMatchType =
 
   const operator = String(raw.operator || raw.match || raw.type || fallback.operator || 'contains').toLowerCase();
   const case_sensitive = raw.case_sensitive === true;
+  const explicitSemantics = raw.match_semantics || raw.semantics || null;
+  const matchSemantics = normalizeMatchSemantics(
+    explicitSemantics,
+    normalizeMatchSemantics(
+      fallbackSemantics,
+      operator === 'contains' ? MATCH_SEMANTICS.token_default : MATCH_SEMANTICS.substring_explicit
+    )
+  );
 
-  const cond = { value, operator, case_sensitive };
+  const cond = { value, operator, case_sensitive, match_semantics: matchSemantics };
   if (operator === 'regex') {
     if (value.length > MAX_REGEX_PATTERN_LENGTH) {
       cond.invalid = `Regex pattern too long (max ${MAX_REGEX_PATTERN_LENGTH})`;
@@ -121,8 +227,9 @@ function normalizeConditionsFromRow(row) {
   }
 
   const normalized = {};
-  normalized.description = normalizeTextCondition(conditions.description, row.keyword, row.match_type);
-  normalized.merchant = normalizeTextCondition(conditions.merchant);
+  const fallbackSemantics = normalizeMatchSemantics(row.match_semantics, MATCH_SEMANTICS.token_default);
+  normalized.description = normalizeTextCondition(conditions.description, row.keyword, row.match_type, fallbackSemantics);
+  normalized.merchant = normalizeTextCondition(conditions.merchant, '', '', fallbackSemantics);
 
   const amount = conditions.amount || {};
   const exact = amount.exact ?? conditions.amount_exact;
@@ -209,6 +316,10 @@ function normalizeActionsFromRow(row) {
 function compileRule(row) {
   const conditions = normalizeConditionsFromRow(row);
   const actions = normalizeActionsFromRow(row);
+  const explicitSpecificity = Number(row.specificity_score);
+  const specificity = Number.isFinite(explicitSpecificity)
+    ? explicitSpecificity
+    : computeSpecificityScore(conditions);
 
   return {
     id: row.id,
@@ -216,6 +327,12 @@ function compileRule(row) {
     priority: Number(row.priority) || 10,
     source: String(row.source || 'manual').toLowerCase(),
     source_rank: sourceRank(row.source),
+    rule_set_id: row.rule_set_id === null || row.rule_set_id === undefined ? null : Number(row.rule_set_id),
+    rule_tier: normalizeRuleTier(row.rule_tier, 'generated_curated'),
+    rule_tier_rank: tierRank(row.rule_tier),
+    origin: String(row.origin || 'imported').toLowerCase(),
+    match_semantics: normalizeMatchSemantics(row.match_semantics, MATCH_SEMANTICS.token_default),
+    specificity_score: specificity,
     is_enabled: row.is_enabled === undefined ? 1 : (row.is_enabled ? 1 : 0),
     stop_processing: row.stop_processing ? 1 : 0,
     category_name: row.category_name || null,
@@ -227,23 +344,52 @@ function compileRule(row) {
 }
 
 function compareRuleOrder(a, b) {
+  if (a.rule_tier_rank !== b.rule_tier_rank) return a.rule_tier_rank - b.rule_tier_rank;
   if (a.priority !== b.priority) return b.priority - a.priority;
+  if (a.specificity_score !== b.specificity_score) return b.specificity_score - a.specificity_score;
   if (a.source_rank !== b.source_rank) return a.source_rank - b.source_rank;
   return Number(a.id) - Number(b.id);
 }
 
-function getRules() {
+function getRules(options = {}) {
   const db = getDb();
+  const includeAllRuleSets = options.includeAllRuleSets === true;
+  const activeRuleSetId = includeAllRuleSets ? null : getActiveRuleSetId(options);
+
+  let whereSql = '1 = 1';
+  const params = [];
+  if (!includeAllRuleSets && activeRuleSetId !== null) {
+    whereSql = 'COALESCE(r.rule_set_id, ?) = ?';
+    params.push(activeRuleSetId, activeRuleSetId);
+  }
+
   return db.prepare(`
     SELECT
       r.id, r.name, r.keyword, r.match_type, r.category_id, r.priority,
       r.is_enabled, r.stop_processing, r.source, r.confidence,
+      r.rule_set_id, r.rule_tier, r.origin, r.match_semantics, r.specificity_score,
       r.conditions_json, r.actions_json, r.created_at,
       c.name as category_name
     FROM rules r
     LEFT JOIN categories c ON c.id = r.category_id
-    ORDER BY r.priority DESC, r.id ASC
-  `).all();
+    WHERE ${whereSql}
+    ORDER BY
+      CASE LOWER(COALESCE(r.rule_tier, 'generated_curated'))
+        WHEN 'manual_fix' THEN 0
+        WHEN 'protected_core' THEN 1
+        WHEN 'generated_curated' THEN 2
+        WHEN 'legacy_archived' THEN 3
+        ELSE 4
+      END ASC,
+      r.priority DESC,
+      COALESCE(r.specificity_score, 0) DESC,
+      CASE LOWER(COALESCE(r.source, 'manual'))
+        WHEN 'manual' THEN 0
+        WHEN 'learned' THEN 1
+        ELSE 2
+      END ASC,
+      r.id ASC
+  `).all(...params);
 }
 
 function getLegacyTagRules() {
@@ -273,11 +419,20 @@ function compileRules(ruleRows, options = {}) {
         is_enabled: 1,
         stop_processing: 0,
         source: 'legacy_tag',
+        rule_tier: 'legacy_tag',
+        origin: 'imported',
+        match_semantics: tr.match_type === 'contains_case_insensitive'
+          ? MATCH_SEMANTICS.substring_explicit
+          : normalizeMatchSemantics(tr.match_type, MATCH_SEMANTICS.substring_explicit),
+        specificity_score: 1,
         confidence: null,
         conditions_json: JSON.stringify({
           description: {
             ...normalizeMatchType(tr.match_type),
             value: tr.keyword,
+            match_semantics: tr.match_type === 'contains_case_insensitive'
+              ? MATCH_SEMANTICS.substring_explicit
+              : undefined,
           },
         }),
         actions_json: JSON.stringify({
@@ -292,7 +447,22 @@ function compileRules(ruleRows, options = {}) {
 }
 
 function getCompiledRules(options = {}) {
-  return compileRules(getRules(), options);
+  return compileRules(getRules(options), options);
+}
+
+function normalizedContainsByTokenBoundary(haystack, needle) {
+  const hay = String(haystack || '').trim();
+  const ned = String(needle || '').trim();
+  if (!hay || !ned) return false;
+
+  const paddedHay = ` ${hay} `;
+  const paddedNeedle = ` ${ned} `;
+  if (paddedHay.includes(paddedNeedle)) return true;
+
+  const hayCompact = hay.replace(/\s+/g, '');
+  const needleCompact = ned.replace(/\s+/g, '');
+  if (ned.includes(' ') && needleCompact.length >= 7 && hayCompact.includes(needleCompact)) return true;
+  return false;
 }
 
 function matchesTextCondition(rawValue, condition) {
@@ -308,22 +478,33 @@ function matchesTextCondition(rawValue, condition) {
   const needle = condition.needle || '';
   if (!needle) return false;
 
-  const compact = (v) => String(v || '').replace(/\s+/g, '');
-  const haystackCompact = compact(haystack);
-  const needleCompact = compact(needle);
-  const shouldUseCompactFallback = (
-    !condition.case_sensitive
-    && String(needle).includes(' ')
-    && needleCompact.length >= 7
-  );
-
   if (condition.operator === 'equals') {
-    return haystack === needle || (shouldUseCompactFallback && haystackCompact === needleCompact);
+    if (condition.case_sensitive) return haystack === needle;
+    return haystack === needle || normalizedContainsByTokenBoundary(haystack, needle);
   }
   if (condition.operator === 'starts_with') {
-    return haystack.startsWith(needle) || (shouldUseCompactFallback && haystackCompact.startsWith(needleCompact));
+    if (condition.case_sensitive) return haystack.startsWith(needle);
+    return haystack === needle || haystack.startsWith(`${needle} `) || haystack.startsWith(needle);
   }
-  return haystack.includes(needle) || (shouldUseCompactFallback && haystackCompact.includes(needleCompact));
+
+  const semantics = normalizeMatchSemantics(
+    condition.match_semantics,
+    condition.operator === 'contains' ? MATCH_SEMANTICS.token_default : MATCH_SEMANTICS.substring_explicit
+  );
+
+  if (condition.case_sensitive || semantics === MATCH_SEMANTICS.substring_explicit) {
+    const compact = (v) => String(v || '').replace(/\s+/g, '');
+    const haystackCompact = compact(haystack);
+    const needleCompact = compact(needle);
+    const shouldUseCompactFallback = (
+      !condition.case_sensitive
+      && String(needle).includes(' ')
+      && needleCompact.length >= 7
+    );
+    return haystack.includes(needle) || (shouldUseCompactFallback && haystackCompact.includes(needleCompact));
+  }
+
+  return normalizedContainsByTokenBoundary(haystack, needle);
 }
 
 function matchesAmountCondition(txAmount, amountCond) {
@@ -413,6 +594,9 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
     category_source: String(transaction.category_source || 'import_default'),
     category_locked: transaction.category_locked ? 1 : 0,
     tags_locked: transaction.tags_locked ? 1 : 0,
+    lock_category: transaction.lock_category ? 1 : 0,
+    lock_tags: transaction.lock_tags ? 1 : 0,
+    lock_merchant: transaction.lock_merchant ? 1 : 0,
   };
 
   const opts = {
@@ -447,10 +631,10 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
   const enforceLocks = opts.respect_locks && !opts.ignore_locks;
 
   const lock = {
-    category: (enforceLocks && tx.category_locked === 1)
+    category: (enforceLocks && (tx.lock_category === 1 || tx.category_locked === 1))
       || (!opts.overwrite_category && tx.category_id !== null && tx.category_id !== undefined),
-    tags: (enforceLocks && tx.tags_locked === 1),
-    merchant: !opts.overwrite_merchant && !!tx.merchant_name,
+    tags: (enforceLocks && (tx.lock_tags === 1 || tx.tags_locked === 1)),
+    merchant: (enforceLocks && tx.lock_merchant === 1) || (!opts.overwrite_merchant && !!tx.merchant_name),
     income: !opts.overwrite_flags && tx.is_income_override === 1,
     exclude: !opts.overwrite_flags && tx.exclude_from_totals === 1,
   };
@@ -488,11 +672,15 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
           id: rule.id,
           name: rule.name || null,
           source: rule.source,
+          tier: rule.rule_tier || 'generated_curated',
           priority: rule.priority,
           category_id: nextCategoryId,
           category_name: rule.category_name || null,
         };
-        result.category_source = rule.source === 'learned' ? 'rule_learned' : 'rule_manual';
+        if (rule.rule_tier === 'manual_fix') result.category_source = 'rule_manual_fix';
+        else if (rule.source === 'learned') result.category_source = 'rule_learned';
+        else if (rule.rule_tier === 'protected_core') result.category_source = 'rule_protected';
+        else result.category_source = 'rule_manual';
         lock.category = true;
       }
     }
@@ -545,6 +733,7 @@ function evaluateTransactionWithRules(transaction, compiledRules, options = {}) 
 function applyRulesToTransactionInput(transaction, options = {}) {
   const compiledRules = options.compiledRules || getCompiledRules({
     includeLegacyTagRules: options.includeLegacyTagRules !== false,
+    ruleSetId: options.rule_set_id,
   });
   return evaluateTransactionWithRules(transaction, compiledRules, {
     overwrite_category: options.overwrite_category !== false,
@@ -576,10 +765,14 @@ function applyRulesToAllTransactions(options = {}) {
     allow_negative_income_category: !!options.allow_negative_income_category,
     respect_locks: options.respect_locks !== false,
     ignore_locks: !!options.ignore_locks,
+    rule_set_id: options.rule_set_id !== undefined && options.rule_set_id !== null && options.rule_set_id !== ''
+      ? Number(options.rule_set_id)
+      : null,
   };
 
   const compiledRules = getCompiledRules({
     includeLegacyTagRules: opts.includeLegacyTagRules,
+    ruleSetId: opts.rule_set_id,
   });
 
   const where = [];
@@ -600,7 +793,7 @@ function applyRulesToAllTransactions(options = {}) {
   }
 
   const sql = `
-    SELECT id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals, category_source, category_locked, tags_locked
+    SELECT id, account_id, date, description, amount, category_id, tags, merchant_name, is_income_override, exclude_from_totals, category_source, category_locked, tags_locked, lock_category, lock_tags, lock_merchant
     FROM transactions
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
   `;
@@ -758,7 +951,7 @@ function categorize(input, rulesOverride = null) {
 
   const compiled = Array.isArray(rulesOverride)
     ? (rulesOverride.length && rulesOverride[0]?.conditions ? rulesOverride : compileRules(rulesOverride, { includeLegacyTagRules: true }))
-    : getCompiledRules({ includeLegacyTagRules: true });
+    : getCompiledRules({ includeLegacyTagRules: true, ruleSetId: tx.rule_set_id });
 
   const evaluated = evaluateTransactionWithRules(tx, compiled, {
     overwrite_category: true,
@@ -945,6 +1138,8 @@ function detectRecurring() {
 
 module.exports = {
   normalizeForMatching,
+  computeSpecificityScore,
+  getActiveRuleSetId,
   getRules,
   getLegacyTagRules,
   compileRules,

@@ -40,6 +40,18 @@ function initSchema() {
       is_system   INTEGER NOT NULL DEFAULT 0
     );
 
+    -- Rule sets (v3): allow shadow rollouts and activation cutover
+    CREATE TABLE IF NOT EXISTS rule_sets (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        TEXT    NOT NULL UNIQUE,
+      description TEXT,
+      status      TEXT    NOT NULL DEFAULT 'candidate'
+                   CHECK(status IN ('candidate','active','archived','legacy')),
+      is_active   INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+      activated_at TEXT
+    );
+
     -- Categorization rules engine
     CREATE TABLE IF NOT EXISTS rules (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,6 +66,14 @@ function initSchema() {
       confidence    REAL,
       conditions_json TEXT  NOT NULL DEFAULT '{}',
       actions_json  TEXT    NOT NULL DEFAULT '{}',
+      rule_set_id   INTEGER REFERENCES rule_sets(id),
+      rule_tier     TEXT    NOT NULL DEFAULT 'generated_curated'
+                   CHECK(rule_tier IN ('manual_fix','protected_core','generated_curated','legacy_archived','legacy_tag')),
+      origin        TEXT    NOT NULL DEFAULT 'imported'
+                   CHECK(origin IN ('manual_fix','imported','generated','protected_migrated')),
+      match_semantics TEXT  NOT NULL DEFAULT 'token_default'
+                   CHECK(match_semantics IN ('token_default','substring_explicit','exact','starts_with','regex_safe')),
+      specificity_score REAL NOT NULL DEFAULT 0,
       created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -81,6 +101,11 @@ function initSchema() {
       is_transfer   INTEGER NOT NULL DEFAULT 0,
       is_recurring  INTEGER NOT NULL DEFAULT 0,
       reviewed      INTEGER NOT NULL DEFAULT 0,
+      lock_category INTEGER NOT NULL DEFAULT 0,
+      lock_tags     INTEGER NOT NULL DEFAULT 0,
+      lock_merchant INTEGER NOT NULL DEFAULT 0,
+      lock_reason   TEXT,
+      locked_at     TEXT,
       created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -157,6 +182,7 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_transactions_transfer_date ON transactions(is_transfer, date);
     CREATE INDEX IF NOT EXISTS idx_budgets_month           ON budgets(month);
     CREATE INDEX IF NOT EXISTS idx_tag_rules_priority      ON tag_rules(priority DESC);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_sets_single_active ON rule_sets(is_active) WHERE is_active = 1;
 
     CREATE TABLE IF NOT EXISTS import_runs (
       id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -237,6 +263,7 @@ function initSchema() {
   } catch (e) { /* migration race/older schema during bootstrap — fine */ }
 
   ensureRulesSchemaV2();
+  ensureRulesSchemaV3();
 
   // Income sources table — user-defined merchant keywords that count as income
   db.exec(`
@@ -349,6 +376,110 @@ function ensureRulesSchemaV2() {
   }
 
   db.exec(`CREATE INDEX IF NOT EXISTS idx_rules_eval ON rules(is_enabled, priority DESC, id ASC)`);
+}
+
+function ensureRulesSchemaV3() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS rule_sets (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        TEXT    NOT NULL UNIQUE,
+      description TEXT,
+      status      TEXT    NOT NULL DEFAULT 'candidate'
+                   CHECK(status IN ('candidate','active','archived','legacy')),
+      is_active   INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+      activated_at TEXT
+    )
+  `);
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_sets_single_active ON rule_sets(is_active) WHERE is_active = 1`);
+
+  const addRuleColumns = [
+    `ALTER TABLE rules ADD COLUMN rule_set_id INTEGER REFERENCES rule_sets(id)`,
+    `ALTER TABLE rules ADD COLUMN rule_tier TEXT NOT NULL DEFAULT 'generated_curated'`,
+    `ALTER TABLE rules ADD COLUMN origin TEXT NOT NULL DEFAULT 'imported'`,
+    `ALTER TABLE rules ADD COLUMN match_semantics TEXT NOT NULL DEFAULT 'token_default'`,
+    `ALTER TABLE rules ADD COLUMN specificity_score REAL NOT NULL DEFAULT 0`,
+  ];
+  for (const sql of addRuleColumns) {
+    try { db.exec(sql); } catch (e) { /* already exists */ }
+  }
+
+  const addTxColumns = [
+    `ALTER TABLE transactions ADD COLUMN lock_category INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE transactions ADD COLUMN lock_tags INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE transactions ADD COLUMN lock_merchant INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE transactions ADD COLUMN lock_reason TEXT`,
+    `ALTER TABLE transactions ADD COLUMN locked_at TEXT`,
+  ];
+  for (const sql of addTxColumns) {
+    try { db.exec(sql); } catch (e) { /* already exists */ }
+  }
+
+  // Seed a default legacy ruleset once and pin existing rules into it.
+  const existingRuleSet = db.prepare(`SELECT id, is_active FROM rule_sets WHERE name = 'legacy_default' LIMIT 1`).get();
+  let legacyRuleSetId = existingRuleSet ? Number(existingRuleSet.id) : null;
+  if (!legacyRuleSetId) {
+    const info = db.prepare(`
+      INSERT INTO rule_sets (name, description, status, is_active, activated_at)
+      VALUES ('legacy_default', 'Auto-created baseline ruleset', 'active', 1, datetime('now'))
+    `).run();
+    legacyRuleSetId = Number(info.lastInsertRowid);
+  }
+  if (existingRuleSet && Number(existingRuleSet.is_active || 0) !== 1) {
+    db.prepare(`UPDATE rule_sets SET is_active = 0`).run();
+    db.prepare(`UPDATE rule_sets SET is_active = 1, status = 'active', activated_at = datetime('now') WHERE id = ?`).run(legacyRuleSetId);
+  }
+
+  db.prepare(`
+    UPDATE rules
+    SET
+      rule_set_id = COALESCE(rule_set_id, ?),
+      rule_tier = CASE
+        WHEN LOWER(COALESCE(rule_tier, '')) IN ('manual_fix','protected_core','generated_curated','legacy_archived','legacy_tag')
+          THEN rule_tier
+        WHEN LOWER(COALESCE(source, 'manual')) = 'manual' THEN 'protected_core'
+        WHEN LOWER(COALESCE(source, 'manual')) = 'learned' THEN 'generated_curated'
+        ELSE 'generated_curated'
+      END,
+      origin = CASE
+        WHEN LOWER(COALESCE(origin, '')) IN ('manual_fix','imported','generated','protected_migrated')
+          THEN origin
+        WHEN LOWER(COALESCE(source, 'manual')) = 'learned' THEN 'generated'
+        WHEN LOWER(COALESCE(source, 'manual')) = 'manual' THEN 'protected_migrated'
+        ELSE 'imported'
+      END,
+      match_semantics = CASE
+        WHEN LOWER(COALESCE(match_semantics, '')) IN ('token_default','substring_explicit','exact','starts_with','regex_safe')
+          THEN match_semantics
+        WHEN LOWER(COALESCE(match_type, 'contains_case_insensitive')) = 'contains_case_insensitive' THEN 'token_default'
+        WHEN LOWER(COALESCE(match_type, 'contains_case_insensitive')) = 'starts_with' THEN 'starts_with'
+        WHEN LOWER(COALESCE(match_type, 'contains_case_insensitive')) = 'exact' THEN 'exact'
+        WHEN LOWER(COALESCE(match_type, 'contains_case_insensitive')) = 'regex' THEN 'regex_safe'
+        ELSE 'token_default'
+      END
+  `).run(legacyRuleSetId);
+
+  db.prepare(`
+    UPDATE transactions
+    SET
+      lock_category = CASE
+        WHEN COALESCE(lock_category, 0) = 1 THEN 1
+        WHEN COALESCE(category_locked, 0) = 1 THEN 1
+        ELSE 0
+      END,
+      lock_tags = CASE
+        WHEN COALESCE(lock_tags, 0) = 1 THEN 1
+        WHEN COALESCE(tags_locked, 0) = 1 THEN 1
+        ELSE 0
+      END
+  `).run();
+
+  try {
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_rules_eval_v3 ON rules(is_enabled, rule_set_id, rule_tier, priority DESC, specificity_score DESC, id ASC)`);
+  } catch (e) { /* older sqlite build during bootstrap */ }
+  try {
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_lock_v3 ON transactions(lock_category, lock_tags, lock_merchant)`);
+  } catch (e) { /* older sqlite build during bootstrap */ }
 }
 
 module.exports = { getDb };

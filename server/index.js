@@ -13,9 +13,23 @@ const { seedRulesFromJson, recategorizeAll, detectRecurring } = require('./servi
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const rulesRouter = require('./routes/rules');
 
 // Middleware
-app.use(cors({ origin: 'http://localhost:5173' }));
+const defaultCorsOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const envCorsOrigins = String(process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((v) => v.trim())
+  .filter(Boolean);
+const allowedOrigins = [...new Set([...defaultCorsOrigins, ...envCorsOrigins])];
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true); // non-browser / same-origin tools
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // File upload config (memory storage)
@@ -27,7 +41,11 @@ getDb(); // Runs schema init
 // ─── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/categories',   require('./routes/categories'));
-app.use('/api/rules',        require('./routes/rules'));
+app.use('/api/rules',        rulesRouter);
+app.use('/api/rulesets',     (req, res, next) => {
+  req.url = `/rulesets${req.url}`;
+  return rulesRouter(req, res, next);
+});
 app.use('/api/tag-rules',    require('./routes/tag_rules'));
 app.use('/api/budgets',      require('./routes/budgets'));
 app.use('/api/analytics', require('./routes/analytics_v2'));
@@ -107,4 +125,5 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, () => {
   console.log(`\n🚀 Finance API running at http://localhost:${PORT}`);
   console.log(`   Endpoints: /api/transactions, /api/budgets, /api/analytics, /api/bills, /api/networth`);
+  console.log(`   CORS origins: ${allowedOrigins.join(', ')}`);
 });

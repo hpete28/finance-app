@@ -1,0 +1,9 @@
+{
+  "generated_at": "2026-02-28T02:17:15.668Z",
+  "rule_set_id": 2,
+  "scanned": 10555,
+  "changed_total": 8353,
+  "material_changes": 148,
+  "source_only_changes": 8205,
+  "notes": "Dry-run preview only. No transaction rows were modified."
+}
