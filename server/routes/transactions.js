@@ -510,6 +510,33 @@ router.get('/summary/monthly', (req, res) => {
   res.json(rows.reverse());
 });
 
+// GET /api/transactions/summary/filtered — aggregate summary for current filters (ignores pagination/sort)
+router.get('/summary/filtered', (req, res) => {
+  const db = getDb();
+  const { whereClause, params } = buildTransactionsQueryState(db, req.query);
+
+  const row = db.prepare(`
+    SELECT
+      COUNT(*) as count,
+      COALESCE(SUM(CASE WHEN t.amount < 0 THEN ABS(t.amount) ELSE 0 END), 0) as total_expense,
+      COALESCE(SUM(CASE WHEN t.amount > 0 THEN t.amount ELSE 0 END), 0) as total_income,
+      MIN(t.date) as first_date,
+      MAX(t.date) as last_date
+    FROM transactions t
+    JOIN accounts a ON a.id = t.account_id
+    LEFT JOIN categories c ON c.id = t.category_id
+    ${whereClause}
+  `).get(...params);
+
+  res.json({
+    count: Number(row?.count || 0),
+    total_expense: Number(row?.total_expense || 0),
+    total_income: Number(row?.total_income || 0),
+    first_date: row?.first_date || null,
+    last_date: row?.last_date || null,
+  });
+});
+
 // GET /api/transactions/transfer-candidates — suggest likely internal-transfer pairs
 router.get('/transfer-candidates', (req, res) => {
   const db = getDb();

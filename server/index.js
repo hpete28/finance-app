@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const { getDb } = require('./database');
 const { importCSV, ACCOUNT_MAP, guessAccountFromFilename } = require('./services/csvParser');
@@ -13,6 +14,7 @@ const { seedRulesFromJson, recategorizeAll, detectRecurring } = require('./servi
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
 const rulesRouter = require('./routes/rules');
 
 // Middleware
@@ -22,6 +24,28 @@ const envCorsOrigins = String(process.env.CORS_ORIGINS || '')
   .map((v) => v.trim())
   .filter(Boolean);
 const allowedOrigins = [...new Set([...defaultCorsOrigins, ...envCorsOrigins])];
+const basicAuthUser = String(process.env.PUBLIC_BASIC_AUTH_USER || '').trim();
+const basicAuthPass = String(process.env.PUBLIC_BASIC_AUTH_PASS || '').trim();
+const basicAuthEnabled = Boolean(basicAuthUser && basicAuthPass);
+
+function constantTimeEquals(a, b) {
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+function parseBasicAuth(authorization) {
+  if (!authorization || !authorization.startsWith('Basic ')) return null;
+  try {
+    const decoded = Buffer.from(authorization.slice(6), 'base64').toString('utf8');
+    const colon = decoded.indexOf(':');
+    if (colon < 0) return null;
+    return { user: decoded.slice(0, colon), pass: decoded.slice(colon + 1) };
+  } catch {
+    return null;
+  }
+}
 
 app.use(cors({
   origin(origin, callback) {
@@ -30,6 +54,21 @@ app.use(cors({
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
 }));
+app.use((req, res, next) => {
+  if (!basicAuthEnabled) return next();
+
+  const creds = parseBasicAuth(req.headers.authorization);
+  if (
+    creds &&
+    constantTimeEquals(creds.user, basicAuthUser) &&
+    constantTimeEquals(creds.pass, basicAuthPass)
+  ) {
+    return next();
+  }
+
+  res.setHeader('WWW-Authenticate', 'Basic realm="Finance App"');
+  return res.status(401).send('Authentication required');
+});
 app.use(express.json({ limit: '10mb' }));
 
 // File upload config (memory storage)
@@ -122,8 +161,17 @@ if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => res.sendFile(path.join(clientBuild, 'index.html')));
 }
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 Finance API running at http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+  console.log(`\n🚀 Finance API running at http://${displayHost}:${PORT}`);
+  if (HOST === '0.0.0.0') {
+    console.log(`   Listening on all interfaces (LAN/Tailscale reachable if firewall allows it).`);
+  }
+  if (basicAuthEnabled) {
+    console.log('   Public basic auth: enabled');
+  } else {
+    console.log('   Public basic auth: disabled');
+  }
   console.log(`   Endpoints: /api/transactions, /api/budgets, /api/analytics, /api/bills, /api/networth`);
   console.log(`   CORS origins: ${allowedOrigins.join(', ')}`);
 });

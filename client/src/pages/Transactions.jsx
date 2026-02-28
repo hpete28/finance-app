@@ -185,22 +185,32 @@ function MerchantSearch({ value, onChange, startDate, endDate }) {
 }
 
 // ─── Filter Summary Bar ────────────────────────────────────────────────────────
-function FilterSummary({ transactions, filterType }) {
-  if (!transactions.length) return null;
+function FilterSummary({ summary, fallbackTransactions, filterType }) {
+  const hasSummary = !!summary && Number(summary.count || 0) > 0;
+  if (!hasSummary && !fallbackTransactions.length) return null;
 
-  const expenses   = transactions.filter(t => t.amount < 0);
-  const income     = transactions.filter(t => t.amount > 0);
-  const totalExp   = expenses.reduce((s, t) => s + Math.abs(t.amount), 0);
-  const totalInc   = income.reduce((s, t) => s + t.amount, 0);
+  const totalExp = hasSummary
+    ? Number(summary.total_expense || 0)
+    : fallbackTransactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalInc = hasSummary
+    ? Number(summary.total_income || 0)
+    : fallbackTransactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
 
-  const dates = transactions.map(t => t.date).sort();
-  const first = new Date(dates[0] + 'T00:00:00');
-  const last  = new Date(dates[dates.length - 1] + 'T00:00:00');
+  const firstDate = hasSummary
+    ? summary.first_date
+    : fallbackTransactions.map(t => t.date).sort()[0];
+  const lastDate = hasSummary
+    ? summary.last_date
+    : fallbackTransactions.map(t => t.date).sort().slice(-1)[0];
+
+  const first = new Date(firstDate + 'T00:00:00');
+  const last  = new Date(lastDate + 'T00:00:00');
   const monthsSpanned = Math.max(1,
     (last.getFullYear() - first.getFullYear()) * 12 + (last.getMonth() - first.getMonth()) + 1
   );
   const monthlyAvg = filterType === 'income' ? totalInc / monthsSpanned : totalExp / monthsSpanned;
   const isIncome = filterType === 'income' || (totalInc > 0 && totalExp === 0);
+  const netSpent = totalExp - totalInc;
 
   return (
     <div className="flex items-center gap-6 px-5 py-3 rounded-xl text-sm animate-slide-up"
@@ -208,7 +218,7 @@ function FilterSummary({ transactions, filterType }) {
                border: isIncome ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(99,102,241,0.2)' }}>
       <div className="flex items-center gap-1.5">
         <span className="text-xs text-slate-500">Transactions:</span>
-        <span className="font-semibold text-slate-200">{transactions.length}</span>
+        <span className="font-semibold text-slate-200">{hasSummary ? Number(summary.count || 0) : fallbackTransactions.length}</span>
       </div>
       {isIncome && totalInc > 0 && (
         <>
@@ -223,7 +233,7 @@ function FilterSummary({ transactions, filterType }) {
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-slate-500">Over:</span>
             <span className="text-xs text-slate-300">{monthsSpanned} month{monthsSpanned !== 1 ? 's' : ''}</span>
-            <span className="text-xs text-slate-600">({formatDate(dates[0])} → {formatDate(dates[dates.length - 1])})</span>
+            <span className="text-xs text-slate-600">({formatDate(firstDate)} → {formatDate(lastDate)})</span>
           </div>
         </>
       )}
@@ -240,7 +250,7 @@ function FilterSummary({ transactions, filterType }) {
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-slate-500">Over:</span>
             <span className="text-xs text-slate-300">{monthsSpanned} month{monthsSpanned !== 1 ? 's' : ''}</span>
-            <span className="text-xs text-slate-600">({formatDate(dates[0])} → {formatDate(dates[dates.length - 1])})</span>
+            <span className="text-xs text-slate-600">({formatDate(firstDate)} → {formatDate(lastDate)})</span>
           </div>
         </>
       )}
@@ -248,6 +258,14 @@ function FilterSummary({ transactions, filterType }) {
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-slate-500">Income/refunds:</span>
           <span className="font-mono font-semibold text-emerald-400">{formatCurrency(totalInc)}</span>
+        </div>
+      )}
+      {!isIncome && (
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg" style={{ background: 'rgba(148,163,184,0.12)', border: '1px solid rgba(148,163,184,0.24)' }}>
+          <span className="text-xs text-slate-400">Net spent:</span>
+          <span className={`font-mono font-bold ${netSpent >= 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
+            {formatCurrency(netSpent)}
+          </span>
         </div>
       )}
     </div>
@@ -418,6 +436,7 @@ export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [total, setTotal]   = useState(0);
   const [pages, setPages]   = useState(1);
+  const [filteredSummary, setFilteredSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -591,9 +610,26 @@ export default function Transactions() {
     } finally { setLoading(false); }
   }, [buildTransactionParams]);
 
+  const loadFilteredSummary = useCallback(async () => {
+    try {
+      const params = buildTransactionParams({ includePagination: false });
+      const res = await transactionsApi.filteredSummary(params);
+      setFilteredSummary(res.data || null);
+    } catch {
+      setFilteredSummary(null);
+    }
+  }, [buildTransactionParams]);
+
   useEffect(() => { setPage(1); setSelected(new Set()); },
     [search, filterCategory, filterAccount, startDate, endDate, showUncategorized, filterType, amountSearch]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!hasFilters) {
+      setFilteredSummary(null);
+      return;
+    }
+    loadFilteredSummary();
+  }, [hasFilters, loadFilteredSummary]);
   useEffect(() => { categoriesApi.list().then(r => setCategories(r.data)); }, []);
   useEffect(() => { loadSavedTags(); }, [loadSavedTags]);
   useEffect(() => {
@@ -1188,7 +1224,7 @@ export default function Transactions() {
       </Card>
 
       {/* ── Summary Stats ── */}
-      {hasFilters && <FilterSummary transactions={transactions} filterType={filterType} />}
+      {hasFilters && <FilterSummary summary={filteredSummary} fallbackTransactions={transactions} filterType={filterType} />}
 
       {undoDelete && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border animate-slide-up"

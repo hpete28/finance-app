@@ -104,6 +104,60 @@ npm run dev
 - API: `http://localhost:3001`
 - Client: `http://localhost:5173`
 
+### 2.1) Access from LAN or Tailscale
+
+By default, Vite already listens on all interfaces, and the API now binds to `HOST=0.0.0.0`.
+
+1. In `server/.env`, set CORS for every frontend origin you will use:
+
+```bash
+CORS_ORIGINS=http://192.168.68.61:5173,http://100.100.159.67:5173
+```
+
+2. Start the app:
+
+```bash
+npm run dev
+```
+
+3. Open from another device:
+- LAN: `http://192.168.68.61:5173`
+- Tailscale: `http://100.100.159.67:5173`
+
+4. If it does not load, allow inbound TCP on Windows firewall for dev ports:
+
+```powershell
+netsh advfirewall firewall add rule name="Finance App 5173" dir=in action=allow protocol=TCP localport=5173
+netsh advfirewall firewall add rule name="Finance API 3001" dir=in action=allow protocol=TCP localport=3001
+```
+
+### 2.2) Public internet access with Tailscale Funnel (authenticated)
+
+This app has no built-in user accounts, so do not expose it publicly without auth.
+
+1. Set in `server/.env`:
+
+```bash
+PUBLIC_BASIC_AUTH_USER=your_user
+PUBLIC_BASIC_AUTH_PASS=your_strong_password
+HOST=0.0.0.0
+PORT=3001
+```
+
+2. Build client and run server in production mode:
+
+```bash
+npm run build
+npm run start
+```
+
+3. Publish via Tailscale Funnel (HTTPS 443 -> local 3001):
+
+```bash
+tailscale funnel --bg --https=443 http://127.0.0.1:3001
+tailscale funnel status
+```
+
 ### 2.5) Optional AI provider setup
 
 Create `server/.env` (or copy from `server/.env.example`). The server auto-loads this file on startup:
@@ -298,7 +352,7 @@ Core tables:
 
 ## ⚙️ Dev Notes
 
-- Default CORS origin is `http://localhost:5173` (`server/index.js`).
+- Default CORS origins are `http://localhost:5173` and `http://127.0.0.1:5173` (`server/index.js`).
 - SQLite DB file is `server/finance.db`.
 - Build client:
 
