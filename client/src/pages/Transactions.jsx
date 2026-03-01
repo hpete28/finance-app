@@ -478,6 +478,7 @@ export default function Transactions() {
   const [bulkTags, setBulkTags] = useState('');
   const [bulkTagMode, setBulkTagMode] = useState('append');
   const [bulkMerchant, setBulkMerchant] = useState('');
+  const [bulkCreateWinningRules, setBulkCreateWinningRules] = useState(false);
   const [savedTags, setSavedTags] = useState(DEFAULT_SAVED_TAGS);
   const [savingBulkEdits, setSavingBulkEdits] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -735,6 +736,9 @@ export default function Transactions() {
 
     if (bulkCategory) {
       payload.category_id = bulkCategory === '__uncategorized__' ? null : Number(bulkCategory);
+      if (payload.category_id !== null && bulkCreateWinningRules) {
+        payload.create_winning_rules = true;
+      }
       pendingChanges += 1;
     }
     if (parsedTags.length) {
@@ -757,11 +761,17 @@ export default function Transactions() {
       const { data } = await transactionsApi.bulk(payload);
       const changed = Number(data?.updated || selected.size);
       if (parsedTags.length) addTagsToSavedList(parsedTags);
-      showToast(`✅ Saved edits on ${changed} transaction${changed === 1 ? '' : 's'}`);
+      const createdRules = Number(data?.created_winning_rules || 0);
+      showToast(
+        createdRules > 0
+          ? `✅ Saved edits on ${changed} transaction${changed === 1 ? '' : 's'} · created ${createdRules} rule${createdRules === 1 ? '' : 's'}`
+          : `✅ Saved edits on ${changed} transaction${changed === 1 ? '' : 's'}`
+      );
       setBulkCategory('');
       setBulkTags('');
       setBulkTagMode('append');
       setBulkMerchant('');
+      setBulkCreateWinningRules(false);
       setSelected(new Set());
       await load();
       loadSavedTags();
@@ -1271,6 +1281,16 @@ export default function Transactions() {
               ))}
             </select>
             <input className="input text-xs w-44" value={bulkMerchant} onChange={e => setBulkMerchant(e.target.value)} placeholder="merchant/vendor" />
+            {bulkCategory && bulkCategory !== '__uncategorized__' && (
+              <label className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md" style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={bulkCreateWinningRules}
+                  onChange={(e) => setBulkCreateWinningRules(e.target.checked)}
+                />
+                Create winning rules (dedupe)
+              </label>
+            )}
             <button
               className="btn-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSaveBulkEdits}

@@ -1068,7 +1068,19 @@ router.patch('/:id/lock', (req, res) => {
 // POST /api/transactions/bulk — bulk update
 router.post('/bulk', (req, res) => {
   const db = getDb();
-  const { ids, category_id, tags, tags_mode = 'replace', reviewed, is_income_override, exclude_from_totals, merchant_name, is_transfer } = req.body;
+  const {
+    ids,
+    category_id,
+    tags,
+    tags_mode = 'replace',
+    reviewed,
+    is_income_override,
+    exclude_from_totals,
+    merchant_name,
+    is_transfer,
+    create_winning_rules,
+    manual_fix_options,
+  } = req.body;
   if (!ids || !ids.length) return res.status(400).json({ error: 'No IDs provided' });
 
   const placeholders = ids.map(() => '?').join(',');
@@ -1078,6 +1090,11 @@ router.post('/bulk', (req, res) => {
   const forceExclude = is_transfer === true || is_transfer === 1;
   const manualCategoryEdit = category_id !== undefined;
   const manualTagEdit = tags !== undefined;
+  const createWinningRules = manualCategoryEdit
+    && category_id !== null
+    && category_id !== ''
+    && Number.isFinite(Number(category_id))
+    && !!create_winning_rules;
 
   if (category_id !== undefined) { fields.push('category_id = ?'); vals.push(category_id || null); }
   if (tags !== undefined) {
@@ -1144,16 +1161,58 @@ router.post('/bulk', (req, res) => {
   }
 
   let updated = updatedViaAppend;
-  if (fields.length) {
-    const info = db.prepare(
-      `UPDATE transactions SET ${fields.join(', ')} WHERE id IN (${placeholders})`
-    ).run(...vals, ...ids);
-    updated = Math.max(updated, info.changes);
-  }
+  let createdRules = [];
+  let skippedRuleCreates = 0;
+  const activeRuleSetId = createWinningRules ? getActiveRuleSetId({}) : null;
+
+  db.transaction(() => {
+    if (fields.length) {
+      const info = db.prepare(
+        `UPDATE transactions SET ${fields.join(', ')} WHERE id IN (${placeholders})`
+      ).run(...vals, ...ids);
+      updated = Math.max(updated, info.changes);
+    }
+
+    if (createWinningRules && Number.isFinite(Number(activeRuleSetId))) {
+      const txRows = db.prepare(`
+        SELECT id, account_id, date, description, amount, merchant_name
+        FROM transactions
+        WHERE id IN (${placeholders})
+      `).all(...ids);
+      const categoryRow = db.prepare(`SELECT id, name FROM categories WHERE id = ?`).get(Number(category_id));
+
+      if (categoryRow) {
+        for (const tx of txRows) {
+          const payload = buildManualFixRuleFromTransaction({
+            tx: {
+              ...tx,
+              merchant_name: merchant_name !== undefined ? (merchant_name || null) : tx.merchant_name,
+            },
+            categoryId: Number(categoryRow.id),
+            categoryName: categoryRow.name,
+            options: {
+              amount_mode: manual_fix_options?.amount_mode,
+              priority: manual_fix_options?.priority,
+              rule_tier: manual_fix_options?.rule_tier,
+              origin: manual_fix_options?.origin,
+            },
+          });
+          const inserted = insertManualFixRule(db, payload, Number(activeRuleSetId));
+          if (inserted.created) createdRules.push({ id: inserted.id, transaction_id: tx.id, name: payload.name });
+          else skippedRuleCreates += 1;
+        }
+      }
+    }
+  })();
 
   if (!fields.length && !updatedViaAppend) return res.status(400).json({ error: 'No fields to update' });
 
-  res.json({ updated });
+  res.json({
+    updated,
+    created_winning_rules: createdRules.length,
+    skipped_winning_rules: skippedRuleCreates,
+    created_winning_rule_samples: createdRules.slice(0, 10),
+  });
 });
 
 // POST /api/transactions/:id/split — split a transaction
